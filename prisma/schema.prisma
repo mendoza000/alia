@@ -19,7 +19,10 @@ model User {
   image         String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  role          String   @default("patient")
+  role          String    @default("patient")
+  banned        Boolean   @default(false)
+  banReason     String?
+  banExpires    DateTime?
 
   sessions     Session[]
   accounts     Account[]

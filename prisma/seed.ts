@@ -1,7 +1,7 @@
 import "dotenv/config";
-import { PrismaClient } from "../src/generated/prisma/client.js";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
+import { PrismaClient } from "../src/generated/prisma/client.js";
 
 // Strip sslmode from URL (pg driver handles SSL via the ssl option)
 const connectionString = process.env.DIRECT_URL?.replace(
@@ -25,6 +25,9 @@ async function main() {
   await prisma.schedule.deleteMany();
   await prisma.coupon.deleteMany();
   await prisma.psychologist.deleteMany();
+  await prisma.session.deleteMany();
+  await prisma.account.deleteMany();
+  await prisma.user.deleteMany();
 
   // Create psychologists
   const maria = await prisma.psychologist.create({
@@ -124,6 +127,33 @@ async function main() {
       },
     ],
   });
+
+  // Create admin user with hashed password (using better-auth's hash utility)
+  const adminEmail = process.env.ADMIN_EMAIL ?? "admin@alia.com.co";
+  const adminPassword = process.env.ADMIN_PASSWORD ?? "admin123456";
+
+  const { hashPassword } = await import("better-auth/crypto/password");
+  const hashedPassword = await hashPassword(adminPassword);
+
+  const adminUser = await prisma.user.create({
+    data: {
+      name: "Administrador ALIA",
+      email: adminEmail,
+      emailVerified: true,
+      role: "admin",
+    },
+  });
+
+  await prisma.account.create({
+    data: {
+      accountId: adminUser.id,
+      providerId: "credential",
+      userId: adminUser.id,
+      password: hashedPassword,
+    },
+  });
+
+  console.log(`Seeded admin user: ${adminEmail}`);
 
   console.log("Seeded psychologists:");
   console.log(`  - ${maria.name} (${maria.slug})`);
