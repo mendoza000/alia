@@ -8,22 +8,22 @@
 ## Fase 0 — Setup y Fundamentos (Semana 1)
 
 ### 0.1 Configuración del proyecto
-- [ ] Inicializar proyecto Next.js con TypeScript y App Router
-- [ ] Configurar Tailwind CSS y sistema de diseño (colores, tipografías, espaciado del branding del cliente)
-- [ ] Configurar ESLint, Prettier
-- [ ] Crear repositorio en GitHub, configurar ramas (`main`, `develop`, `feature/*`)
+- [x] Inicializar proyecto Next.js con TypeScript y App Router
+- [x] Configurar Tailwind CSS y sistema de diseño (colores, tipografías, espaciado del branding del cliente)
+- [x] Configurar ESLint, Prettier
+- [x] Crear repositorio en GitHub, configurar ramas (`main`, `develop`, `feature/*`)
 
 ### 0.2 Base de datos — Supabase
-- [ ] Crear proyecto en Supabase
-- [ ] Obtener connection string de PostgreSQL (para Prisma)
-- [ ] Instalar y configurar Prisma ORM apuntando a Supabase
-- [ ] Crear schema inicial con los modelos: `Psychologist`, `Patient`, `Appointment`, `IntakeForm`, `Payment`, `User`, `Session`, `Account`, `AdminUser`
-- [ ] Ejecutar primera migración
-- [ ] Crear seed script con datos de prueba (2-3 psicólogos ficticios)
-- [ ] Configurar Supabase Storage:
+- [x] Crear proyecto en Supabase
+- [x] Obtener connection string de PostgreSQL (para Prisma)
+- [x] Instalar y configurar Prisma ORM apuntando a Supabase
+- [x] Crear schema inicial con los modelos: `Psychologist`, `Patient`, `Appointment`, `IntakeForm`, `Payment`, `User`, `Session`, `Account`, `AdminUser`
+- [x] Ejecutar primera migración
+- [x] Crear seed script con datos de prueba (2-3 psicólogos ficticios)
+- [x] Configurar Supabase Storage:
   - Crear bucket `psychologist-photos` (público)
   - Crear bucket `documents` (privado — para exportaciones de formularios)
-- [ ] Configurar Row Level Security (RLS) en tablas sensibles (`IntakeForm`, `Payment`):
+- [x] Configurar Row Level Security (RLS) en tablas sensibles (`IntakeForm`, `Payment`):
   - Admin tiene acceso completo
   - Pacientes solo ven sus propios registros
 
