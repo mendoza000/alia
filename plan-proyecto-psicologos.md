@@ -28,18 +28,18 @@
   - Pacientes solo ven sus propios registros
 
 ### 0.3 Autenticación
-- [ ] Instalar y configurar Better Auth
-- [ ] Configurar provider **Google OAuth** para pacientes:
+- [x] Instalar y configurar Better Auth
+- [x] Configurar provider **Google OAuth** para pacientes:
   - Crear proyecto en Google Cloud Console (o reutilizar el de Calendar API)
   - Obtener Client ID y Client Secret de OAuth 2.0
   - Configurar redirect URIs (localhost + dominio producción)
-- [ ] Configurar provider **Credentials** para administradores (email + contraseña)
-- [ ] Crear modelos en Prisma: `User` (pacientes, con googleId), `Session`, `Account`, `AdminUser`
-- [ ] Implementar página de login admin `/admin/login`
-- [ ] Implementar middleware de protección para rutas `/admin/*`
-- [ ] Implementar botón "Continuar con Google" para pacientes en el flujo de agendamiento
-- [ ] Implementar página básica `/mi-cuenta` (placeholder, se completa en Fase 3)
-- [ ] Crear layout base del panel admin (sidebar, header, navegación)
+- [x] Configurar provider **Credentials** para administradores (email + contraseña)
+- [x] Crear modelos en Prisma: `User` (pacientes, con googleId), `Session`, `Account`, `AdminUser`
+- [x] Implementar página de login admin `/admin/login`
+- [x] Implementar middleware de protección para rutas `/admin/*`
+- [x] Implementar botón "Continuar con Google" para pacientes en el flujo de agendamiento
+- [x] Implementar página básica `/mi-cuenta` (placeholder, se completa en Fase 3)
+- [x] Crear layout base del panel admin (sidebar, header, navegación)
 
 ### 0.4 Deploy inicial
 - [ ] Configurar proyecto en Vercel
