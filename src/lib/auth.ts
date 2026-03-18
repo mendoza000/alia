@@ -5,33 +5,33 @@ import { admin } from "better-auth/plugins";
 import { prisma } from "@/lib/db";
 
 export const auth = betterAuth({
-  database: prismaAdapter(prisma, {
-    provider: "postgresql",
-  }),
-  emailAndPassword: {
-    enabled: true,
-  },
-  socialProviders: {
-    google: {
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-    },
-  },
-  user: {
-    additionalFields: {
-      role: {
-        type: "string",
-        defaultValue: "patient",
-        input: false,
-      },
-    },
-  },
-  plugins: [
-    admin({
-      defaultRole: "patient",
+    database: prismaAdapter(prisma, {
+        provider: "postgresql",
     }),
-    nextCookies(), // must be last
-  ],
+    emailAndPassword: {
+        enabled: true,
+    },
+    socialProviders: {
+        google: {
+            clientId: process.env.GOOGLE_CLIENT_ID as string,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+        },
+    },
+    user: {
+        additionalFields: {
+            role: {
+                type: "string",
+                defaultValue: "patient",
+                input: false,
+            },
+        },
+    },
+    plugins: [
+        admin({
+            defaultRole: "patient",
+        }),
+        nextCookies(), // must be last
+    ],
 });
 
 export type Session = typeof auth.$Infer.Session;
