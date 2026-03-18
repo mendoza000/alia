@@ -1,37 +1,127 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.2.0/schema.json",
-  "vcs": {
-    "enabled": true,
-    "clientKind": "git",
-    "useIgnoreFile": true
-  },
-  "files": {
-    "ignoreUnknown": true,
-    "includes": ["**", "!node_modules", "!.next", "!dist", "!build"]
-  },
-  "formatter": {
-    "enabled": true,
-    "indentStyle": "space",
-    "indentWidth": 2
-  },
-  "linter": {
-    "enabled": true,
-    "rules": {
-      "recommended": true,
-      "suspicious": {
-        "noUnknownAtRules": "off"
-      }
+    "$schema": "https://biomejs.dev/schemas/2.4.4/schema.json",
+    "vcs": {
+        "enabled": true,
+        "clientKind": "git",
+        "useIgnoreFile": true
     },
-    "domains": {
-      "next": "recommended",
-      "react": "recommended"
+    "files": {
+        "ignoreUnknown": false
+    },
+    "formatter": {
+        "enabled": true,
+        "formatWithErrors": false,
+        "indentStyle": "space",
+        "indentWidth": 4,
+        "lineEnding": "lf",
+        "lineWidth": 80,
+        "attributePosition": "auto",
+        "bracketSameLine": false,
+        "bracketSpacing": true,
+        "expand": "auto",
+        "useEditorconfig": true,
+        "includes": [
+            "src/**",
+            "!.next",
+            "!next-env.d.ts",
+            "!node_modules",
+            "!yarn.lock",
+            "!package-lock.json",
+            "!public",
+            "!coverage",
+            "!scripts"
+        ]
+    },
+    "linter": {
+        "enabled": true,
+        "rules": {
+            "recommended": false,
+            "a11y": {
+                "noAccessKey": "error",
+                "noAriaUnsupportedElements": "error",
+                "noAutofocus": "error",
+                "noDistractingElements": "error",
+                "noHeaderScope": "error",
+                "noInteractiveElementToNoninteractiveRole": "error",
+                "noLabelWithoutControl": "error",
+                "noNoninteractiveElementToInteractiveRole": "error",
+                "noNoninteractiveTabindex": "error",
+                "noPositiveTabindex": "error",
+                "noRedundantAlt": "error",
+                "noRedundantRoles": "error",
+                "noStaticElementInteractions": "error",
+                "useAltText": "error",
+                "useAnchorContent": "error",
+                "useAriaActivedescendantWithTabindex": "error",
+                "useAriaPropsForRole": "error",
+                "useAriaPropsSupportedByRole": "error",
+                "useFocusableInteractive": "error",
+                "useHeadingContent": "error",
+                "useHtmlLang": "error",
+                "useIframeTitle": "error",
+                "useKeyWithClickEvents": "error",
+                "useKeyWithMouseEvents": "error",
+                "useMediaCaption": "error",
+                "useValidAnchor": "error",
+                "useValidAriaProps": "error",
+                "useValidAriaRole": "error",
+                "useValidAriaValues": "error",
+                "useValidAutocomplete": "error"
+            },
+            "correctness": {
+                "noUndeclaredVariables": "off",
+                "noUnusedVariables": "error"
+            },
+            "style": {
+                "noNestedTernary": "off",
+                "useBlockStatements": "off"
+            },
+            "suspicious": {
+                "noConsole": {
+                    "level": "error",
+                    "options": {
+                        "allow": ["assert", "error", "info", "warn"]
+                    }
+                },
+                "noExplicitAny": "off"
+            }
+        },
+        "includes": [
+            "frontend/**",
+            "!frontend/.next",
+            "!frontend/next-env.d.ts",
+            "!frontend/node_modules",
+            "!frontend/yarn.lock",
+            "!frontend/package-lock.json",
+            "!frontend/public",
+            "!frontend/coverage",
+            "!frontend/scripts"
+        ]
+    },
+    "javascript": {
+        "formatter": {
+            "jsxQuoteStyle": "double",
+            "quoteProperties": "asNeeded",
+            "trailingCommas": "all",
+            "semicolons": "always",
+            "arrowParentheses": "asNeeded",
+            "bracketSameLine": false,
+            "quoteStyle": "double",
+            "attributePosition": "auto",
+            "bracketSpacing": true
+        }
+    },
+    "html": {
+        "formatter": {
+            "selfCloseVoidElements": "always"
+        }
+    },
+    "assist": {
+        "enabled": true,
+        "actions": {
+            "source": {
+                "organizeImports": "off"
+            }
+        }
     }
-  },
-  "assist": {
-    "actions": {
-      "source": {
-        "organizeImports": "on"
-      }
-    }
-  }
 }
