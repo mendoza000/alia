@@ -60,11 +60,11 @@
 - [x] Implementar `Footer` (contacto, redes, legales)
 
 ### 1.2 Sección de psicólogos
-- [ ] Crear componente `PsychologistCard` (foto, nombre, especialidad, bio corta, tarifa, botón agendar)
-- [ ] Crear página/sección que lista los psicólogos desde la base de datos (SSR/SSG con ISR)
-- [ ] Crear página individual `/psicologos/[slug]` con perfil completo del psicólogo
-- [ ] Configurar Cloudinary (o S3) para almacenamiento de fotos de psicólogos
-- [ ] Implementar carga optimizada de imágenes (`next/image`)
+- [x] Crear componente `PsychologistCard` (foto, nombre, especialidad, bio corta, tarifa, botón agendar)
+- [x] Crear página/sección que lista los psicólogos desde la base de datos (SSR/SSG con ISR)
+- [x] Crear página individual `/psicologos/[slug]` con perfil completo del psicólogo
+- [x] Configurar Cloudinary (o S3) para almacenamiento de fotos de psicólogos
+- [x] Implementar carga optimizada de imágenes (`next/image`)
 
 ### 1.3 SEO y rendimiento
 - [ ] Configurar metadata (title, description, Open Graph) por página
