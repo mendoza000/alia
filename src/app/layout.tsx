@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { siteConfig } from "@/lib/seo";
 import "./globals.css";
 
 const kleinText = localFont({
@@ -15,9 +16,20 @@ const robechaDaniera = localFont({
 });
 
 export const metadata: Metadata = {
-    title: "ALIA - Tu psicólogo Aliado",
-    description:
-        "Plataforma de agendamiento de citas con psicólogos. Encuentra tu psicólogo aliado.",
+    metadataBase: new URL(siteConfig.url),
+    title: {
+        default: siteConfig.title,
+        template: `%s — ${siteConfig.name}`,
+    },
+    description: siteConfig.description,
+    openGraph: {
+        type: "website",
+        locale: siteConfig.locale,
+        siteName: siteConfig.name,
+    },
+    twitter: {
+        card: "summary_large_image",
+    },
 };
 
 export default function RootLayout({

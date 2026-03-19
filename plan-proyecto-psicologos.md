@@ -67,10 +67,10 @@
 - [x] Implementar carga optimizada de imágenes (`next/image`)
 
 ### 1.3 SEO y rendimiento
-- [ ] Configurar metadata (title, description, Open Graph) por página
-- [ ] Agregar schema markup (HealthBusiness, Person para psicólogos)
-- [ ] Generar sitemap.xml
-- [ ] Verificar Core Web Vitals (LCP < 3s)
+- [x] Configurar metadata (title, description, Open Graph) por página
+- [x] Agregar schema markup (HealthBusiness, Person para psicólogos)
+- [x] Generar sitemap.xml
+- [x] Verificar Core Web Vitals (LCP < 3s)
 
 **Entregable:** Landing page pública completa con psicólogos reales cargados desde DB.
 

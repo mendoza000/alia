@@ -6,6 +6,8 @@ import { computeMonthAvailability } from "@/lib/availability";
 import { TZDate } from "@date-fns/tz";
 import { startOfMonth, endOfMonth } from "date-fns";
 import { ProfileContent } from "./profile-content";
+import { JsonLd } from "@/components/seo/json-ld";
+import { siteConfig } from "@/lib/seo";
 
 export const revalidate = 3600;
 
@@ -21,13 +23,25 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const description = psychologist.bio.slice(0, 160);
 
     return {
-        title: `${psychologist.name} — ALIA`,
+        title: psychologist.name,
         description,
+        alternates: {
+            canonical: `/psicologos/${slug}`,
+        },
         openGraph: {
+            type: "profile",
             title: `${psychologist.name} — ALIA`,
             description,
             ...(psychologist.photoUrl && {
                 images: [{ url: psychologist.photoUrl }],
+            }),
+        },
+        twitter: {
+            card: "summary_large_image",
+            title: `${psychologist.name} — ALIA`,
+            description,
+            ...(psychologist.photoUrl && {
+                images: [psychologist.photoUrl],
             }),
         },
     };
@@ -64,11 +78,29 @@ export default async function PsychologistProfilePage({ params }: Props) {
     );
 
     return (
-        <ProfileContent
-            psychologist={psychologist}
-            initialAvailability={initialAvailability}
-            initialYear={year}
-            initialMonth={month}
-        />
+        <>
+            <JsonLd
+                data={{
+                    "@context": "https://schema.org",
+                    "@type": "Person",
+                    name: psychologist.name,
+                    description: psychologist.bio,
+                    ...(psychologist.photoUrl && {
+                        image: psychologist.photoUrl,
+                    }),
+                    jobTitle: `Psicólogo${psychologist.specialty ? ` — ${psychologist.specialty}` : ""}`,
+                    worksFor: {
+                        "@type": "Organization",
+                        name: siteConfig.name,
+                    },
+                }}
+            />
+            <ProfileContent
+                psychologist={psychologist}
+                initialAvailability={initialAvailability}
+                initialYear={year}
+                initialMonth={month}
+            />
+        </>
     );
 }
