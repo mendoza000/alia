@@ -53,11 +53,11 @@
 ## Fase 1 — Landing Page (Semana 2)
 
 ### 1.1 Estructura y componentes
-- [ ] Crear layout principal (`Header`, `Footer`, navegación responsive)
-- [ ] Implementar `HeroSection` con CTA principal "Agenda tu cita"
-- [ ] Implementar `HowItWorksSection` (pasos del flujo: elige → agenda → formulario → paga)
-- [ ] Implementar `FAQSection` (componente de acordeón)
-- [ ] Implementar `Footer` (contacto, redes, legales)
+- [x] Crear layout principal (`Header`, `Footer`, navegación responsive)
+- [x] Implementar `HeroSection` con CTA principal "Agenda tu cita"
+- [x] Implementar `HowItWorksSection` (pasos del flujo: elige → agenda → formulario → paga)
+- [x] Implementar `FAQSection` (componente de acordeón)
+- [x] Implementar `Footer` (contacto, redes, legales)
 
 ### 1.2 Sección de psicólogos
 - [ ] Crear componente `PsychologistCard` (foto, nombre, especialidad, bio corta, tarifa, botón agendar)
