@@ -52,7 +52,7 @@ export function FAQSection() {
                 <Accordion className="mt-12">
                     {faqs.map(faq => (
                         <AccordionItem key={faq.question} value={faq.question}>
-                            <AccordionTrigger className="py-5 text-base xl:text-lg">
+                            <AccordionTrigger className="py-5 text-base xl:text-lg font-sans">
                                 {faq.question}
                             </AccordionTrigger>
                             <AccordionContent>

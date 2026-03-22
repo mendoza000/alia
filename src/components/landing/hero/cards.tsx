@@ -43,7 +43,7 @@ export function ValueCard({ card }: { card: BentoCard }) {
                 <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent/15">
                     <Icon className="size-4 text-accent" />
                 </div>
-                <h3 className="text-base font-semibold lg:text-xl">
+                <h3 className="text-base font-semibold lg:text-xl font-sans">
                     {card.title}
                 </h3>
             </div>

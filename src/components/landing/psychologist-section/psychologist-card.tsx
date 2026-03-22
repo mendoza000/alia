@@ -69,7 +69,7 @@ export function PsychologistCard({
 
                 <Link
                     href={`/psicologos/${psychologist.slug}`}
-                    className="mt-2 font-heading text-lg font-bold transition-colors hover:text-accent"
+                    className="mt-2 font-heading text-lg font-bold transition-colors hover:text-accent font-sans"
                 >
                     {psychologist.name}
                 </Link>

@@ -137,10 +137,10 @@ export function HowItWorksSection() {
                                     <step.icon className="size-8 text-accent transition-transform duration-300 group-hover:scale-110 xl:size-9" />
                                 </motion.div>
 
-                                <h3 className="mt-4 font-semibold text-lg xl:text-xl">
+                                <h3 className="mt-4 font-semibold text-lg xl:text-lg font-sans">
                                     {step.title}
                                 </h3>
-                                <p className="mt-2 text-sm text-muted-foreground xl:text-base">
+                                <p className="mt-2 text-sm text-muted-foreground xl:text-md">
                                     {step.description}
                                 </p>
                             </motion.div>

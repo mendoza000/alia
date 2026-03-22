@@ -30,7 +30,7 @@ export const bentoCards: BentoCard[] = [
     {
         id: "value-2",
         type: "value",
-        title: "100% confidencial",
+        title: "Totalmente confidencial",
         description: "Tu información y sesiones son completamente privadas.",
         supportImg: "/support/support-img-5.png",
         bg: "bg-secondary/40",

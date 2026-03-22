@@ -26,7 +26,7 @@ export function HeroSection() {
             {/* Left side — Text content */}
             <div className="relative z-10 mb-12 lg:mb-0">
                 <motion.span
-                    className="text-sm uppercase font-semibold tracking-widest text-muted-foreground xl:text-base"
+                    className="text-sm uppercase font-semibold tracking-widest text-muted-foreground xl:text-base font-sans"
                     initial={{ opacity: 0, y: 20 }}
                     animate={inView ? { opacity: 1, y: 0 } : undefined}
                     transition={{ duration: 0.6, ease, delay: 0 }}
@@ -44,7 +44,7 @@ export function HeroSection() {
                 </motion.h1>
 
                 <motion.p
-                    className="mt-5 max-w-lg text-lg text-muted-foreground md:text-xl"
+                    className="mt-5 max-w-lg text-lg text-muted-foreground md:text-xl font-sans"
                     initial={{ opacity: 0, y: 20 }}
                     animate={inView ? { opacity: 1, y: 0 } : undefined}
                     transition={{ duration: 0.6, ease, delay: 0.2 }}
