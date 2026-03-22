@@ -7,6 +7,7 @@ import { authClient } from "@/lib/auth-client";
 
 export function SignOutButton({
     redirectTo = "/",
+    children,
     ...props
 }: { redirectTo?: string } & Omit<
     React.ComponentProps<typeof Button>,
@@ -26,10 +27,10 @@ export function SignOutButton({
             variant="ghost"
             size="sm"
             onClick={handleSignOut}
-            disabled={loading}
+            isLoading={loading}
             {...props}
         >
-            {loading ? "Cerrando sesión..." : "Cerrar sesión"}
+            {children ?? "Cerrar sesión"}
         </Button>
     );
 }
