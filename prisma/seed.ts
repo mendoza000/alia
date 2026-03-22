@@ -35,6 +35,8 @@ async function main() {
       name: "María Alejandra Torres",
       slug: "maria-alejandra-torres",
       email: "maria.torres@alia.com.co",
+      photoUrl:
+        "https://hqatzpberpxebsemokrs.supabase.co/storage/v1/object/public/psychologist-photos/woman1.jpg",
       phone: "+57 310 555 1234",
       specialty: "Ansiedad y Depresión",
       bio: "Psicóloga clínica con más de 8 años de experiencia en el tratamiento de trastornos de ansiedad y depresión. Especialista en terapia cognitivo-conductual (TCC) con enfoque en adultos jóvenes. Apasionada por crear un espacio seguro donde cada persona pueda explorar sus emociones y desarrollar herramientas para el bienestar emocional.",
@@ -61,6 +63,8 @@ async function main() {
       name: "Carlos Andrés Mejía",
       slug: "carlos-andres-mejia",
       email: "carlos.mejia@alia.com.co",
+      photoUrl:
+        "https://hqatzpberpxebsemokrs.supabase.co/storage/v1/object/public/psychologist-photos/men1.jpg",
       phone: "+57 315 555 5678",
       specialty: "Terapia de Pareja y Familia",
       bio: "Psicólogo con maestría en terapia familiar sistémica. Más de 10 años ayudando a parejas y familias a mejorar su comunicación y resolver conflictos. Creo firmemente que las relaciones saludables son la base del bienestar emocional. Mi enfoque integra técnicas sistémicas con herramientas prácticas para el día a día.",
@@ -86,6 +90,8 @@ async function main() {
       name: "Valentina Ríos Hernández",
       slug: "valentina-rios-hernandez",
       email: "valentina.rios@alia.com.co",
+      photoUrl:
+        "https://hqatzpberpxebsemokrs.supabase.co/storage/v1/object/public/psychologist-photos/woman2.jpg",
       phone: "+57 320 555 9012",
       specialty: "Trauma y Estrés Postraumático",
       bio: "Psicóloga clínica especializada en el abordaje del trauma con enfoque en EMDR y terapia narrativa. Cuento con 6 años de experiencia trabajando con personas que han vivido experiencias difíciles. Mi objetivo es acompañarte en tu proceso de sanación con calidez, respeto y profesionalismo.",
@@ -132,7 +138,7 @@ async function main() {
   const adminEmail = process.env.ADMIN_EMAIL ?? "admin@alia.com.co";
   const adminPassword = process.env.ADMIN_PASSWORD ?? "admin123456";
 
-  const { hashPassword } = await import("better-auth/crypto/password");
+  const { hashPassword } = await import("better-auth/crypto");
   const hashedPassword = await hashPassword(adminPassword);
 
   const adminUser = await prisma.user.create({
