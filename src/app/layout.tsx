@@ -3,12 +3,6 @@ import localFont from "next/font/local";
 import { siteConfig } from "@/lib/seo";
 import "./globals.css";
 
-const kleinText = localFont({
-    src: "../../public/fonts/Klein-Text-Book-trial.ttf",
-    variable: "--font-sans",
-    display: "swap",
-});
-
 const robechaDaniera = localFont({
     src: "../../public/fonts/Robecha Daniera-Regular.ttf",
     variable: "--font-heading",
@@ -38,10 +32,8 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="es">
-            <body
-                className={`${kleinText.variable} ${robechaDaniera.variable} antialiased`}
-            >
+        <html lang="es" className={robechaDaniera.variable}>
+            <body className="antialiased">
                 {children}
             </body>
         </html>

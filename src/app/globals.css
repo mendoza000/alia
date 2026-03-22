@@ -1,3 +1,11 @@
+@font-face {
+    font-family: "Klein Text Book";
+    src: url("/fonts/Klein-Text-Book-trial.ttf") format("truetype");
+    font-display: swap;
+    unicode-range: U+0041-005A, U+0061-007A, U+00C0-024F, U+0020-002F,
+        U+003A-0040, U+005B-0060, U+007B-007E, U+00A0-00BF;
+}
+
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -7,7 +15,7 @@
 @theme inline {
     --color-background: var(--background);
     --color-foreground: var(--foreground);
-    --font-sans: var(--font-sans);
+    --font-sans: "Klein Text Book", system-ui, sans-serif;
     --font-heading: var(--font-heading);
     --font-mono: var(--font-geist-mono);
     --color-sidebar-ring: var(--sidebar-ring);
@@ -128,6 +136,9 @@
     html {
         @apply font-sans;
         scroll-behavior: smooth;
+    }
+    h1, h2, h3, h4, h5, h6 {
+        @apply font-heading;
     }
     section[id] {
         scroll-margin-top: 5rem;
