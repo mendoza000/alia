@@ -5,6 +5,7 @@ import { admin } from "better-auth/plugins";
 import { prisma } from "@/lib/db";
 
 export const auth = betterAuth({
+    trustedOrigins: process.env.BETTER_AUTH_TRUSTED_ORIGINS?.split(",") ?? [],
     database: prismaAdapter(prisma, {
         provider: "postgresql",
     }),
