@@ -95,9 +95,9 @@
 - [x] Vista previa de disponibilidad semanal
 
 ### 2.3 Upload de imágenes
-- [ ] Implementar servicio de upload a Supabase Storage (bucket `psychologist-photos`)
-- [ ] Generar URL pública de la imagen para mostrar en landing
-- [ ] Componente de upload con preview y crop en formulario de psicólogo
+- [x] Implementar servicio de upload a Supabase Storage (bucket `psychologist-photos`)
+- [x] Generar URL pública de la imagen para mostrar en landing
+- [x] Componente de upload con preview y crop en formulario de psicólogo
 
 **Entregable:** Admin puede crear, editar, activar/desactivar y eliminar psicólogos con horarios y fotos.
 
