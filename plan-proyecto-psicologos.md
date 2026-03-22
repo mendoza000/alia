@@ -42,9 +42,9 @@
 - [x] Crear layout base del panel admin (sidebar, header, navegación)
 
 ### 0.4 Deploy inicial
-- [ ] Configurar proyecto en Vercel
-- [ ] Conectar variables de entorno (Supabase URL, Supabase anon key, Supabase service role key, Better Auth secret, Google OAuth credentials)
-- [ ] Primer deploy funcional (landing placeholder + login admin)
+- [x] Configurar proyecto en Vercel
+- [x] Conectar variables de entorno (Supabase URL, Supabase anon key, Supabase service role key, Better Auth secret, Google OAuth credentials)
+- [x] Primer deploy funcional (landing placeholder + login admin)
 
 **Entregable:** Proyecto corriendo en Vercel con login de admin funcional y base de datos conectada.
 
@@ -79,20 +79,20 @@
 ## Fase 2 — Panel Admin: Gestión de Psicólogos (Semana 3)
 
 ### 2.1 CRUD de psicólogos
-- [ ] Página `/admin/psicologos` — tabla con lista de psicólogos (nombre, especialidad, estado, acciones)
-- [ ] Página `/admin/psicologos/nuevo` — formulario de creación
+- [x] Página `/admin/psicologos` — tabla con lista de psicólogos (nombre, especialidad, estado, acciones)
+- [x] Página `/admin/psicologos/nuevo` — formulario de creación
   - Campos: nombre, email, foto (upload), especialidad, biografía, tarifa por sesión, duración de sesión
-- [ ] Página `/admin/psicologos/[id]/editar` — formulario de edición
-- [ ] Acción de activar/desactivar psicólogo (soft delete)
-- [ ] Acción de eliminar psicólogo (con confirmación)
-- [ ] Server Actions o API Routes para cada operación CRUD
+- [x] Página `/admin/psicologos/[id]/editar` — formulario de edición
+- [x] Acción de activar/desactivar psicólogo (soft delete)
+- [x] Acción de eliminar psicólogo (con confirmación)
+- [x] Server Actions o API Routes para cada operación CRUD
 
 ### 2.2 Gestión de horarios
-- [ ] Componente de configuración de horarios semanales por psicólogo
+- [x] Componente de configuración de horarios semanales por psicólogo
   - Para cada día de la semana: activo/inactivo, hora inicio, hora fin
   - Posibilidad de agregar múltiples bloques por día (ej. mañana y tarde)
-- [ ] Almacenar horarios en DB (JSON o tabla relacionada `Schedule`)
-- [ ] Vista previa de disponibilidad semanal
+- [x] Almacenar horarios en DB (JSON o tabla relacionada `Schedule`)
+- [x] Vista previa de disponibilidad semanal
 
 ### 2.3 Upload de imágenes
 - [ ] Implementar servicio de upload a Supabase Storage (bucket `psychologist-photos`)
