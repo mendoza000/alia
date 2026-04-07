@@ -1,11 +1,13 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { getFreeBusyPeriods } from "@/lib/google-calendar";
+import { getCachedFreeBusyPeriods } from "@/lib/google-calendar";
 import {
+    appointmentsToBusyPeriods,
     computeMonthAvailability,
     type MonthAvailability,
 } from "@/lib/availability";
+import { getBlockingAppointments } from "@/lib/queries/appointments";
 import { TZDate } from "@date-fns/tz";
 import { endOfMonth, startOfMonth } from "date-fns";
 
@@ -27,19 +29,25 @@ export async function getMonthAvailability(
     const timeMin = startOfMonth(firstDay);
     const timeMax = endOfMonth(firstDay);
 
-    let busyPeriods: { start: Date; end: Date }[] = [];
+    const [calendarBusy, appointments] = await Promise.all([
+        psychologist.calendarId
+            ? getCachedFreeBusyPeriods(
+                  psychologist.calendarId,
+                  timeMin,
+                  timeMax,
+              )
+            : Promise.resolve([]),
+        getBlockingAppointments(psychologist.id, timeMin, timeMax),
+    ]);
 
-    if (psychologist.calendarId) {
-        busyPeriods = await getFreeBusyPeriods(
-            psychologist.calendarId,
-            timeMin,
-            timeMax,
-        );
-    }
+    const allBusyPeriods = [
+        ...calendarBusy,
+        ...appointmentsToBusyPeriods(appointments),
+    ];
 
     return computeMonthAvailability(
         psychologist.schedules,
-        busyPeriods,
+        allBusyPeriods,
         year,
         month,
         psychologist.sessionDuration,

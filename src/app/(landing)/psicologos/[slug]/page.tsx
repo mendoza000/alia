@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPsychologistBySlug } from "@/lib/queries/psychologists";
-import { getFreeBusyPeriods } from "@/lib/google-calendar";
-import { computeMonthAvailability } from "@/lib/availability";
+import { getCachedFreeBusyPeriods } from "@/lib/google-calendar";
+import {
+    appointmentsToBusyPeriods,
+    computeMonthAvailability,
+} from "@/lib/availability";
+import { getBlockingAppointments } from "@/lib/queries/appointments";
 import { TZDate } from "@date-fns/tz";
 import { startOfMonth, endOfMonth } from "date-fns";
 import { ProfileContent } from "./profile-content";
@@ -60,18 +64,25 @@ export default async function PsychologistProfilePage({ params }: Props) {
     const timeMin = startOfMonth(firstDay);
     const timeMax = endOfMonth(firstDay);
 
-    let busyPeriods: { start: Date; end: Date }[] = [];
-    if (psychologist.calendarId) {
-        busyPeriods = await getFreeBusyPeriods(
-            psychologist.calendarId,
-            timeMin,
-            timeMax,
-        );
-    }
+    const [calendarBusy, appointments] = await Promise.all([
+        psychologist.calendarId
+            ? getCachedFreeBusyPeriods(
+                  psychologist.calendarId,
+                  timeMin,
+                  timeMax,
+              )
+            : Promise.resolve([]),
+        getBlockingAppointments(psychologist.id, timeMin, timeMax),
+    ]);
+
+    const allBusyPeriods = [
+        ...calendarBusy,
+        ...appointmentsToBusyPeriods(appointments),
+    ];
 
     const initialAvailability = computeMonthAvailability(
         psychologist.schedules,
-        busyPeriods,
+        allBusyPeriods,
         year,
         month,
         psychologist.sessionDuration,

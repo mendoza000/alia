@@ -63,6 +63,26 @@ export function generateTimeSlots(
     return slots;
 }
 
+export function appointmentsToBusyPeriods(
+    appointments: { dateTime: Date; endTime: Date }[],
+): { start: Date; end: Date }[] {
+    return appointments.map(a => ({ start: a.dateTime, end: a.endTime }));
+}
+
+export function filterPastSlots(
+    slots: TimeSlot[],
+    dateStr: string,
+    now: Date,
+): TimeSlot[] {
+    const nowInBogota = new TZDate(now, BOGOTA_TZ);
+    const todayStr = format(nowInBogota, "yyyy-MM-dd");
+
+    if (dateStr !== todayStr) return slots;
+
+    const nowMinutes = nowInBogota.getHours() * 60 + nowInBogota.getMinutes();
+    return slots.filter(slot => timeToMinutes(slot.start) > nowMinutes);
+}
+
 export function subtractBusyPeriods(
     slots: TimeSlot[],
     busyPeriods: { start: Date; end: Date }[],
@@ -125,11 +145,8 @@ export function computeMonthAvailability(
         }
 
         const allSlots = generateTimeSlots(daySchedules, sessionDuration);
-        const availableSlots = subtractBusyPeriods(
-            allSlots,
-            busyPeriods,
-            dateStr,
-        );
+        const afterBusy = subtractBusyPeriods(allSlots, busyPeriods, dateStr);
+        const availableSlots = filterPastSlots(afterBusy, dateStr, now);
 
         result[dateStr] = {
             date: dateStr,
