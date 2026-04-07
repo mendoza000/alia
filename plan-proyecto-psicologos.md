@@ -106,32 +106,32 @@
 ## Fase 3 — Sistema de Agendamiento (Semanas 4–5)
 
 ### 3.1 Motor de disponibilidad
-- [ ] Crear función `getAvailableSlots(psychologistId, date)`:
+- [x] Crear función `getAvailableSlots(psychologistId, date)`:
   1. Lee horarios base del psicólogo desde DB (ej. lunes 9-12, 14-18)
   2. Lee citas confirmadas desde DB → descarta esos slots
   3. **Consulta Google Calendar FreeBusy API** para el calendario del psicólogo → descarta bloques ocupados (eventos personales, bloqueos manuales del psicólogo)
   4. Excluye horarios pasados
   5. Retorna solo los slots libres en las tres fuentes
-- [ ] API Route: `GET /api/availability?psychologistId=X&date=YYYY-MM-DD`
-- [ ] Implementar caché corto (5 min) para FreeBusy queries para no exceder quotas
-- [ ] Tests unitarios para la lógica de disponibilidad (slots normales, slots bloqueados por Calendar, slots con cita existente)
+- [x] API Route: `GET /api/availability?psychologistId=X&date=YYYY-MM-DD`
+- [x] Implementar caché corto (5 min) para FreeBusy queries para no exceder quotas
+- [x] Tests unitarios para la lógica de disponibilidad (slots normales, slots bloqueados por Calendar, slots con cita existente)
 
 ### 3.2 UI de agendamiento (público)
-- [ ] Página `/agendar` o `/agendar/[psychologistSlug]`
-- [ ] Paso 1: Selector de psicólogo (si no viene preseleccionado)
-- [ ] **Paso 1.5: Gate de autenticación** — si el usuario no tiene sesión, mostrar pantalla de "Continuar con Google" antes de seguir. Redirect post-login de vuelta al flujo con el psicólogo preseleccionado.
-- [ ] Paso 2: Calendario mensual interactivo
+- [x] Página `/agendar` o `/agendar/[psychologistSlug]`
+- [x] Paso 1: Selector de psicólogo (si no viene preseleccionado)
+- [x] **Paso 1.5: Gate de autenticación** — si el usuario no tiene sesión, mostrar pantalla de "Continuar con Google" antes de seguir. Redirect post-login de vuelta al flujo con el psicólogo preseleccionado.
+- [x] Paso 2: Calendario mensual interactivo
   - Mostrar días con disponibilidad destacados
   - Al seleccionar día, mostrar slots de hora disponibles
-- [ ] Paso 3: Resumen de selección (psicólogo, fecha, hora, duración, precio)
-- [ ] Botón "Continuar al formulario"
-- [ ] Crear registro de `Appointment` en estado `pending_form`
+- [x] Paso 3: Resumen de selección (psicólogo, fecha, hora, duración, precio)
+- [x] Botón "Continuar al formulario"
+- [x] Crear registro de `Appointment` en estado `pending_form`
 
 ### 3.3 Formulario de Inventario de Vida
-- [ ] Mapear campos 1:1 del formulario de Ponic.io proporcionado por el cliente
-- [ ] **Prellenar nombre y email desde la sesión de Google del paciente**
-- [ ] Si el paciente ya tiene citas previas, prellenar teléfono y datos básicos guardados
-- [ ] Implementar formulario multi-paso o en secciones:
+- [x] Mapear campos 1:1 del formulario de Ponic.io proporcionado por el cliente
+- [x] **Prellenar nombre y email desde la sesión de Google del paciente**
+- [x] Si el paciente ya tiene citas previas, prellenar teléfono y datos básicos guardados
+- [x] Implementar formulario multi-paso o en secciones:
   - Datos personales
   - Motivo de consulta
   - Historial de salud mental
@@ -139,20 +139,20 @@
   - Situación familiar / red de apoyo
   - Expectativas de terapia
   - Consentimiento informado (checkbox obligatorio)
-- [ ] Validación client-side y server-side de todos los campos
-- [ ] Guardar formulario en DB (`IntakeForm`) vinculado al `Appointment`
-- [ ] Actualizar estado de cita a `pending_payment`
-- [ ] Botón "Continuar al pago"
+- [x] Validación client-side y server-side de todos los campos
+- [x] Guardar formulario en DB (`IntakeForm`) vinculado al `Appointment`
+- [x] Actualizar estado de cita a `pending_payment`
+- [x] Botón "Continuar al pago"
 
 ### 3.4 Bloqueo temporal de slots
-- [ ] Al iniciar el proceso de agendamiento, bloquear el slot temporalmente (15 min)
-- [ ] Liberar automáticamente si no se completa el flujo (cron job o TTL)
-- [ ] Mostrar mensaje si el slot expira durante el proceso
+- [x] Al iniciar el proceso de agendamiento, bloquear el slot temporalmente (15 min)
+- [x] Liberar automáticamente si no se completa el flujo (cron job o TTL)
+- [x] Mostrar mensaje si el slot expira durante el proceso
 
 ### 3.5 Portal del paciente
-- [ ] Página `/mi-cuenta` — datos del paciente (nombre, email de Google, teléfono)
-- [ ] Página `/mi-cuenta/citas` — lista de citas pasadas y futuras con estado
-- [ ] Middleware de protección para rutas `/mi-cuenta/*` (requiere sesión de Google)
+- [x] Página `/mi-cuenta` — datos del paciente (nombre, email de Google, teléfono)
+- [x] Página `/mi-cuenta/citas` — lista de citas pasadas y futuras con estado
+- [x] Middleware de protección para rutas `/mi-cuenta/*` (requiere sesión de Google)
 
 **Entregable:** Un paciente puede seleccionar psicólogo, fecha/hora, llenar el formulario completo. La cita queda en estado pending_payment.
 
