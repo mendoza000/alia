@@ -127,6 +127,7 @@ model Appointment {
   dateTime       DateTime
   endTime        DateTime
   status         AppointmentStatus @default(PENDING_FORM)
+  expiresAt      DateTime?
   googleEventId  String?
   notes          String?           @db.Text
   createdAt      DateTime          @default(now())
