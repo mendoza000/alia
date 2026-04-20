@@ -12,7 +12,7 @@ const freeBusyCache = new Map<string, CacheEntry>();
 const auth = new google.auth.JWT({
     email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
     key: process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-    scopes: ["https://www.googleapis.com/auth/calendar.readonly"],
+    scopes: ["https://www.googleapis.com/auth/calendar"],
 });
 
 const calendar = google.calendar({ version: "v3", auth });
@@ -46,6 +46,80 @@ export async function getFreeBusyPeriods(
     } catch (error) {
         console.error("FreeBusy API error:", error);
         return [];
+    }
+}
+
+type CalendarEventInput = {
+    summary: string;
+    description: string;
+    startDateTime: Date;
+    endDateTime: Date;
+};
+
+export async function createCalendarEvent(
+    calendarId: string,
+    event: CalendarEventInput,
+): Promise<string | null> {
+    try {
+        const response = await calendar.events.insert({
+            calendarId,
+            requestBody: {
+                summary: event.summary,
+                description: event.description,
+                start: {
+                    dateTime: event.startDateTime.toISOString(),
+                    timeZone: "America/Bogota",
+                },
+                end: {
+                    dateTime: event.endDateTime.toISOString(),
+                    timeZone: "America/Bogota",
+                },
+            },
+        });
+        return response.data.id ?? null;
+    } catch (error) {
+        console.error("Calendar event creation error:", error);
+        return null;
+    }
+}
+
+export async function deleteCalendarEvent(
+    calendarId: string,
+    eventId: string,
+): Promise<void> {
+    try {
+        await calendar.events.delete({ calendarId, eventId });
+    } catch (error: unknown) {
+        // Ignore 404 — event already deleted or never existed
+        const status = (error as { code?: number })?.code;
+        if (status !== 404) {
+            console.error("Calendar event deletion error:", error);
+        }
+    }
+}
+
+export async function updateCalendarEvent(
+    calendarId: string,
+    eventId: string,
+    { startDateTime, endDateTime }: { startDateTime: Date; endDateTime: Date },
+): Promise<void> {
+    try {
+        await calendar.events.patch({
+            calendarId,
+            eventId,
+            requestBody: {
+                start: {
+                    dateTime: startDateTime.toISOString(),
+                    timeZone: "America/Bogota",
+                },
+                end: {
+                    dateTime: endDateTime.toISOString(),
+                    timeZone: "America/Bogota",
+                },
+            },
+        });
+    } catch (error) {
+        console.error("Calendar event update error:", error);
     }
 }
 
