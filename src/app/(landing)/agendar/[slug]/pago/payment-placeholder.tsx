@@ -5,11 +5,32 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { motion } from "motion/react";
 import { toast } from "sonner";
-import { CheckCircle2Icon } from "lucide-react";
+import { CalendarPlusIcon, CheckCircle2Icon } from "lucide-react";
 import { ease } from "@/lib/motion";
 import { BookingStepper } from "@/components/booking/booking-stepper";
 import { Button } from "@/components/ui/button";
 import { simulatePayment } from "./actions";
+
+function buildGoogleCalendarUrl(
+    dateTime: string,
+    sessionDuration: number,
+    psychologistName: string,
+): string {
+    const start = new Date(dateTime);
+    const end = new Date(start.getTime() + sessionDuration * 60 * 1000);
+
+    const fmt = (d: Date) =>
+        d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+
+    const params = new URLSearchParams({
+        action: "TEMPLATE",
+        text: `Consulta ALIA — ${psychologistName}`,
+        dates: `${fmt(start)}/${fmt(end)}`,
+        details: `Cita de psicología con ${psychologistName} a través de ALIA`,
+    });
+
+    return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
 
 const currencyFormat = new Intl.NumberFormat("es-CO", {
     style: "currency",
@@ -100,6 +121,19 @@ export function PaymentPlaceholder({
                     <p className="mt-4 text-sm text-muted-foreground">
                         Recibirás un correo de confirmación con los detalles.
                     </p>
+                    <a
+                        href={buildGoogleCalendarUrl(
+                            dateTime,
+                            sessionDuration,
+                            psychologistName,
+                        )}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-4 inline-flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-secondary"
+                    >
+                        <CalendarPlusIcon className="size-4" />
+                        Agregar a Google Calendar
+                    </a>
                 </motion.div>
             ) : (
                 <div>

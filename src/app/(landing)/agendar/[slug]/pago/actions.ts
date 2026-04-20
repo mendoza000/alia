@@ -3,6 +3,11 @@
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { createAppointmentEvent } from "@/lib/calendar-events";
+import {
+    sendAppointmentConfirmation,
+    sendNewAppointmentNotification,
+} from "@/lib/email";
 
 type SimulateResult = { success: true } | { success: false; error: string };
 
@@ -52,6 +57,19 @@ export async function simulatePayment(
             data: { status: "CONFIRMED" },
         }),
     ]);
+
+    try {
+        await createAppointmentEvent(appointmentId);
+    } catch (err) {
+        console.error("Google Calendar event creation failed:", err);
+    }
+
+    try {
+        await sendAppointmentConfirmation(appointmentId);
+        await sendNewAppointmentNotification(appointmentId);
+    } catch (err) {
+        console.error("Email sending failed:", err);
+    }
 
     return { success: true };
 }
