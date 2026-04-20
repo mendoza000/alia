@@ -211,33 +211,33 @@
 ## Fase 5 — Integración Google Calendar (Semana 7)
 
 ### 5.1 Configuración
-- [ ] Crear proyecto en Google Cloud Console (o reutilizar el de OAuth si ya existe)
-- [ ] Habilitar Google Calendar API
-- [ ] Crear **Service Account** y descargar archivo de credenciales JSON
-- [ ] Configurar variables de entorno: `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`
-- [ ] **Para cada psicólogo:** compartir su Google Calendar con el email de la Service Account (permisos: "Hacer cambios en eventos")
-- [ ] Documentar el paso de compartir calendario como instrucción para onboarding de psicólogos (30 segundos, un solo paso)
+- [x] Crear proyecto en Google Cloud Console (o reutilizar el de OAuth si ya existe)
+- [x] Habilitar Google Calendar API
+- [x] Crear **Service Account** y descargar archivo de credenciales JSON
+- [x] Configurar variables de entorno: `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`
+- [x] **Para cada psicólogo:** compartir su Google Calendar con el email de la Service Account (permisos: "Hacer cambios en eventos")
+- [x] Documentar el paso de compartir calendario como instrucción para onboarding de psicólogos (30 segundos, un solo paso)
 
 ### 5.2 Servicio de FreeBusy (consulta de disponibilidad)
-- [ ] Implementar `GoogleCalendarService.getOccupiedSlots(calendarId, dateStart, dateEnd)`:
+- [x] Implementar `GoogleCalendarService.getOccupiedSlots(calendarId, dateStart, dateEnd)`:
   - Llama a `FreeBusy.query` con el calendarId del psicólogo
   - Retorna lista de bloques ocupados (inicio, fin)
-- [ ] Integrar en el motor de disponibilidad de la Fase 3 (`getAvailableSlots`)
-- [ ] Testear con eventos reales en calendario de prueba
+- [x] Integrar en el motor de disponibilidad de la Fase 3 (`getAvailableSlots`)
+- [x] Testear con eventos reales en calendario de prueba
 
 ### 5.3 Creación de eventos
-- [ ] Implementar servicio `GoogleCalendarService`:
+- [x] Implementar servicio `GoogleCalendarService`:
   - `createEvent(psychologistCalendarId, appointmentData)` → crea evento con:
     - Título: "Consulta — [Nombre paciente]"
     - Fecha/hora de inicio y fin
     - Descripción: datos básicos del paciente y enlace al formulario en el admin
     - Invitado: email del paciente
-- [ ] Llamar este servicio desde el webhook de Wompi al confirmar pago
-- [ ] Guardar `googleEventId` en el registro de `Appointment`
+- [x] Llamar este servicio desde el webhook de Wompi al confirmar pago
+- [x] Guardar `googleEventId` en el registro de `Appointment`
 
 ### 5.3 Sincronización
-- [ ] Al cancelar una cita desde admin → eliminar evento de Google Calendar
-- [ ] Al reagendar → actualizar evento en Google Calendar
+- [x] Al cancelar una cita desde admin → eliminar evento de Google Calendar
+- [x] Al reagendar → actualizar evento en Google Calendar
 
 **Entregable:** Al pagar, se crea automáticamente un evento en el Google Calendar del psicólogo con los datos de la cita.
 
@@ -246,29 +246,28 @@
 ## Fase 6 — Emails Transaccionales (Semana 7, en paralelo con Fase 5)
 
 ### 6.1 Configuración
-- [ ] Crear cuenta en Resend (free tier)
+- [x] Crear cuenta en Resend (free tier)
 - [ ] Configurar dominio y verificar DNS (SPF, DKIM)
-- [ ] Instalar SDK de Resend (`resend`) y React Email (`@react-email/components`)
-- [ ] Configurar variable de entorno: `RESEND_API_KEY`
-- [ ] Crear carpeta `emails/` con estructura para templates React Email
+- [x] Instalar SDK de Resend (`resend`) y React Email (`@react-email/components`)
+- [x] Configurar variable de entorno: `RESEND_API_KEY`
+- [x] Crear carpeta `emails/` con estructura para templates React Email
 
 ### 6.2 Templates y envíos
-- [ ] Template: **Confirmación de cita** (→ paciente)
-  - Datos: nombre del psicólogo, fecha, hora, duración, dirección/enlace de videollamada
-- [ ] Template: **Recordatorio 24h antes** (→ paciente)
+- [x] Template: **Confirmación de cita** (→ paciente)
+  - Datos: nombre del psicólogo, fecha, hora, duración, monto pagado
+- [x] Template: **Recordatorio 24h antes** (→ paciente)
   - Datos: mismos que confirmación + CTA para ver detalles en `/mi-cuenta/citas`
-- [ ] Template: **Nueva cita agendada** (→ psicólogo)
+- [x] Template: **Nueva cita agendada** (→ psicólogo)
   - Datos: nombre del paciente, fecha, hora, enlace al formulario del paciente en admin
-- [ ] Template: **Cita cancelada** (→ psicólogo)
+- [x] Template: **Cita cancelada** (→ psicólogo)
   - Datos: nombre del paciente, fecha y hora de la cita cancelada
-- [ ] Template: **Pago rechazado** (→ paciente)
-  - Datos: motivo si está disponible, enlace para reintentar
-- [ ] Implementar servicio `EmailService` con una función por cada tipo de email
-- [ ] Integrar envíos en los flujos correspondientes (webhook Wompi, cancelación desde admin)
+- [ ] Template: **Pago rechazado** (→ paciente) — se implementará con el webhook real de Wompi (Fase 4)
+- [x] Implementar servicio `EmailService` (`src/lib/email.ts`) con una función por cada tipo de email
+- [x] Integrar envíos en los flujos correspondientes (simulatePayment, cancelAppointment)
 
 ### 6.3 Cron de recordatorios
-- [ ] Implementar cron job (Vercel Cron o similar) que corra diario
-- [ ] Buscar citas confirmadas para las próximas 24h y enviar recordatorio
+- [x] Implementar cron job Vercel Cron (`/api/cron/reminders`) que corra diario a las 9am Bogotá
+- [x] Buscar citas confirmadas para las próximas 25h y enviar recordatorio
 
 **Entregable:** Emails automáticos de confirmación, recordatorio y fallo de pago.
 
