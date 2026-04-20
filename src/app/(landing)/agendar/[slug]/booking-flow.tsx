@@ -20,7 +20,6 @@ import { AvailabilityCalendar } from "@/components/availability/availability-cal
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { useSession, signOut } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { BookingStepper } from "@/components/booking/booking-stepper";
 import { createAppointment } from "./actions";
 
@@ -71,8 +70,7 @@ export function BookingFlow({
     const isAuthenticated = !!session?.user;
 
     const currentStep: Step = useMemo(() => {
-        if (!hasSelection) return "calendar";
-        if (isSessionPending) return "auth";
+        if (!hasSelection || isSessionPending) return "calendar";
         if (!isAuthenticated) return "auth";
         return "summary";
     }, [hasSelection, isSessionPending, isAuthenticated]);
@@ -109,9 +107,10 @@ export function BookingFlow({
                 return;
             }
 
-            router.push(
-                `/agendar/${psychologist.slug}/formulario?appointmentId=${result.appointmentId}`,
-            );
+            const path = result.skipForm
+                ? `/agendar/${psychologist.slug}/pago?appointmentId=${result.appointmentId}`
+                : `/agendar/${psychologist.slug}/formulario?appointmentId=${result.appointmentId}`;
+            router.push(path);
         });
     }, [
         selectedDate,
@@ -173,7 +172,6 @@ export function BookingFlow({
                             selectedDate={selectedDate!}
                             selectedTime={selectedTime!}
                             callbackURL={callbackURL}
-                            isSessionPending={isSessionPending}
                             onChangeSlot={handleChangeSlot}
                         />
                     </motion.div>
@@ -244,14 +242,12 @@ function AuthStep({
     selectedDate,
     selectedTime,
     callbackURL,
-    isSessionPending,
     onChangeSlot,
 }: {
     psychologistName: string;
     selectedDate: string;
     selectedTime: string;
     callbackURL: string;
-    isSessionPending: boolean;
     onChangeSlot: () => void;
 }) {
     const formattedDate = format(
@@ -272,19 +268,12 @@ function AuthStep({
                     </p>
                 </div>
 
-                {isSessionPending ? (
-                    <div className="space-y-3">
-                        <Skeleton className="h-5 w-3/4 mx-auto" />
-                        <Skeleton className="h-11 w-full" />
-                    </div>
-                ) : (
-                    <div className="text-center">
-                        <p className="mb-4 text-sm text-muted-foreground">
-                            Inicia sesión para continuar con tu agendamiento
-                        </p>
-                        <GoogleSignInButton callbackURL={callbackURL} />
-                    </div>
-                )}
+                <div className="text-center">
+                    <p className="mb-4 text-sm text-muted-foreground">
+                        Inicia sesión para continuar con tu agendamiento
+                    </p>
+                    <GoogleSignInButton callbackURL={callbackURL} />
+                </div>
 
                 <button
                     type="button"

@@ -23,6 +23,10 @@ import { FormDatePicker } from "@/components/form/form-date-picker";
 import { Button } from "@/components/ui/button";
 import { submitIntakeForm } from "./actions";
 
+function str(v: unknown): string {
+    return typeof v === "string" ? v : "";
+}
+
 const SECTIONS = [
     {
         title: "Datos personales",
@@ -60,7 +64,7 @@ type IntakeFormFlowProps = {
     psychologistSlug: string;
     userName: string;
     userEmail: string;
-    priorPhone: string;
+    priorData: Record<string, unknown> | null;
     expiresAt: string | null;
 };
 
@@ -69,7 +73,7 @@ export function IntakeFormFlow({
     psychologistSlug,
     userName,
     userEmail,
-    priorPhone,
+    priorData,
     expiresAt,
 }: IntakeFormFlowProps) {
     const router = useRouter();
@@ -109,20 +113,20 @@ export function IntakeFormFlow({
         defaultValues: {
             fullName: userName ?? "",
             email: userEmail ?? "",
-            phone: priorPhone ?? "",
-            dateOfBirth: "",
-            gender: "",
-            maritalStatus: "",
-            occupation: "",
+            phone: str(priorData?.phone),
+            dateOfBirth: str(priorData?.dateOfBirth),
+            gender: str(priorData?.gender),
+            maritalStatus: str(priorData?.maritalStatus),
+            occupation: str(priorData?.occupation),
             consultationReason: "",
-            previousTherapy: undefined,
-            previousTherapyDetails: "",
-            currentMedication: undefined,
-            currentMedicationDetails: "",
-            medicalHistory: "",
-            livingWith: "",
-            supportNetwork: "",
-            therapyExpectations: "",
+            previousTherapy: str(priorData?.previousTherapy),
+            previousTherapyDetails: str(priorData?.previousTherapyDetails),
+            currentMedication: str(priorData?.currentMedication),
+            currentMedicationDetails: str(priorData?.currentMedicationDetails),
+            medicalHistory: str(priorData?.medicalHistory),
+            livingWith: str(priorData?.livingWith),
+            supportNetwork: str(priorData?.supportNetwork),
+            therapyExpectations: str(priorData?.therapyExpectations),
             informedConsent: false,
             privacyPolicy: false,
         },

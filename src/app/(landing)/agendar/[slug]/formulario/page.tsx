@@ -64,9 +64,7 @@ export default async function IntakeFormPage({ params, searchParams }: Props) {
             psychologistSlug={slug}
             userName={session.user.name}
             userEmail={session.user.email}
-            priorPhone={
-                typeof priorData?.phone === "string" ? priorData.phone : ""
-            }
+            priorData={priorData}
             expiresAt={appointment.expiresAt?.toISOString() ?? null}
         />
     );

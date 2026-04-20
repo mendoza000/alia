@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import type { Prisma } from "@/generated/prisma/client";
 import { createAppointmentSchema } from "@/lib/validators/appointment";
 import { getBlockingAppointments } from "@/lib/queries/appointments";
 import { getCachedFreeBusyPeriods } from "@/lib/google-calendar";
@@ -17,7 +18,7 @@ import { TZDate } from "@date-fns/tz";
 import { getDay, addMinutes } from "date-fns";
 
 type CreateAppointmentResult =
-    | { success: true; appointmentId: string }
+    | { success: true; appointmentId: string; skipForm: boolean }
     | { success: false; error: string };
 
 export async function createAppointment(input: {
@@ -147,7 +148,31 @@ export async function createAppointment(input: {
             });
         });
 
-        return { success: true, appointmentId: appointment.id };
+        // Check if patient has a prior intake form to skip the form step
+        const existingForm = await prisma.intakeForm.findFirst({
+            where: { userId: session.user.id },
+            orderBy: { createdAt: "desc" },
+            select: { data: true },
+        });
+
+        if (existingForm) {
+            await prisma.$transaction([
+                prisma.intakeForm.create({
+                    data: {
+                        appointmentId: appointment.id,
+                        userId: session.user.id,
+                        data: existingForm.data as Prisma.InputJsonValue,
+                    },
+                }),
+                prisma.appointment.update({
+                    where: { id: appointment.id },
+                    data: { status: "PENDING_PAYMENT", expiresAt: null },
+                }),
+            ]);
+            return { success: true, appointmentId: appointment.id, skipForm: true };
+        }
+
+        return { success: true, appointmentId: appointment.id, skipForm: false };
     } catch (error) {
         if (error instanceof Error && error.message === "SLOT_TAKEN") {
             return {
