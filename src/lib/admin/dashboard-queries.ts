@@ -40,6 +40,7 @@ export async function getDashboardStats() {
 		revenueResult,
 		revenuePrevResult,
 		activePsychologists,
+		topPsychologistResult,
 	] = await Promise.all([
 		prisma.appointment.count({
 			where: {
@@ -79,7 +80,29 @@ export async function getDashboardStats() {
 		prisma.psychologist.count({
 			where: { isActive: true },
 		}),
+		prisma.appointment.groupBy({
+			by: ["psychologistId"],
+			where: {
+				dateTime: { gte: monthStart },
+				status: { in: ["CONFIRMED", "COMPLETED"] },
+			},
+			_count: { id: true },
+			orderBy: { _count: { id: "desc" } },
+			take: 1,
+		}),
 	]);
+
+	let topPsychologist: { name: string; appointmentCount: number } | null = null;
+	if (topPsychologistResult.length > 0) {
+		const top = topPsychologistResult[0];
+		const psych = await prisma.psychologist.findUnique({
+			where: { id: top.psychologistId },
+			select: { name: true },
+		});
+		if (psych) {
+			topPsychologist = { name: psych.name, appointmentCount: top._count.id };
+		}
+	}
 
 	return {
 		appointmentsToday,
@@ -89,6 +112,7 @@ export async function getDashboardStats() {
 		revenueThisMonth: revenueResult._sum.finalAmount ?? 0,
 		revenuePreviousMonth: revenuePrevResult._sum.finalAmount ?? 0,
 		activePsychologists,
+		topPsychologist,
 	};
 }
 

@@ -4,6 +4,7 @@ import {
 	Calendar,
 	DollarSign,
 	Stethoscope,
+	TrendingUp,
 	UsersRound,
 } from "lucide-react";
 import { headers } from "next/headers";
@@ -92,6 +93,18 @@ export default async function AdminDashboardPage() {
 			borderColor: "border-primary-foreground/15",
 			variant: "dark" as const,
 		},
+		...(stats.topPsychologist
+			? [
+					{
+						title: "Más agendado este mes",
+						value: stats.topPsychologist.name.split(" ").slice(0, 2).join(" "),
+						icon: TrendingUp,
+						bgColor: "bg-accent/20",
+						borderColor: "border-accent/30",
+						description: `${stats.topPsychologist.appointmentCount} citas este mes`,
+					},
+				]
+			: []),
 	];
 
 	return (
@@ -123,7 +136,7 @@ export default async function AdminDashboardPage() {
 			</div>
 
 			{/* Stat Cards */}
-			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5">
 				{statCards.map((card, i) => (
 					<AnimatedCard key={card.title} delay={0.1 + i * 0.08}>
 						<StatCard
