@@ -5,11 +5,13 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { motion } from "motion/react";
 import { toast } from "sonner";
-import { CalendarPlusIcon, CheckCircle2Icon } from "lucide-react";
+import { CalendarPlusIcon, CheckCircle2Icon, TagIcon, XCircleIcon } from "lucide-react";
 import { ease } from "@/lib/motion";
 import { BookingStepper } from "@/components/booking/booking-stepper";
 import { Button } from "@/components/ui/button";
-import { simulatePayment } from "./actions";
+import { Input } from "@/components/ui/input";
+import { simulatePayment, validateCoupon } from "./actions";
+import type { ValidateCouponResult } from "./actions";
 
 function buildGoogleCalendarUrl(
     dateTime: string,
@@ -48,6 +50,8 @@ type PaymentPlaceholderProps = {
     alreadyConfirmed?: boolean;
 };
 
+type AppliedCoupon = Extract<ValidateCouponResult, { success: true }>;
+
 export function PaymentPlaceholder({
     appointmentId,
     psychologistName,
@@ -58,7 +62,11 @@ export function PaymentPlaceholder({
     alreadyConfirmed = false,
 }: PaymentPlaceholderProps) {
     const [isPaying, startPayment] = useTransition();
+    const [isValidating, startValidation] = useTransition();
     const [confirmed, setConfirmed] = useState(alreadyConfirmed);
+    const [couponCode, setCouponCode] = useState("");
+    const [couponError, setCouponError] = useState<string | null>(null);
+    const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
 
     const date = new Date(dateTime);
     const formattedDate = format(date, "EEEE d 'de' MMMM, yyyy", {
@@ -66,9 +74,34 @@ export function PaymentPlaceholder({
     });
     const formattedTime = format(date, "HH:mm");
 
+    const finalAmount = appliedCoupon ? appliedCoupon.finalAmount : sessionRate;
+
+    function handleApplyCoupon() {
+        if (!couponCode.trim()) return;
+        setCouponError(null);
+        startValidation(async () => {
+            const result = await validateCoupon(couponCode.trim(), sessionRate);
+            if (!result.success) {
+                setCouponError(result.error);
+                return;
+            }
+            setAppliedCoupon(result);
+            setCouponCode("");
+        });
+    }
+
+    function handleRemoveCoupon() {
+        setAppliedCoupon(null);
+        setCouponError(null);
+        setCouponCode("");
+    }
+
     function handleSimulatePayment() {
         startPayment(async () => {
-            const result = await simulatePayment(appointmentId);
+            const result = await simulatePayment(
+                appointmentId,
+                appliedCoupon?.couponId,
+            );
 
             if (!result.success) {
                 toast.error(result.error);
@@ -190,14 +223,74 @@ export function PaymentPlaceholder({
                                     {sessionDuration} min
                                 </span>
                             </div>
-                            <div className="border-t border-border pt-3">
-                                <div className="flex justify-between text-base font-semibold">
-                                    <span>Total</span>
-                                    <span>
+                            <div className="border-t border-border pt-3 space-y-2">
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Subtotal</span>
+                                    <span className={appliedCoupon ? "line-through text-muted-foreground" : "font-semibold"}>
                                         {currencyFormat.format(sessionRate)}
                                     </span>
                                 </div>
+                                {appliedCoupon && (
+                                    <div className="flex justify-between text-emerald-600">
+                                        <span>Descuento ({appliedCoupon.discountPercent}%)</span>
+                                        <span>−{currencyFormat.format(appliedCoupon.discountAmount)}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between text-base font-semibold border-t border-border pt-2">
+                                    <span>Total</span>
+                                    <span>{currencyFormat.format(finalAmount)}</span>
+                                </div>
                             </div>
+                        </div>
+
+                        {/* Coupon section */}
+                        <div className="mt-5 border-t border-border pt-5">
+                            <p className="mb-2 text-sm font-medium">Cupón de descuento</p>
+                            {appliedCoupon ? (
+                                <div className="flex items-center justify-between rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700 border border-emerald-200">
+                                    <div className="flex items-center gap-2">
+                                        <TagIcon className="size-4" />
+                                        <span className="font-medium">{appliedCoupon.code}</span>
+                                        <span className="text-emerald-600">−{appliedCoupon.discountPercent}%</span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleRemoveCoupon}
+                                        className="text-emerald-500 hover:text-emerald-700"
+                                        aria-label="Quitar cupón"
+                                    >
+                                        <XCircleIcon className="size-4" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="flex gap-2">
+                                    <Input
+                                        value={couponCode}
+                                        onChange={(e) => {
+                                            setCouponCode(e.target.value.toUpperCase());
+                                            setCouponError(null);
+                                        }}
+                                        onKeyDown={(e) => e.key === "Enter" && handleApplyCoupon()}
+                                        placeholder="Ej. BIENVENIDA20"
+                                        className="h-9 flex-1 uppercase text-sm"
+                                        disabled={isValidating}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleApplyCoupon}
+                                        isLoading={isValidating}
+                                        disabled={!couponCode.trim()}
+                                        className="h-9"
+                                    >
+                                        Aplicar
+                                    </Button>
+                                </div>
+                            )}
+                            {couponError && (
+                                <p className="mt-1.5 text-xs text-destructive">{couponError}</p>
+                            )}
                         </div>
 
                         <Button
