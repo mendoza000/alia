@@ -276,27 +276,27 @@
 ## Fase 7 — Panel Admin: Citas, Formularios y Finanzas (Semana 8)
 
 ### 7.1 Gestión de citas
-- [ ] Página `/admin/citas` — tabla con filtros (fecha, psicólogo, estado)
+- [x] Página `/admin/citas` — tabla con filtros (fecha, psicólogo, estado)
 - [ ] Vista de calendario (vista semanal/mensual)
-- [ ] Detalle de cita: datos del paciente, estado, pago asociado, enlace al formulario
-- [ ] Acciones: cancelar cita, marcar como completada, marcar no-show
+- [x] Detalle de cita: datos del paciente, estado, pago asociado, enlace al formulario
+- [x] Acciones: cancelar cita, marcar como completada, marcar no-show
 
 ### 7.2 Formularios de pacientes
-- [ ] Página `/admin/formularios` — lista con filtros (paciente, psicólogo, fecha)
-- [ ] Vista detallada del formulario completo de cada paciente
-- [ ] Botón de exportar a PDF
-- [ ] Botón de exportar lista a CSV
+- [x] Página `/admin/formularios` — lista con filtros (paciente, psicólogo, fecha)
+- [x] Vista detallada del formulario completo de cada paciente
+- [x] Botón de exportar a PDF
+- [x] Botón de exportar lista a CSV
 
 ### 7.3 Pagos y finanzas
-- [ ] Página `/admin/pagos` — lista de transacciones con estado y filtros
-- [ ] Página `/admin/finanzas` — vista por psicólogo:
+- [x] Página `/admin/pagos` — lista de transacciones con estado y filtros
+- [x] Página `/admin/finanzas` — vista por psicólogo:
   - Total recaudado (período seleccionable)
   - Número de consultas realizadas
   - Saldo a favor (total - comisiones de plataforma si aplica)
   - Tabla comparativa entre psicólogos
 
 ### 7.4 Dashboard principal
-- [ ] Página `/admin` (dashboard):
+- [x] Página `/admin` (dashboard):
   - Citas de hoy / esta semana
   - Ingresos del mes
   - Psicólogo más agendado del mes
@@ -305,11 +305,11 @@
   - Últimas 5 citas agendadas
 
 ### 7.5 Gestión de cupones
-- [ ] Modelo `Coupon` en Prisma: code (único), discountPercent, expiresAt, maxUses, currentUses, isActive
-- [ ] Página `/admin/cupones` — tabla con lista de cupones (código, descuento, vencimiento, usos, estado)
-- [ ] Página `/admin/cupones/nuevo` — formulario de creación
-- [ ] Editar y desactivar cupones existentes
-- [ ] Métricas por cupón: veces usado, monto total descontado
+- [x] Modelo `Coupon` en Prisma: code (único), discountPercent, expiresAt, maxUses, currentUses, isActive
+- [x] Página `/admin/cupones` — tabla con lista de cupones (código, descuento, vencimiento, usos, estado)
+- [x] Página `/admin/cupones/nuevo` — formulario de creación (en Sheet)
+- [x] Editar y desactivar cupones existentes
+- [x] Métricas por cupón: veces usado, monto total descontado
 
 **Entregable:** Panel admin completo con toda la información de citas, formularios, pagos, cupones y métricas.
 
