@@ -12,11 +12,11 @@ export function CredentialBadges({ animate }: { animate: boolean }) {
     ];
 
     return (
-        <div className="flex items-end gap-3 lg:gap-4">
+        <div className="flex items-end gap-2">
             {credentials.map((cred, i) => (
                 <motion.div
                     key={i}
-                    className={`relative flex w-32 flex-col gap-1.5 rounded-lg bg-background p-3 ring-1 ring-border/40 sm:w-36 sm:p-3.5 lg:w-44 lg:p-5 ${i === 2 ? "hidden sm:flex" : ""}`}
+                    className={`relative flex w-24 flex-col gap-1 rounded-lg bg-background p-2.5 ring-1 ring-border/40 sm:w-28 sm:p-3 ${i === 2 ? "hidden sm:flex" : ""}`}
                     initial={{ opacity: 0, y: 30, rotate: 0, scale: 0.85 }}
                     animate={
                         animate
@@ -51,7 +51,7 @@ export function CredentialBadges({ animate }: { animate: boolean }) {
                     }}
                 >
                     <div className="flex items-center gap-2">
-                        <div className="size-8 shrink-0 rounded-full bg-secondary/80 lg:size-9" />
+                        <div className="size-6 shrink-0 rounded-full bg-secondary/80" />
                         <div className="flex flex-1 flex-col gap-1.5">
                             <motion.div
                                 className="h-2 rounded-full bg-secondary/60"

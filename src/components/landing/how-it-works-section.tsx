@@ -6,6 +6,7 @@ import {
     CalendarCheck,
     ClipboardList,
     CreditCard,
+    MailCheck,
     UserSearch,
 } from "lucide-react";
 import { ease } from "@/lib/motion";
@@ -28,9 +29,16 @@ const steps = [
         description: "Cuéntanos sobre ti para personalizar tu experiencia.",
     },
     {
+        icon: MailCheck,
+        title: "Revisa tu cita",
+        description:
+            "Recibe la confirmación al instante con todos los detalles de tu sesión.",
+    },
+    {
         icon: CreditCard,
         title: "Realiza tu pago",
-        description: "Pago seguro en línea. Recibe confirmación al instante.",
+        description:
+            "Después de tu sesión, recibe el enlace de pago y confirma en línea.",
     },
 ];
 
@@ -70,10 +78,10 @@ export function HowItWorksSection() {
                 </motion.div>
 
                 {/* Steps */}
-                <div className="relative mt-14 flex flex-col items-center gap-2 sm:grid sm:grid-cols-2 sm:items-start sm:gap-8 lg:grid-cols-4">
+                <div className="relative mt-14 flex flex-col items-center gap-2 sm:grid sm:grid-cols-2 sm:gap-8 lg:grid-cols-5">
                     {/* Animated gradient connector line (lg+ only) */}
                     <motion.div
-                        className="pointer-events-none absolute top-10 right-[calc(12.5%+1rem)] left-[calc(12.5%+1rem)] hidden h-px bg-gradient-to-r from-border via-accent/40 to-border lg:block"
+                        className="pointer-events-none absolute top-10 right-[calc(10%+1rem)] left-[calc(10%+1rem)] hidden h-px bg-gradient-to-r from-border via-accent/40 to-border lg:block"
                         initial={{ scaleX: 0, opacity: 0 }}
                         animate={inView ? { scaleX: 1, opacity: 1 } : undefined}
                         transition={{ duration: 1.2, ease, delay: 0.5 }}
@@ -112,7 +120,7 @@ export function HowItWorksSection() {
                                     ease,
                                     delay: i * 0.15,
                                 }}
-                                className="group relative flex w-full max-w-xs flex-col items-center rounded-lg bg-card px-5 pb-6 pt-8 text-center ring-1 ring-border/50 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:ring-accent/30 sm:max-w-none"
+                                className="group relative flex h-full w-full max-w-xs flex-col items-center rounded-lg bg-card px-5 pb-6 pt-8 text-center ring-1 ring-border/50 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:ring-accent/30 sm:max-w-none"
                             >
                                 {/* Step number pill */}
                                 <span className="absolute -top-3 inline-flex size-7 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">

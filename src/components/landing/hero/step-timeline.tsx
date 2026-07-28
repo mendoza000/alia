@@ -60,7 +60,7 @@ export function StepTimeline({ animate }: { animate: boolean }) {
 
                                 {/* Main circle */}
                                 <motion.div
-                                    className="relative flex size-10 items-center justify-center rounded-full bg-accent/10 ring-1 ring-accent/20 sm:size-12 lg:size-16"
+                                    className="relative flex size-8 items-center justify-center rounded-full bg-accent/10 ring-1 ring-accent/20 sm:size-10"
                                     initial={{ scale: 0, opacity: 0 }}
                                     animate={
                                         animate
@@ -89,7 +89,7 @@ export function StepTimeline({ animate }: { animate: boolean }) {
                                             delay: step.iconDelay,
                                         }}
                                     >
-                                        <StepIcon className="size-4 text-accent sm:size-5 lg:size-6" />
+                                        <StepIcon className="size-3.5 text-accent sm:size-4" />
                                     </motion.div>
                                 </motion.div>
 
@@ -117,7 +117,7 @@ export function StepTimeline({ animate }: { animate: boolean }) {
 
                             {/* Label */}
                             <motion.span
-                                className="text-sm text-muted-foreground"
+                                className="text-xs text-muted-foreground"
                                 initial={{ opacity: 0, y: 6 }}
                                 animate={
                                     animate ? { opacity: 1, y: 0 } : undefined
@@ -134,9 +134,9 @@ export function StepTimeline({ animate }: { animate: boolean }) {
 
                         {/* Connecting line */}
                         {i < 2 && (
-                            <div className="relative mx-1.5 sm:mx-3 lg:mx-4">
+                            <div className="relative mx-1.5 sm:mx-2">
                                 {/* Background track */}
-                                <div className="h-0.5 w-10 rounded-full bg-border/50 sm:w-14 lg:w-20" />
+                                <div className="h-0.5 w-7 rounded-full bg-border/50 sm:w-10" />
 
                                 {/* Animated gradient fill */}
                                 <motion.div

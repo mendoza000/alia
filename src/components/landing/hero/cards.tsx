@@ -3,7 +3,6 @@
 import { useRef } from "react";
 import { useInView } from "motion/react";
 import Image from "next/image";
-import { Check } from "lucide-react";
 import type { BentoCard } from "./types";
 import { CredentialBadges } from "./credential-badges";
 import { FingerprintAnimation } from "./fingerprint-animation";
@@ -21,8 +20,8 @@ export function PhotoCard({ card }: { card: BentoCard }) {
                 sizes="(max-width: 768px) 50vw, 20vw"
             />
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-foreground/70 to-transparent p-4 pt-10">
-                <p className="text-xl font-semibold text-white">{card.name}</p>
-                <p className="text-md text-white/80">{card.specialty}</p>
+                <p className="text-base font-semibold text-white">{card.name}</p>
+                <p className="text-sm text-white/80">{card.specialty}</p>
             </div>
         </div>
     );
@@ -43,30 +42,17 @@ export function ValueCard({ card }: { card: BentoCard }) {
                 <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent/15">
                     <Icon className="size-4 text-accent" />
                 </div>
-                <h3 className="text-base font-semibold lg:text-xl font-sans">
+                <h3 className="text-base font-semibold font-sans">
                     {card.title}
                 </h3>
             </div>
-            <p className="mt-2 text-sm text-muted-foreground lg:text-lg">
+            <p className="mt-2 text-sm text-muted-foreground">
                 {card.description}
             </p>
-            {card.id === "value-2" && (
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                    {card.highlights.map(highlight => (
-                        <span
-                            key={highlight}
-                            className="inline-flex items-center gap-1 rounded-full bg-secondary/60 px-2.5 py-0.5 text-muted-foreground text-sm"
-                        >
-                            <Check className="size-3 text-accent" />
-                            {highlight}
-                        </span>
-                    ))}
-                </div>
-            )}
 
             {/* Visual fill zone */}
             <div
-                className={`relative flex flex-1 overflow-hidden pt-4 ${
+                className={`relative hidden flex-1 overflow-hidden pt-2 2xl:flex ${
                     card.id === "value-2"
                         ? "-mx-5 items-end justify-center"
                         : "items-center justify-center"

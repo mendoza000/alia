@@ -16,7 +16,7 @@ export const bentoCards: BentoCard[] = [
         type: "value",
         title: "Profesionales verificados",
         description:
-            "Cada psicólogo en nuestra plataforma pasa por un proceso riguroso de verificación que incluye validación de título universitario, registro profesional activo y experiencia clínica comprobada.",
+            "Validamos título universitario, registro profesional y experiencia clínica de cada psicólogo.",
         supportImg: "/support/support-img-6.png",
         bg: "bg-card",
         className: "col-span-1 md:col-start-2 md:col-span-2 md:row-start-1",
@@ -31,7 +31,7 @@ export const bentoCards: BentoCard[] = [
         id: "value-2",
         type: "value",
         title: "Totalmente confidencial",
-        description: "Tu información y sesiones son completamente privadas.",
+        description: "Sesiones 100% privadas y confidenciales.",
         supportImg: "/support/support-img-5.png",
         bg: "bg-secondary/40",
         className: "col-span-1 md:col-start-2 md:row-start-2",
@@ -50,7 +50,7 @@ export const bentoCards: BentoCard[] = [
         type: "value",
         title: "Agenda en minutos",
         description:
-            "Reservar tu cita es simple: elige el horario que mejor te funcione, completa un breve formulario sobre ti y confirma tu sesión — todo desde la comodidad de tu celular o computador.",
+            "Elige tu horario, completa un breve formulario y confirma tu sesión en minutos.",
         supportImg: "/support/support-img-2.png",
         bg: "bg-card",
         className: "sm:col-span-2 md:col-start-1 md:col-span-2 md:row-start-3",

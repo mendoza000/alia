@@ -26,7 +26,7 @@ export function HeroSection() {
             {/* Left side — Text content */}
             <div className="relative z-10 mb-12 lg:mb-0">
                 <motion.span
-                    className="text-sm uppercase font-semibold tracking-widest text-muted-foreground xl:text-base font-sans"
+                    className="text-sm uppercase font-semibold tracking-widest text-muted-foreground xl:text-md font-sans"
                     initial={{ opacity: 0, y: 20 }}
                     animate={inView ? { opacity: 1, y: 0 } : undefined}
                     transition={{ duration: 0.6, ease, delay: 0 }}
@@ -35,7 +35,7 @@ export function HeroSection() {
                 </motion.span>
 
                 <motion.h1
-                    className="mt-3 font-heading font-bold text-4xl leading-tight md:text-5xl xl:text-6xl"
+                    className="mt-3 font-heading font-bold text-4xl leading-tight md:text-4xl lg:text-4xl 2xl:text-5xl"
                     initial={{ opacity: 0, y: 30 }}
                     animate={inView ? { opacity: 1, y: 0 } : undefined}
                     transition={{ duration: 0.7, ease, delay: 0.1 }}
@@ -44,7 +44,7 @@ export function HeroSection() {
                 </motion.h1>
 
                 <motion.p
-                    className="mt-5 max-w-lg text-lg text-muted-foreground md:text-xl font-sans"
+                    className="mt-5 max-w-lg text-lg text-muted-foreground md:text-md font-sans"
                     initial={{ opacity: 0, y: 20 }}
                     animate={inView ? { opacity: 1, y: 0 } : undefined}
                     transition={{ duration: 0.6, ease, delay: 0.2 }}
@@ -62,14 +62,14 @@ export function HeroSection() {
                     transition={{ duration: 0.5, ease, delay: 0.35 }}
                 >
                     <Button
-                        className="h-11 rounded-xl bg-accent px-6 text-base text-accent-foreground hover:bg-accent/80 xl:h-12 xl:px-8 xl:text-lg"
+                        className="h-11 rounded-xl bg-accent px-6 text-base text-accent-foreground hover:bg-accent/80 xl:h-12 xl:px-8 xl:text-sm"
                         render={<Link href="/agendar" />}
                     >
                         Agenda tu cita
                     </Button>
                     <Button
                         variant="outline"
-                        className="h-11 rounded-xl px-6 text-base xl:h-12 xl:px-8 xl:text-lg"
+                        className="h-11 rounded-xl px-6 text-base xl:h-12 xl:px-8 xl:text-sm"
                         render={<Link href="/psicologos" />}
                     >
                         Conoce a nuestros psicólogos

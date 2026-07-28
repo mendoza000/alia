@@ -21,7 +21,7 @@ export function FingerprintAnimation({ animate }: { animate: boolean }) {
             <svg
                 viewBox="0 0 24 24"
                 fill="none"
-                className="w-32 h-32 text-accent lg:w-40 lg:h-40"
+                className="w-12 h-12 text-accent sm:w-14 sm:h-14"
             >
                 {fingerprintPaths.map((d, i) => (
                     <motion.path
