@@ -27,7 +27,7 @@ Package manager is **bun** (not npm/yarn).
 - **Components:** shadcn/ui (base-nova style, Base UI primitives, CVA variants) in `src/components/ui/`
 - **Database:** PostgreSQL via Supabase, accessed through Prisma ORM (client output: `src/generated/prisma`)
 - **Auth:** better-auth with Google OAuth (patients) and credentials (admin)
-- **Payments:** Wompi (Colombian payment gateway)
+- **Payments:** Stripe Checkout Sessions, generated on demand by admins after the session (not at booking time)
 - **Email:** Resend + React Email (templates in `emails/`)
 - **Calendar:** Google Calendar API via Service Account (FreeBusy for availability, event creation on booking)
 - **Storage:** Supabase Storage — bucket `psychologist-photos` (public), bucket `documents` (private)
@@ -40,35 +40,35 @@ Package manager is **bun** (not npm/yarn).
 
 - `/` — Landing page (hero, psychologist cards, FAQ)
 - `/psicologos/[slug]` — Individual psychologist profile
-- `/agendar/[psychologistSlug]` — Booking flow (select slot → auth gate → intake form → payment)
-- `/agendar/pago` — Wompi checkout with coupon support
-- `/agendar/resultado` — Payment result
+- `/agendar/[psychologistSlug]` — Booking flow (select slot → auth gate → intake form → confirmation)
+- `/agendar/[psychologistSlug]/confirmacion` — Post-booking confirmation view (no payment step)
 - `/mi-cuenta` — Patient portal (profile, appointments)
 - `/admin` — Dashboard (metrics, charts)
 - `/admin/psicologos` — CRUD psychologists (with schedule, photo upload)
-- `/admin/citas` — Appointment management (table + calendar view)
+- `/admin/citas` — Appointment management (table + calendar view, generate/copy/email payment links)
 - `/admin/formularios` — Patient intake forms (view, export PDF/CSV)
 - `/admin/pagos` — Transaction list
 - `/admin/finanzas` — Revenue per psychologist
 - `/admin/cupones` — Discount coupon management
+- `/admin/tarifas` — Global payment rates by currency (used when generating Stripe payment links)
 - `/admin/login` — Admin credentials login
 
 ### Key data models (Prisma)
 
-`Psychologist`, `Patient`, `Appointment`, `IntakeForm`, `Payment`, `Coupon`, `User`, `Session`, `Account`, `AdminUser`, `Schedule`
+`Psychologist`, `Patient`, `Appointment`, `IntakeForm`, `Payment`, `PaymentRate`, `Coupon`, `User`, `Session`, `Account`, `AdminUser`, `Schedule`
 
 ### Appointment flow
 
 1. Patient selects psychologist and time slot
 2. Auth gate: must sign in with Google to continue
-3. Patient fills multi-step intake form (Inventario de Vida)
-4. Patient pays via Wompi (with optional coupon)
-5. Wompi webhook confirms payment → appointment status becomes `confirmed`
-6. System creates Google Calendar event on psychologist's calendar
-7. System sends confirmation email to patient + notification to psychologist
-8. 24h before: reminder email via cron
+3. Patient fills multi-step intake form (Inventario de Vida) → appointment is immediately `confirmed`
+4. System creates Google Calendar event on psychologist's calendar
+5. System sends confirmation email to patient + notification to psychologist
+6. 24h before: reminder email via cron
+7. After the session, an admin generates a Stripe payment link (currency chosen from the global `PaymentRate` table, suggested from the patient's detected country) from `/admin/citas` or `/admin/pagos`, and copies it or emails it to the patient
+8. Stripe webhook (`/api/webhooks/stripe`) marks the `Payment` as `approved` once checkout completes
 
-Appointment states: `pending_form` → `pending_payment` → `confirmed` / `cancelled` / `completed` / `no_show`
+Appointment states: `pending_form` → `confirmed` / `cancelled` / `completed` / `no_show`
 
 ## Key Conventions
 
@@ -146,5 +146,5 @@ Schema at `prisma/schema.prisma`, config at `prisma.config.ts`. Datasource is Po
 | Better Auth | Authentication | `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` |
 | Google OAuth | Patient login | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
 | Google Calendar | Availability + events | `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` |
-| Wompi | Payments | `WOMPI_PUBLIC_KEY`, `WOMPI_PRIVATE_KEY`, `WOMPI_EVENTS_SECRET` |
+| Stripe | Payments | `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_PRODUCT_ID`, `STRIPE_WEBHOOK_SECRET` |
 | Resend | Transactional email | `RESEND_API_KEY` |
