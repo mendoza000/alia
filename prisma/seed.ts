@@ -20,6 +20,7 @@ async function main() {
 
   // Clean existing data (in reverse dependency order)
   await prisma.payment.deleteMany();
+  await prisma.paymentRate.deleteMany();
   await prisma.intakeForm.deleteMany();
   await prisma.appointment.deleteMany();
   await prisma.schedule.deleteMany();
@@ -40,7 +41,6 @@ async function main() {
       phone: "+57 310 555 1234",
       specialty: "Ansiedad y Depresión",
       bio: "Psicóloga clínica con más de 8 años de experiencia en el tratamiento de trastornos de ansiedad y depresión. Especialista en terapia cognitivo-conductual (TCC) con enfoque en adultos jóvenes. Apasionada por crear un espacio seguro donde cada persona pueda explorar sus emociones y desarrollar herramientas para el bienestar emocional.",
-      sessionRate: 120000,
       sessionDuration: 60,
       isActive: true,
       schedules: {
@@ -68,7 +68,6 @@ async function main() {
       phone: "+57 315 555 5678",
       specialty: "Terapia de Pareja y Familia",
       bio: "Psicólogo con maestría en terapia familiar sistémica. Más de 10 años ayudando a parejas y familias a mejorar su comunicación y resolver conflictos. Creo firmemente que las relaciones saludables son la base del bienestar emocional. Mi enfoque integra técnicas sistémicas con herramientas prácticas para el día a día.",
-      sessionRate: 140000,
       sessionDuration: 60,
       isActive: true,
       schedules: {
@@ -95,7 +94,6 @@ async function main() {
       phone: "+57 320 555 9012",
       specialty: "Trauma y Estrés Postraumático",
       bio: "Psicóloga clínica especializada en el abordaje del trauma con enfoque en EMDR y terapia narrativa. Cuento con 6 años de experiencia trabajando con personas que han vivido experiencias difíciles. Mi objetivo es acompañarte en tu proceso de sanación con calidez, respeto y profesionalismo.",
-      sessionRate: 130000,
       sessionDuration: 60,
       isActive: true,
       schedules: {
@@ -110,6 +108,11 @@ async function main() {
         ],
       },
     },
+  });
+
+  // Create global payment rate (used for both the public price display and Stripe checkout)
+  await prisma.paymentRate.create({
+    data: { currency: "COP", amount: 120000 },
   });
 
   // Create coupons
@@ -166,6 +169,7 @@ async function main() {
   console.log(`  - ${carlos.name} (${carlos.slug})`);
   console.log(`  - ${valentina.name} (${valentina.slug})`);
   console.log("Seeded 2 coupons: BIENVENIDO (20%), PRIMERACITA (15%)");
+  console.log("Seeded global payment rate: 120000 COP");
   console.log("Done!");
 }
 

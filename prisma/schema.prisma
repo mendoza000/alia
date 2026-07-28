@@ -12,13 +12,13 @@ datasource db {
 // ==========================================
 
 model User {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   name          String
-  email         String   @unique
-  emailVerified Boolean  @default(false)
+  email         String    @unique
+  emailVerified Boolean   @default(false)
   image         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
   role          String    @default("patient")
   banned        Boolean   @default(false)
   banReason     String?
@@ -92,7 +92,6 @@ model Psychologist {
   photoUrl        String?
   specialty       String
   bio             String   @db.Text
-  sessionRate     Int
   sessionDuration Int      @default(60)
   calendarId      String?
   isActive        Boolean  @default(true)
@@ -130,6 +129,7 @@ model Appointment {
   expiresAt      DateTime?
   googleEventId  String?
   notes          String?           @db.Text
+  patientCountry String?
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
@@ -144,7 +144,6 @@ model Appointment {
 
 enum AppointmentStatus {
   PENDING_FORM
-  PENDING_PAYMENT
   CONFIRMED
   CANCELLED
   COMPLETED
@@ -166,20 +165,23 @@ model IntakeForm {
 }
 
 model Payment {
-  id                 String        @id @default(cuid())
-  appointmentId      String        @unique
-  appointment        Appointment   @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-  wompiTransactionId String?       @unique
-  amount             Int
-  discountAmount     Int           @default(0)
-  finalAmount        Int
-  status             PaymentStatus @default(PENDING)
-  method             String?
-  couponId           String?
-  coupon             Coupon?       @relation(fields: [couponId], references: [id])
-  paidAt             DateTime?
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
+  id                      String        @id @default(cuid())
+  appointmentId           String        @unique
+  appointment             Appointment   @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  stripeCheckoutSessionId String?       @unique
+  stripeCheckoutUrl       String?
+  stripePaymentIntentId   String?       @unique
+  currency                String        @default("COP")
+  amount                  Int
+  discountAmount          Int           @default(0)
+  finalAmount             Int
+  status                  PaymentStatus @default(PENDING)
+  method                  String?
+  couponId                String?
+  coupon                  Coupon?       @relation(fields: [couponId], references: [id])
+  paidAt                  DateTime?
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
 
   @@index([couponId])
   @@map("payment")
@@ -190,6 +192,26 @@ enum PaymentStatus {
   APPROVED
   REJECTED
   VOIDED
+}
+
+model PaymentRate {
+  id        String   @id @default(cuid())
+  currency  String   @unique
+  amount    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("payment_rate")
+}
+
+model SiteSettings {
+  id             String   @id @default("singleton")
+  whatsappNumber String?
+  instagramUrl   String?
+  contactEmail   String?
+  updatedAt      DateTime @updatedAt
+
+  @@map("site_settings")
 }
 
 model Coupon {
