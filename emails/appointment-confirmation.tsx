@@ -18,7 +18,6 @@ interface AppointmentConfirmationEmailProps {
   psychologistName: string;
   formattedDate: string;
   duration: number;
-  finalAmount: number;
   appointmentsUrl: string;
   googleCalendarUrl: string;
   logoUrl: string;
@@ -31,7 +30,6 @@ export function AppointmentConfirmationEmail({
   psychologistName,
   formattedDate,
   duration,
-  finalAmount,
   appointmentsUrl,
   googleCalendarUrl,
   logoUrl,
@@ -71,8 +69,7 @@ export function AppointmentConfirmationEmail({
               ¡Tu cita está confirmada!
             </Heading>
             <Text style={intro}>
-              Hola {patientName}, tu pago fue aprobado y tu sesión quedó
-              agendada.
+              Hola {patientName}, tu cita quedó confirmada.
             </Text>
 
             <Section style={card}>
@@ -84,11 +81,6 @@ export function AppointmentConfirmationEmail({
               <Hr style={divider} />
               <Text style={cardLabel}>Duración</Text>
               <Text style={cardValue}>{duration} minutos</Text>
-              <Hr style={divider} />
-              <Text style={cardLabel}>Monto pagado</Text>
-              <Text style={cardValue}>
-                ${finalAmount.toLocaleString("es-CO")} COP
-              </Text>
             </Section>
 
             <Section style={actions}>

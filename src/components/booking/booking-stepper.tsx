@@ -8,7 +8,7 @@ const STEPS = [
     { label: "Psicólogo" },
     { label: "Horario" },
     { label: "Formulario" },
-    { label: "Pago" },
+    { label: "Confirmación" },
 ];
 
 export function BookingStepper({ currentStep }: { currentStep: number }) {

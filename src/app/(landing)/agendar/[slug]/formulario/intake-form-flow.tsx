@@ -171,7 +171,7 @@ export function IntakeFormFlow({
 
             toast.success("Formulario enviado correctamente");
             router.push(
-                `/agendar/${psychologistSlug}/pago?appointmentId=${appointmentId}`,
+                `/agendar/${psychologistSlug}/confirmacion?appointmentId=${appointmentId}`,
             );
         });
     }

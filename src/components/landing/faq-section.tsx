@@ -14,11 +14,11 @@ const faqs = [
     },
     {
         question: "¿Cómo agendo una cita?",
-        answer: "Elige un psicólogo, selecciona un horario disponible, completa un breve formulario y realiza tu pago en línea. Recibirás una confirmación inmediata por correo electrónico.",
+        answer: "Elige un psicólogo, selecciona un horario disponible y completa un breve formulario. Tu cita queda confirmada de inmediato y recibirás la confirmación por correo electrónico.",
     },
     {
         question: "¿Qué métodos de pago aceptan?",
-        answer: "Aceptamos tarjetas de crédito, débito y otros métodos de pago en línea a través de Wompi, una pasarela de pagos segura y certificada en Colombia.",
+        answer: "El pago de tu sesión se realiza después de la consulta, a través de un enlace de pago seguro que te enviaremos por correo (procesado con Stripe), que acepta tarjetas de crédito y débito.",
     },
     {
         question: "¿Cuánto dura una sesión?",

@@ -7,6 +7,11 @@ import type { Prisma } from "@/generated/prisma/client";
 import { createAppointmentSchema } from "@/lib/validators/appointment";
 import { getBlockingAppointments } from "@/lib/queries/appointments";
 import { getCachedFreeBusyPeriods } from "@/lib/google-calendar";
+import { createAppointmentEvent } from "@/lib/calendar-events";
+import {
+    sendAppointmentConfirmation,
+    sendNewAppointmentNotification,
+} from "@/lib/email";
 import {
     getScheduleForDay,
     generateTimeSlots,
@@ -110,6 +115,14 @@ export async function createAppointment(input: {
         };
     }
 
+    // Best-effort patient country capture (Vercel-only header, absent locally)
+    let patientCountry: string | null = null;
+    try {
+        patientCountry = (await headers()).get("x-vercel-ip-country");
+    } catch {
+        patientCountry = null;
+    }
+
     // 7. Create appointment in transaction (re-check for race conditions)
     try {
         const appointment = await prisma.$transaction(async tx => {
@@ -120,7 +133,7 @@ export async function createAppointment(input: {
                     dateTime: { lt: slotEnd },
                     endTime: { gt: slotStart },
                     OR: [
-                        { status: { in: ["PENDING_PAYMENT", "CONFIRMED"] } },
+                        { status: "CONFIRMED" },
                         {
                             status: "PENDING_FORM",
                             OR: [
@@ -144,6 +157,7 @@ export async function createAppointment(input: {
                     endTime: slotEnd,
                     status: "PENDING_FORM",
                     expiresAt: new Date(now.getTime() + 15 * 60 * 1000),
+                    patientCountry,
                 },
             });
         });
@@ -166,9 +180,22 @@ export async function createAppointment(input: {
                 }),
                 prisma.appointment.update({
                     where: { id: appointment.id },
-                    data: { status: "PENDING_PAYMENT", expiresAt: null },
+                    data: { status: "CONFIRMED", expiresAt: null },
                 }),
             ]);
+
+            try {
+                await createAppointmentEvent(appointment.id);
+            } catch (err) {
+                console.error("Google Calendar event creation failed:", err);
+            }
+            try {
+                await sendAppointmentConfirmation(appointment.id);
+                await sendNewAppointmentNotification(appointment.id);
+            } catch (err) {
+                console.error("Confirmation email failed:", err);
+            }
+
             return { success: true, appointmentId: appointment.id, skipForm: true };
         }
 

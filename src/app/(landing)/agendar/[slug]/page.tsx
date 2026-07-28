@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import { getPsychologistBySlug } from "@/lib/queries/psychologists";
+import { getPublicDisplayRate } from "@/lib/admin/payment-rate-queries";
 import { getCachedFreeBusyPeriods } from "@/lib/google-calendar";
 import {
     appointmentsToBusyPeriods,
@@ -42,7 +44,8 @@ export default async function BookingPage({ params, searchParams }: Props) {
     const timeMin = startOfMonth(firstDay);
     const timeMax = endOfMonth(firstDay);
 
-    const [calendarBusy, appointments] = await Promise.all([
+    const country = (await headers()).get("x-vercel-ip-country");
+    const [calendarBusy, appointments, globalRate] = await Promise.all([
         psychologist.calendarId
             ? getCachedFreeBusyPeriods(
                   psychologist.calendarId,
@@ -51,6 +54,7 @@ export default async function BookingPage({ params, searchParams }: Props) {
               )
             : Promise.resolve([]),
         getBlockingAppointments(psychologist.id, timeMin, timeMax),
+        getPublicDisplayRate(country),
     ]);
 
     const allBusyPeriods = [
@@ -74,6 +78,7 @@ export default async function BookingPage({ params, searchParams }: Props) {
     return (
         <BookingFlow
             psychologist={psychologist}
+            globalRate={globalRate}
             initialAvailability={initialAvailability}
             initialYear={year}
             initialMonth={month}

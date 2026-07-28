@@ -44,11 +44,8 @@ export default async function IntakeFormPage({ params, searchParams }: Props) {
     if (!appointment) notFound();
     if (appointment.userId !== session.user.id) notFound();
 
-    if (
-        appointment.status === "PENDING_PAYMENT" ||
-        appointment.status === "CONFIRMED"
-    ) {
-        redirect(`/agendar/${slug}/pago?appointmentId=${appointmentId}`);
+    if (appointment.status === "CONFIRMED") {
+        redirect(`/agendar/${slug}/confirmacion?appointmentId=${appointmentId}`);
     }
     if (appointment.status !== "PENDING_FORM") {
         redirect(`/agendar/${slug}`);

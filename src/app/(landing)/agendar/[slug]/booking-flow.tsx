@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
 import { ease } from "@/lib/motion";
+import { formatCurrencyAmount } from "@/lib/currency";
 import type { Psychologist, Schedule } from "@/generated/prisma/client";
 import type { MonthAvailability } from "@/lib/availability";
 import { AvailabilityCalendar } from "@/components/availability/availability-calendar";
@@ -22,12 +23,6 @@ import { useSession, signOut } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { BookingStepper } from "@/components/booking/booking-stepper";
 import { createAppointment } from "./actions";
-
-const currencyFormat = new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    minimumFractionDigits: 0,
-});
 
 function getInitials(name: string) {
     const parts = name.split(" ").filter(Boolean);
@@ -40,6 +35,7 @@ type Step = "calendar" | "auth" | "summary";
 
 type BookingFlowProps = {
     psychologist: Psychologist & { schedules: Schedule[] };
+    globalRate: { amount: number; currency: string } | null;
     initialAvailability: MonthAvailability;
     initialYear: number;
     initialMonth: number;
@@ -49,6 +45,7 @@ type BookingFlowProps = {
 
 export function BookingFlow({
     psychologist,
+    globalRate,
     initialAvailability,
     initialYear,
     initialMonth,
@@ -108,7 +105,7 @@ export function BookingFlow({
             }
 
             const path = result.skipForm
-                ? `/agendar/${psychologist.slug}/pago?appointmentId=${result.appointmentId}`
+                ? `/agendar/${psychologist.slug}/confirmacion?appointmentId=${result.appointmentId}`
                 : `/agendar/${psychologist.slug}/formulario?appointmentId=${result.appointmentId}`;
             router.push(path);
         });
@@ -187,6 +184,7 @@ export function BookingFlow({
                     >
                         <SummaryStep
                             psychologist={psychologist}
+                            globalRate={globalRate}
                             selectedDate={selectedDate!}
                             selectedTime={selectedTime!}
                             session={session!}
@@ -291,6 +289,7 @@ function AuthStep({
 
 function SummaryStep({
     psychologist,
+    globalRate,
     selectedDate,
     selectedTime,
     session,
@@ -299,6 +298,7 @@ function SummaryStep({
     onConfirm,
 }: {
     psychologist: Psychologist & { schedules: Schedule[] };
+    globalRate: { amount: number; currency: string } | null;
     selectedDate: string;
     selectedTime: string;
     session: {
@@ -370,12 +370,17 @@ function SummaryStep({
                             {psychologist.sessionDuration} min
                         </span>
                     </div>
-                    <div className="flex justify-between">
-                        <span className="text-muted-foreground">Valor</span>
-                        <span className="font-medium">
-                            {currencyFormat.format(psychologist.sessionRate)}
-                        </span>
-                    </div>
+                    {globalRate !== null && (
+                        <div className="flex justify-between">
+                            <span className="text-muted-foreground">Valor</span>
+                            <span className="font-medium">
+                                {formatCurrencyAmount(
+                                    globalRate.amount,
+                                    globalRate.currency,
+                                )}
+                            </span>
+                        </div>
+                    )}
                 </div>
 
                 {/* Authenticated user */}

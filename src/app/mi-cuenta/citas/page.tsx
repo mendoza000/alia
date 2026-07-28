@@ -19,7 +19,6 @@ const STATUS_CONFIG: Record<
     }
 > = {
     PENDING_FORM: { label: "Pendiente formulario", variant: "outline" },
-    PENDING_PAYMENT: { label: "Pendiente pago", variant: "outline" },
     CONFIRMED: { label: "Confirmada", variant: "default" },
     COMPLETED: { label: "Completada", variant: "secondary" },
     CANCELLED: { label: "Cancelada", variant: "destructive" },
@@ -39,9 +38,7 @@ export default async function MisCitasPage() {
     const upcoming = appointments.filter(
         a =>
             a.dateTime > now &&
-            (a.status === "CONFIRMED" ||
-                a.status === "PENDING_FORM" ||
-                a.status === "PENDING_PAYMENT"),
+            (a.status === "CONFIRMED" || a.status === "PENDING_FORM"),
     );
     const past = appointments.filter(a => !upcoming.includes(a));
 
