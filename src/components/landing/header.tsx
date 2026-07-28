@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/sheet";
 
 const navLinks = [
-    { label: "Inicio", href: "#" },
+    { label: "Inicio", href: "/" },
     { label: "Cómo funciona", href: "#como-funciona" },
     { label: "Psicólogos", href: "#psicologos" },
     { label: "Preguntas frecuentes", href: "#faq" },

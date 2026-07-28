@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { Separator } from "@/components/ui/separator";
+import type { SiteSettings } from "@/lib/admin/site-settings-queries";
 
 const quickLinks = [
     { label: "Inicio", href: "/" },
@@ -11,7 +12,13 @@ const quickLinks = [
     { label: "Preguntas frecuentes", href: "#faq" },
 ];
 
-export function Footer() {
+const legalLinks = [
+    { label: "Política de Privacidad", href: "/privacidad" },
+    { label: "Términos y Condiciones", href: "/terminos" },
+    { label: "Política de Reembolso y Cancelación", href: "/reembolso" },
+];
+
+export function Footer({ settings }: { settings: SiteSettings }) {
     return (
         <footer className="bg-primary text-primary-foreground">
             <div className="mx-auto max-w-6xl px-6 py-16 md:px-12 lg:px-20 xl:px-28 xl:py-20">
@@ -55,46 +62,58 @@ export function Footer() {
                             Contacto
                         </p>
                         <div className="mt-4 flex flex-col gap-2 text-sm opacity-60 xl:text-base">
-                            <a
-                                href="mailto:contacto@alia.com.co"
-                                className="transition-opacity hover:opacity-100"
-                            >
-                                contacto@alia.com.co
-                            </a>
-                            <a
-                                href="https://wa.me/573001234567"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="transition-opacity hover:opacity-100"
-                            >
-                                WhatsApp
-                            </a>
+                            {settings.contactEmail && (
+                                <a
+                                    href={`mailto:${settings.contactEmail}`}
+                                    className="transition-opacity hover:opacity-100"
+                                >
+                                    {settings.contactEmail}
+                                </a>
+                            )}
+                            {settings.whatsappNumber && (
+                                <a
+                                    href={`https://wa.me/${settings.whatsappNumber}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="transition-opacity hover:opacity-100"
+                                >
+                                    WhatsApp
+                                </a>
+                            )}
                         </div>
-                        <div className="mt-4 flex gap-3">
-                            <a
-                                href="https://instagram.com"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                aria-label="Instagram"
-                                className="opacity-60 transition-opacity hover:opacity-100"
-                            >
-                                <Instagram className="size-5" />
-                            </a>
-                        </div>
+                        {settings.instagramUrl && (
+                            <div className="mt-4 flex gap-3">
+                                <a
+                                    href={settings.instagramUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    aria-label="Instagram"
+                                    className="opacity-60 transition-opacity hover:opacity-100"
+                                >
+                                    <Instagram className="size-5" />
+                                </a>
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 <Separator className="my-10 bg-primary-foreground/10" />
 
-                <div className="flex flex-col items-center justify-between gap-4 text-xs opacity-50 sm:flex-row xl:text-sm">
-                    <p>&copy; 2026 ALIA. Todos los derechos reservados.</p>
-                    <div className="flex gap-6">
-                        <Link href="/privacidad" className="hover:opacity-100">
-                            Privacidad
-                        </Link>
-                        <Link href="/terminos" className="hover:opacity-100">
-                            Términos
-                        </Link>
+                <div className="flex flex-col items-center justify-between gap-4 text-xs opacity-50  xl:text-sm">
+                    <p>
+                        &copy; 2026 Alia Coaching Services LLC. Todos los
+                        derechos reservados.
+                    </p>
+                    <div className="flex flex-wrap justify-center gap-6">
+                        {legalLinks.map(link => (
+                            <Link
+                                key={link.href}
+                                href={link.href}
+                                className="hover:opacity-100 hover:underline"
+                            >
+                                {link.label}
+                            </Link>
+                        ))}
                     </div>
                 </div>
             </div>
