@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { getActivePsychologists } from "@/lib/queries/psychologists";
+import { getPublicDisplayRate } from "@/lib/admin/payment-rate-queries";
 import { BookingStepper } from "@/components/booking/booking-stepper";
 import { PsychologistGrid } from "./psychologist-grid";
 
@@ -10,7 +12,11 @@ export const metadata: Metadata = {
 };
 
 export default async function AgendarPage() {
-    const psychologists = await getActivePsychologists();
+    const country = (await headers()).get("x-vercel-ip-country");
+    const [psychologists, globalRate] = await Promise.all([
+        getActivePsychologists(),
+        getPublicDisplayRate(country),
+    ]);
 
     return (
         <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
@@ -25,7 +31,10 @@ export default async function AgendarPage() {
             </div>
 
             {psychologists.length > 0 ? (
-                <PsychologistGrid psychologists={psychologists} />
+                <PsychologistGrid
+                    psychologists={psychologists}
+                    globalRate={globalRate}
+                />
             ) : (
                 <p className="text-center text-muted-foreground">
                     No hay psicólogos disponibles en este momento.

@@ -1,17 +1,9 @@
 import Link from "next/link";
-import { ArrowLeft, Mail, Phone, Calendar, Clock, DollarSign, Link2 } from "lucide-react";
+import { ArrowLeft, Mail, Phone, Calendar, Clock, Link2 } from "lucide-react";
 import { notFound } from "next/navigation";
 import { getPsychologistById } from "@/lib/admin/psychologist-queries";
 import { PsychologistDetailHeader } from "@/components/admin/psychologist-detail-header";
 import { ScheduleEditor } from "@/components/admin/schedule-editor";
-
-function formatCOP(amount: number) {
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    minimumFractionDigits: 0,
-  }).format(amount);
-}
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("es-CO", {
@@ -123,13 +115,6 @@ export default async function PsychologistDetailPage({
               Detalles de sesión
             </h2>
             <dl className="mt-3 space-y-3">
-              <div className="flex items-center gap-2 text-sm">
-                <DollarSign className="size-4 text-muted-foreground" />
-                <dt className="text-muted-foreground">Tarifa:</dt>
-                <dd className="font-medium">
-                  {formatCOP(psychologist.sessionRate)}
-                </dd>
-              </div>
               <div className="flex items-center gap-2 text-sm">
                 <Clock className="size-4 text-muted-foreground" />
                 <dt className="text-muted-foreground">Duración:</dt>

@@ -15,11 +15,6 @@ export const psychologistSchema = yup.object({
     .string()
     .required("La biografía es obligatoria")
     .min(20, "La biografía debe tener al menos 20 caracteres"),
-  sessionRate: yup
-    .number()
-    .required("La tarifa es obligatoria")
-    .typeError("La tarifa debe ser un número")
-    .min(1000, "La tarifa mínima es $1.000 COP"),
   sessionDuration: yup
     .number()
     .required("La duración es obligatoria")

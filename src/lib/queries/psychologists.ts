@@ -10,7 +10,6 @@ export async function getActivePsychologists() {
             photoUrl: true,
             specialty: true,
             bio: true,
-            sessionRate: true,
             sessionDuration: true,
         },
         orderBy: { createdAt: "asc" },

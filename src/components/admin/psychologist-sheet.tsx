@@ -23,7 +23,6 @@ type PsychologistSheetProps = {
     phone: string | null;
     specialty: string;
     bio: string;
-    sessionRate: number;
     sessionDuration: number;
     calendarId: string | null;
     photoUrl: string | null;
@@ -59,7 +58,6 @@ export function PsychologistSheet({
         phone: psychologist.phone ?? "",
         specialty: psychologist.specialty,
         bio: psychologist.bio,
-        sessionRate: psychologist.sessionRate,
         sessionDuration: psychologist.sessionDuration,
         calendarId: psychologist.calendarId ?? "",
         photoUrl: psychologist.photoUrl ?? "",

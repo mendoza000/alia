@@ -18,7 +18,6 @@ type PsychologistData = {
   phone: string | null;
   specialty: string;
   bio: string;
-  sessionRate: number;
   sessionDuration: number;
   calendarId: string | null;
   photoUrl: string | null;

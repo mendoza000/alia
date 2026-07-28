@@ -31,7 +31,6 @@ type Psychologist = {
   email: string;
   photoUrl: string | null;
   specialty: string;
-  sessionRate: number;
   isActive: boolean;
   _count: {
     appointments: number;
@@ -46,14 +45,6 @@ function getInitials(name: string) {
     .slice(0, 2)
     .join("")
     .toUpperCase();
-}
-
-function formatCOP(amount: number) {
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    minimumFractionDigits: 0,
-  }).format(amount);
 }
 
 export function PsychologistTable({
@@ -95,7 +86,6 @@ export function PsychologistTable({
           <TableRow>
             <TableHead>Psicólogo</TableHead>
             <TableHead>Especialidad</TableHead>
-            <TableHead>Tarifa</TableHead>
             <TableHead>Citas</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead className="w-10" />
@@ -122,7 +112,6 @@ export function PsychologistTable({
               <TableCell>
                 <Badge variant="secondary">{p.specialty}</Badge>
               </TableCell>
-              <TableCell>{formatCOP(p.sessionRate)}</TableCell>
               <TableCell className="text-muted-foreground">
                 {p._count.appointments}
               </TableCell>

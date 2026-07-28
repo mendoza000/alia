@@ -57,7 +57,6 @@ export function PsychologistForm({
       phone: "",
       specialty: "",
       bio: "",
-      sessionRate: 0,
       sessionDuration: 60,
       calendarId: "",
       photoUrl: "",
@@ -122,9 +121,8 @@ export function PsychologistForm({
           <FormInput name="specialty" label="Especialidad" placeholder="Psicología clínica" />
         </div>
 
-        {/* Rate + Duration */}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FormInput name="sessionRate" label="Tarifa por sesión (COP)" type="number" placeholder="120000" />
+        {/* Duration */}
+        <div className="grid gap-4 sm:grid-cols-1">
           <FormSelect
             name="sessionDuration"
             label="Duración de sesión"

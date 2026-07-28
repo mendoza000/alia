@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import { getPsychologistBySlug } from "@/lib/queries/psychologists";
+import { getPublicDisplayRate } from "@/lib/admin/payment-rate-queries";
 import { getCachedFreeBusyPeriods } from "@/lib/google-calendar";
 import {
     appointmentsToBusyPeriods,
@@ -13,7 +15,9 @@ import { ProfileContent } from "./profile-content";
 import { JsonLd } from "@/components/seo/json-ld";
 import { siteConfig } from "@/lib/seo";
 
-export const revalidate = 3600;
+// Reading headers() below for geolocated pricing forces this route to render
+// dynamically per request — the previous `revalidate = 3600` (ISR) no longer
+// applies, since a statically cached page can't vary its price by visitor.
 
 type Props = {
     params: Promise<{ slug: string }>;
@@ -64,7 +68,8 @@ export default async function PsychologistProfilePage({ params }: Props) {
     const timeMin = startOfMonth(firstDay);
     const timeMax = endOfMonth(firstDay);
 
-    const [calendarBusy, appointments] = await Promise.all([
+    const country = (await headers()).get("x-vercel-ip-country");
+    const [calendarBusy, appointments, globalRate] = await Promise.all([
         psychologist.calendarId
             ? getCachedFreeBusyPeriods(
                   psychologist.calendarId,
@@ -73,6 +78,7 @@ export default async function PsychologistProfilePage({ params }: Props) {
               )
             : Promise.resolve([]),
         getBlockingAppointments(psychologist.id, timeMin, timeMax),
+        getPublicDisplayRate(country),
     ]);
 
     const allBusyPeriods = [
@@ -108,6 +114,7 @@ export default async function PsychologistProfilePage({ params }: Props) {
             />
             <ProfileContent
                 psychologist={psychologist}
+                globalRate={globalRate}
                 initialAvailability={initialAvailability}
                 initialYear={year}
                 initialMonth={month}

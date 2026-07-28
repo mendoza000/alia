@@ -5,15 +5,10 @@ import { motion, useInView } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import { ease } from "@/lib/motion";
+import { formatCurrencyAmount } from "@/lib/currency";
 import type { Psychologist, Schedule } from "@/generated/prisma/client";
 import type { MonthAvailability } from "@/lib/availability";
 import { AvailabilityCalendar } from "@/components/availability/availability-calendar";
-
-const currencyFormat = new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    minimumFractionDigits: 0,
-});
 
 function getInitials(name: string) {
     const parts = name.split(" ").filter(Boolean);
@@ -24,6 +19,7 @@ function getInitials(name: string) {
 
 type ProfileContentProps = {
     psychologist: Psychologist & { schedules: Schedule[] };
+    globalRate: { amount: number; currency: string } | null;
     initialAvailability: MonthAvailability;
     initialYear: number;
     initialMonth: number;
@@ -31,6 +27,7 @@ type ProfileContentProps = {
 
 export function ProfileContent({
     psychologist,
+    globalRate,
     initialAvailability,
     initialYear,
     initialMonth,
@@ -77,7 +74,7 @@ export function ProfileContent({
                                 alt={psychologist.name}
                                 fill
                                 sizes="(max-width: 768px) 100vw, 40vw"
-                                className="object-cover"
+                                className="object-cover object-top"
                                 priority
                             />
                         ) : (
@@ -104,20 +101,23 @@ export function ProfileContent({
                             >
                                 {psychologist.name}
                             </h1>,
-                            <div
-                                key="rate"
-                                className="flex flex-wrap items-baseline gap-x-4 gap-y-1"
-                            >
-                                <span className="text-lg font-semibold">
-                                    {currencyFormat.format(
-                                        psychologist.sessionRate,
-                                    )}
-                                </span>
-                                <span className="text-sm text-muted-foreground">
-                                    / sesión de {psychologist.sessionDuration}{" "}
-                                    min
-                                </span>
-                            </div>,
+                            globalRate !== null && (
+                                <div
+                                    key="rate"
+                                    className="flex flex-wrap items-baseline gap-x-4 gap-y-1"
+                                >
+                                    <span className="text-lg font-semibold">
+                                        {formatCurrencyAmount(
+                                            globalRate.amount,
+                                            globalRate.currency,
+                                        )}
+                                    </span>
+                                    <span className="text-sm text-muted-foreground">
+                                        / sesión de{" "}
+                                        {psychologist.sessionDuration} min
+                                    </span>
+                                </div>
+                            ),
                             <h2 className="font-heading text-2xl font-bold mt-4">
                                 Sobre mí
                             </h2>,

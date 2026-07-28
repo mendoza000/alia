@@ -9,8 +9,10 @@ type Psychologist = Awaited<ReturnType<typeof getActivePsychologists>>[number];
 
 export function PsychologistGrid({
     psychologists,
+    globalRate,
 }: {
     psychologists: Psychologist[];
+    globalRate: { amount: number; currency: string } | null;
 }) {
     const ref = useRef<HTMLDivElement>(null);
     const inView = useInView(ref, { once: true, amount: 0.1 });
@@ -24,6 +26,7 @@ export function PsychologistGrid({
                 <PsychologistCard
                     key={psychologist.id}
                     psychologist={psychologist}
+                    globalRate={globalRate}
                     index={i}
                     inView={inView}
                 />

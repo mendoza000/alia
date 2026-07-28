@@ -10,8 +10,10 @@ type Psychologist = Awaited<ReturnType<typeof getActivePsychologists>>[number];
 
 export function PsychologistSectionClient({
     psychologists,
+    globalRate,
 }: {
     psychologists: Psychologist[];
+    globalRate: { amount: number; currency: string } | null;
 }) {
     const sectionRef = useRef<HTMLDivElement>(null);
     const inView = useInView(sectionRef, { once: true, amount: 0.15 });
@@ -53,6 +55,7 @@ export function PsychologistSectionClient({
                         <PsychologistCard
                             key={psychologist.id}
                             psychologist={psychologist}
+                            globalRate={globalRate}
                             index={i}
                             inView={inView}
                         />
