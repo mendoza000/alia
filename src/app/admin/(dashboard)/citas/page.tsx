@@ -5,6 +5,7 @@ import {
   type AppointmentFilters,
 } from "@/lib/admin/appointment-queries";
 import { getAllPsychologists } from "@/lib/admin/psychologist-queries";
+import { getAllRates } from "@/lib/admin/payment-rate-queries";
 import { AppointmentsTable } from "@/components/admin/appointments-table";
 import { AppointmentsFilters } from "@/components/admin/appointments-filters";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -28,15 +29,17 @@ export default async function CitasPage({ searchParams }: Props) {
     dateTo: params.dateTo,
   };
 
-  const [appointments, psychologists] = await Promise.all([
+  const [appointments, psychologists, rates] = await Promise.all([
     getAllAppointments(filters),
     getAllPsychologists(),
+    getAllRates(),
   ]);
 
   const psychologistOptions = psychologists.map((p) => ({
     id: p.id,
     name: p.name,
   }));
+  const availableCurrencies = rates.map((r) => r.currency);
 
   return (
     <div className="space-y-6">
@@ -51,7 +54,10 @@ export default async function CitasPage({ searchParams }: Props) {
         <AppointmentsFilters psychologists={psychologistOptions} />
       </Suspense>
 
-      <AppointmentsTable appointments={appointments} />
+      <AppointmentsTable
+        appointments={appointments}
+        availableCurrencies={availableCurrencies}
+      />
     </div>
   );
 }

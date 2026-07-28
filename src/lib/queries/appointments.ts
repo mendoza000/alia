@@ -13,7 +13,7 @@ export async function getBlockingAppointments(
             dateTime: { lt: timeMax },
             endTime: { gt: timeMin },
             OR: [
-                { status: { in: ["PENDING_PAYMENT", "CONFIRMED"] } },
+                { status: "CONFIRMED" },
                 {
                     status: "PENDING_FORM",
                     OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],

@@ -95,7 +95,7 @@ export async function rescheduleAppointment(
   });
 
   if (!appointment) return { success: false, error: "Cita no encontrada" };
-  if (!["CONFIRMED", "PENDING_PAYMENT"].includes(appointment.status)) {
+  if (appointment.status !== "CONFIRMED") {
     return { success: false, error: "No se puede reagendar esta cita" };
   }
 

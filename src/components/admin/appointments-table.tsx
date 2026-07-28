@@ -1,9 +1,17 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CheckCircle2, FileText, MoreHorizontal, UserX, XCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  CreditCard,
+  FileText,
+  Mail,
+  MoreHorizontal,
+  UserX,
+  XCircle,
+} from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
@@ -11,10 +19,14 @@ import {
   completeAppointment,
   markNoShow,
 } from "@/lib/admin/appointment-actions";
+import { sendPaymentLinkEmail } from "@/lib/admin/payment-actions";
+import { formatCurrencyAmount } from "@/lib/currency";
 import type { AppointmentRow } from "@/lib/admin/appointment-queries";
 import { AppointmentStatusBadge } from "@/components/admin/appointment-status-badge";
+import { GeneratePaymentLinkDialog } from "@/components/admin/generate-payment-link-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { CopyLinkButton } from "@/components/ui/copy-link-button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,11 +43,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-const formatCOP = new Intl.NumberFormat("es-CO", {
-  style: "currency",
-  currency: "COP",
-  maximumFractionDigits: 0,
-});
 
 function getInitials(name: string) {
   return name
@@ -46,12 +53,26 @@ function getInitials(name: string) {
     .toUpperCase();
 }
 
-function AppointmentRow({ appointment }: { appointment: AppointmentRow }) {
+function AppointmentRow({
+  appointment,
+  hasAvailableCurrencies,
+  onGenerateLink,
+}: {
+  appointment: AppointmentRow;
+  hasAvailableCurrencies: boolean;
+  onGenerateLink: (appointment: AppointmentRow) => void;
+}) {
   const [, startTransition] = useTransition();
 
   const canComplete = appointment.status === "CONFIRMED";
   const canNoShow = appointment.status === "CONFIRMED";
   const canCancel = !["CANCELLED", "COMPLETED", "NO_SHOW"].includes(appointment.status);
+  const canGenerateLink = ["CONFIRMED", "COMPLETED", "NO_SHOW"].includes(
+    appointment.status,
+  );
+  const hasUsableLink =
+    appointment.payment?.stripeCheckoutUrl &&
+    appointment.payment.status === "PENDING";
 
   function handleAction(
     action: (id: string) => Promise<{ success: boolean; error?: string }>,
@@ -63,6 +84,29 @@ function AppointmentRow({ appointment }: { appointment: AppointmentRow }) {
         toast.success(successMsg);
       } else {
         toast.error(result.error ?? "Error al realizar la acción");
+      }
+    });
+  }
+
+  function handleGenerateLinkClick() {
+    if (!hasAvailableCurrencies) {
+      toast.error("Configura al menos una tarifa en /admin/tarifas primero");
+      return;
+    }
+    onGenerateLink(appointment);
+  }
+
+  function handleSendEmail() {
+    if (!appointment.payment) return;
+    startTransition(async () => {
+      const result = await sendPaymentLinkEmail(
+        appointment.id,
+        appointment.payment?.currency ?? "COP",
+      );
+      if (result.success) {
+        toast.success("Correo enviado");
+      } else {
+        toast.error(result.error);
       }
     });
   }
@@ -96,9 +140,16 @@ function AppointmentRow({ appointment }: { appointment: AppointmentRow }) {
         <AppointmentStatusBadge status={appointment.status} />
       </TableCell>
       <TableCell className="text-sm">
-        {appointment.payment
-          ? formatCOP.format(appointment.payment.finalAmount)
-          : "—"}
+        <div className="flex items-center gap-1">
+          <span>
+            {appointment.payment
+              ? formatCurrencyAmount(appointment.payment.finalAmount, appointment.payment.currency)
+              : "—"}
+          </span>
+          {hasUsableLink && (
+            <CopyLinkButton text={appointment.payment?.stripeCheckoutUrl ?? ""} />
+          )}
+        </div>
       </TableCell>
       <TableCell>
         <DropdownMenu>
@@ -118,8 +169,22 @@ function AppointmentRow({ appointment }: { appointment: AppointmentRow }) {
                 Ver formulario
               </DropdownMenuItem>
             )}
-            {(canComplete || canNoShow || canCancel) && appointment.intakeForm && (
-              <DropdownMenuSeparator />
+            {(canComplete || canNoShow || canCancel || canGenerateLink) &&
+              appointment.intakeForm && <DropdownMenuSeparator />}
+            {canGenerateLink && (
+              <>
+                <DropdownMenuItem onClick={handleGenerateLinkClick}>
+                  <CreditCard />
+                  {hasUsableLink ? "Regenerar link de pago" : "Generar link de pago"}
+                </DropdownMenuItem>
+                {hasUsableLink && (
+                  <DropdownMenuItem onClick={handleSendEmail}>
+                    <Mail />
+                    Enviar por correo
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+              </>
             )}
             {canComplete && (
               <DropdownMenuItem
@@ -158,9 +223,15 @@ function AppointmentRow({ appointment }: { appointment: AppointmentRow }) {
 
 export function AppointmentsTable({
   appointments,
+  availableCurrencies,
 }: {
   appointments: AppointmentRow[];
+  availableCurrencies: string[];
 }) {
+  const [activeAppointment, setActiveAppointment] = useState<AppointmentRow | null>(
+    null,
+  );
+
   if (appointments.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-12">
@@ -184,10 +255,25 @@ export function AppointmentsTable({
         </TableHeader>
         <TableBody>
           {appointments.map((a) => (
-            <AppointmentRow key={a.id} appointment={a} />
+            <AppointmentRow
+              key={a.id}
+              appointment={a}
+              hasAvailableCurrencies={availableCurrencies.length > 0}
+              onGenerateLink={setActiveAppointment}
+            />
           ))}
         </TableBody>
       </Table>
+
+      {activeAppointment && (
+        <GeneratePaymentLinkDialog
+          appointmentId={activeAppointment.id}
+          patientCountry={activeAppointment.patientCountry}
+          availableCurrencies={availableCurrencies}
+          open={!!activeAppointment}
+          onOpenChange={(v) => !v && setActiveAppointment(null)}
+        />
+      )}
     </div>
   );
 }

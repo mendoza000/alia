@@ -1,9 +1,16 @@
 "use client";
 
+import { useTransition } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { Mail } from "lucide-react";
+import { toast } from "sonner";
+import { sendPaymentLinkEmail } from "@/lib/admin/payment-actions";
+import { formatCurrencyAmount } from "@/lib/currency";
 import type { PaymentRow } from "@/lib/admin/payment-queries";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { CopyLinkButton } from "@/components/ui/copy-link-button";
 import {
   Table,
   TableBody,
@@ -13,12 +20,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { PaymentStatus } from "@/generated/prisma/enums";
-
-const formatCOP = new Intl.NumberFormat("es-CO", {
-  style: "currency",
-  currency: "COP",
-  maximumFractionDigits: 0,
-});
 
 const statusConfig: Record<PaymentStatus, { label: string; className: string }> = {
   PENDING: {
@@ -38,6 +39,90 @@ const statusConfig: Record<PaymentStatus, { label: string; className: string }> 
     className: "bg-muted text-muted-foreground",
   },
 };
+
+function PaymentTableRow({ payment: p }: { payment: PaymentRow }) {
+  const [isPending, startTransition] = useTransition();
+  const config = statusConfig[p.status];
+  const hasUsableLink = p.status === "PENDING" && p.stripeCheckoutUrl;
+
+  function handleResend() {
+    startTransition(async () => {
+      const result = await sendPaymentLinkEmail(p.appointmentId, p.currency);
+      if (result.success) {
+        toast.success("Correo enviado");
+      } else {
+        toast.error(result.error);
+      }
+    });
+  }
+
+  return (
+    <TableRow>
+      <TableCell>
+        <p className="text-sm font-medium">{p.appointment.user.name}</p>
+        <p className="text-xs text-muted-foreground">{p.appointment.user.email}</p>
+      </TableCell>
+      <TableCell className="text-sm">
+        {p.appointment.psychologist.name}
+      </TableCell>
+      <TableCell className="text-sm">
+        {format(new Date(p.appointment.dateTime), "d MMM yyyy", { locale: es })}
+      </TableCell>
+      <TableCell className="text-sm">
+        {p.discountAmount > 0 ? (
+          <span className="line-through text-muted-foreground">
+            {formatCurrencyAmount(p.amount, p.currency)}
+          </span>
+        ) : (
+          formatCurrencyAmount(p.amount, p.currency)
+        )}
+      </TableCell>
+      <TableCell className="text-sm text-emerald-600">
+        {p.discountAmount > 0
+          ? `−${formatCurrencyAmount(p.discountAmount, p.currency)}`
+          : "—"}
+      </TableCell>
+      <TableCell className="text-sm font-medium">
+        {formatCurrencyAmount(p.finalAmount, p.currency)}
+      </TableCell>
+      <TableCell>
+        {p.coupon ? (
+          <Badge variant="secondary" className="font-mono text-xs">
+            {p.coupon.code}
+          </Badge>
+        ) : (
+          <span className="text-sm text-muted-foreground">—</span>
+        )}
+      </TableCell>
+      <TableCell>
+        <Badge variant="outline" className={config.className}>
+          {config.label}
+        </Badge>
+      </TableCell>
+      <TableCell className="text-sm text-muted-foreground">
+        {p.paidAt
+          ? format(new Date(p.paidAt), "d MMM yyyy HH:mm", { locale: es })
+          : "—"}
+      </TableCell>
+      <TableCell>
+        {hasUsableLink && (
+          <div className="flex items-center gap-1">
+            <CopyLinkButton text={p.stripeCheckoutUrl ?? ""} />
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={handleResend}
+              disabled={isPending}
+              title="Reenviar por correo"
+            >
+              <Mail />
+            </Button>
+          </div>
+        )}
+      </TableCell>
+    </TableRow>
+  );
+}
 
 export function PaymentTable({ payments }: { payments: PaymentRow[] }) {
   if (payments.length === 0) {
@@ -62,62 +147,13 @@ export function PaymentTable({ payments }: { payments: PaymentRow[] }) {
             <TableHead>Cupón</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead>Fecha pago</TableHead>
+            <TableHead className="w-20" />
           </TableRow>
         </TableHeader>
         <TableBody>
-          {payments.map((p) => {
-            const config = statusConfig[p.status];
-            return (
-              <TableRow key={p.id}>
-                <TableCell>
-                  <p className="text-sm font-medium">{p.appointment.user.name}</p>
-                  <p className="text-xs text-muted-foreground">{p.appointment.user.email}</p>
-                </TableCell>
-                <TableCell className="text-sm">
-                  {p.appointment.psychologist.name}
-                </TableCell>
-                <TableCell className="text-sm">
-                  {format(new Date(p.appointment.dateTime), "d MMM yyyy", { locale: es })}
-                </TableCell>
-                <TableCell className="text-sm">
-                  {p.discountAmount > 0 ? (
-                    <span className="line-through text-muted-foreground">
-                      {formatCOP.format(p.amount)}
-                    </span>
-                  ) : (
-                    formatCOP.format(p.amount)
-                  )}
-                </TableCell>
-                <TableCell className="text-sm text-emerald-600">
-                  {p.discountAmount > 0
-                    ? `−${formatCOP.format(p.discountAmount)}`
-                    : "—"}
-                </TableCell>
-                <TableCell className="text-sm font-medium">
-                  {formatCOP.format(p.finalAmount)}
-                </TableCell>
-                <TableCell>
-                  {p.coupon ? (
-                    <Badge variant="secondary" className="font-mono text-xs">
-                      {p.coupon.code}
-                    </Badge>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">—</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline" className={config.className}>
-                    {config.label}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {p.paidAt
-                    ? format(new Date(p.paidAt), "d MMM yyyy HH:mm", { locale: es })
-                    : "—"}
-                </TableCell>
-              </TableRow>
-            );
-          })}
+          {payments.map((p) => (
+            <PaymentTableRow key={p.id} payment={p} />
+          ))}
         </TableBody>
       </Table>
     </div>

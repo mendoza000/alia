@@ -14,7 +14,6 @@ import {
 const STATUS_OPTIONS = [
   { value: "all", label: "Todos los estados" },
   { value: "PENDING_FORM", label: "Formulario pendiente" },
-  { value: "PENDING_PAYMENT", label: "Pago pendiente" },
   { value: "CONFIRMED", label: "Confirmadas" },
   { value: "COMPLETED", label: "Completadas" },
   { value: "CANCELLED", label: "Canceladas" },

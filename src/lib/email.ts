@@ -8,6 +8,7 @@ import { AppointmentConfirmationEmail } from "../../emails/appointment-confirmat
 import { AppointmentReminderEmail } from "../../emails/appointment-reminder";
 import { AppointmentRescheduledPatientEmail } from "../../emails/appointment-rescheduled-patient";
 import { NewAppointmentNotificationEmail } from "../../emails/new-appointment-notification";
+import { PaymentRequestEmail } from "../../emails/payment-request";
 import { prisma } from "@/lib/db";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -55,7 +56,17 @@ async function getAppointmentData(appointmentId: string) {
         select: { name: true, email: true, sessionDuration: true },
       },
       user: { select: { name: true, email: true } },
-      payment: { select: { finalAmount: true } },
+    },
+  });
+}
+
+async function getPaymentEmailData(appointmentId: string) {
+  return prisma.appointment.findUnique({
+    where: { id: appointmentId },
+    select: {
+      dateTime: true,
+      psychologist: { select: { name: true } },
+      user: { select: { name: true, email: true } },
     },
   });
 }
@@ -66,14 +77,13 @@ export async function sendAppointmentConfirmation(
   const appointment = await getAppointmentData(appointmentId);
   if (!appointment) return;
 
-  const { psychologist, user, payment, dateTime, endTime } = appointment;
+  const { psychologist, user, dateTime, endTime } = appointment;
   const html = await render(
     AppointmentConfirmationEmail({
       patientName: user.name ?? user.email,
       psychologistName: psychologist.name,
       formattedDate: formatAppointmentDate(dateTime),
       duration: psychologist.sessionDuration,
-      finalAmount: payment?.finalAmount ?? 0,
       appointmentsUrl: `${getBaseUrl()}/mi-cuenta/citas`,
       googleCalendarUrl: buildGoogleCalendarUrl(
         dateTime,
@@ -238,6 +248,38 @@ export async function sendAppointmentRescheduled(
     from: FROM,
     to: user.email,
     subject: `Tu cita con ${psychologist.name} fue reagendada`,
+    html,
+  });
+}
+
+export async function sendPaymentRequestEmail(
+  appointmentId: string,
+  paymentUrl: string,
+  finalAmount: number,
+  currency: string,
+): Promise<void> {
+  const appointment = await getPaymentEmailData(appointmentId);
+  if (!appointment) return;
+
+  const { psychologist, user, dateTime } = appointment;
+  const html = await render(
+    PaymentRequestEmail({
+      patientName: user.name ?? user.email,
+      psychologistName: psychologist.name,
+      formattedDate: formatAppointmentDate(dateTime),
+      finalAmount,
+      currency,
+      paymentUrl,
+      logoUrl: LOGO_DARK_URL,
+      logoLightUrl: LOGO_LIGHT_URL,
+      fontUrl: getFontUrl(),
+    }),
+  );
+
+  await resend.emails.send({
+    from: FROM,
+    to: user.email,
+    subject: `Enlace de pago — sesión con ${psychologist.name}`,
     html,
   });
 }

@@ -32,7 +32,16 @@ export async function getAllAppointments(filters: AppointmentFilters = {}) {
     include: {
       user: { select: { id: true, name: true, email: true, image: true } },
       psychologist: { select: { id: true, name: true, photoUrl: true } },
-      payment: { select: { id: true, finalAmount: true, status: true, couponId: true } },
+      payment: {
+        select: {
+          id: true,
+          finalAmount: true,
+          currency: true,
+          status: true,
+          couponId: true,
+          stripeCheckoutUrl: true,
+        },
+      },
       intakeForm: { select: { id: true } },
     },
   });

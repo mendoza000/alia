@@ -6,6 +6,7 @@ import { AppointmentConfirmationEmail } from "../emails/appointment-confirmation
 import { AppointmentReminderEmail } from "../emails/appointment-reminder";
 import { AppointmentRescheduledPatientEmail } from "../emails/appointment-rescheduled-patient";
 import { NewAppointmentNotificationEmail } from "../emails/new-appointment-notification";
+import { PaymentRequestEmail } from "../emails/payment-request";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const TO = "mendoza000.dev@gmail.com";
@@ -27,10 +28,12 @@ const DATA = {
   formattedDateNew:  "jueves 24 de abril a las 3:00 p. m.",
   duration:          60,
   finalAmount:       150_000,
+  currency:          "COP",
   patientEmail:      TO,
   appointmentsUrl:   `${BASE_URL}/mi-cuenta/citas`,
   intakeFormUrl:     `${BASE_URL}/admin/formularios/test-id`,
   scheduleUrl:       `${BASE_URL}/agendar`,
+  paymentUrl:        "https://checkout.stripe.com/test-session",
 };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -42,7 +45,7 @@ async function send(subject: string, html: string) {
 }
 
 async function main() {
-  console.log(`Enviando 6 emails de prueba a ${TO}...\n`);
+  console.log(`Enviando 7 emails de prueba a ${TO}...\n`);
 
   await send(
     "[PRUEBA] Confirmación de cita",
@@ -51,7 +54,6 @@ async function main() {
       psychologistName: DATA.psychologistName,
       formattedDate:    DATA.formattedDate,
       duration:         DATA.duration,
-      finalAmount:      DATA.finalAmount,
       appointmentsUrl:  DATA.appointmentsUrl,
       googleCalendarUrl: GCAL_URL,
       logoUrl:          LOGO_DARK_URL,
@@ -129,6 +131,22 @@ async function main() {
       duration:         DATA.duration,
       appointmentsUrl:  DATA.appointmentsUrl,
       googleCalendarUrl: GCAL_URL,
+      logoUrl:          LOGO_DARK_URL,
+      logoLightUrl:     LOGO_LIGHT_URL,
+      fontUrl:          FONT_URL,
+    })),
+  );
+
+  await sleep(300);
+  await send(
+    "[PRUEBA] Enlace de pago",
+    await render(PaymentRequestEmail({
+      patientName:      DATA.patientName,
+      psychologistName: DATA.psychologistName,
+      formattedDate:    DATA.formattedDate,
+      finalAmount:      DATA.finalAmount,
+      currency:         DATA.currency,
+      paymentUrl:       DATA.paymentUrl,
       logoUrl:          LOGO_DARK_URL,
       logoLightUrl:     LOGO_LIGHT_URL,
       fontUrl:          FONT_URL,

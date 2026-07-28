@@ -5,12 +5,7 @@ import { getAllPsychologists } from "@/lib/admin/psychologist-queries";
 import { PaymentTable } from "@/components/admin/payment-table";
 import { PaymentsFilters } from "@/components/admin/payments-filters";
 import { Skeleton } from "@/components/ui/skeleton";
-
-const formatCOP = new Intl.NumberFormat("es-CO", {
-  style: "currency",
-  currency: "COP",
-  maximumFractionDigits: 0,
-});
+import { formatCurrencyAmount } from "@/lib/currency";
 
 type Props = {
   searchParams: Promise<{
@@ -37,8 +32,17 @@ export default async function PagosPage({ searchParams }: Props) {
   ]);
 
   const approved = payments.filter((p) => p.status === "APPROVED");
-  const totalRevenue = approved.reduce((sum, p) => sum + p.finalAmount, 0);
-  const totalDiscounts = approved.reduce((sum, p) => sum + p.discountAmount, 0);
+
+  const totalsByCurrency = approved.reduce<
+    Record<string, { revenue: number; discounts: number }>
+  >((acc, p) => {
+    const entry = acc[p.currency] ?? { revenue: 0, discounts: 0 };
+    entry.revenue += p.finalAmount;
+    entry.discounts += p.discountAmount;
+    acc[p.currency] = entry;
+    return acc;
+  }, {});
+  const currencyTotals = Object.entries(totalsByCurrency);
 
   const psychologistOptions = psychologists.map((p) => ({ id: p.id, name: p.name }));
 
@@ -55,12 +59,28 @@ export default async function PagosPage({ searchParams }: Props) {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wide">Total recaudado</p>
-          <p className="mt-1 text-xl font-bold">{formatCOP.format(totalRevenue)}</p>
+          {currencyTotals.length === 0 ? (
+            <p className="mt-1 text-xl font-bold">—</p>
+          ) : (
+            currencyTotals.map(([currency, t]) => (
+              <p key={currency} className="mt-1 text-xl font-bold">
+                {formatCurrencyAmount(t.revenue, currency)}
+              </p>
+            ))
+          )}
           <p className="text-xs text-muted-foreground">{approved.length} pagos aprobados</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wide">Total descontado</p>
-          <p className="mt-1 text-xl font-bold">{formatCOP.format(totalDiscounts)}</p>
+          {currencyTotals.length === 0 ? (
+            <p className="mt-1 text-xl font-bold">—</p>
+          ) : (
+            currencyTotals.map(([currency, t]) => (
+              <p key={currency} className="mt-1 text-xl font-bold">
+                {formatCurrencyAmount(t.discounts, currency)}
+              </p>
+            ))
+          )}
           <p className="text-xs text-muted-foreground">Con cupones aplicados</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
