@@ -83,6 +83,15 @@ export function filterPastSlots(
     return slots.filter(slot => timeToMinutes(slot.start) > nowMinutes);
 }
 
+// TZDate's string constructor parses the naive string using the runtime's
+// system timezone (like `new Date(string)`) — it does NOT interpret it as
+// wall-clock time in the given zone. Only the numeric constructor does that.
+export function toBogotaDate(dateStr: string, time: string): TZDate {
+    const [year, month, day] = dateStr.split("-").map(Number);
+    const [hour, minute] = time.split(":").map(Number);
+    return new TZDate(year, month - 1, day, hour, minute, 0, BOGOTA_TZ);
+}
+
 export function subtractBusyPeriods(
     slots: TimeSlot[],
     busyPeriods: { start: Date; end: Date }[],
@@ -91,8 +100,8 @@ export function subtractBusyPeriods(
     if (busyPeriods.length === 0) return slots;
 
     return slots.filter(slot => {
-        const slotStart = new TZDate(`${dateStr}T${slot.start}:00`, BOGOTA_TZ);
-        const slotEnd = new TZDate(`${dateStr}T${slot.end}:00`, BOGOTA_TZ);
+        const slotStart = toBogotaDate(dateStr, slot.start);
+        const slotEnd = toBogotaDate(dateStr, slot.end);
 
         return !busyPeriods.some(busy => {
             return slotStart < busy.end && slotEnd > busy.start;

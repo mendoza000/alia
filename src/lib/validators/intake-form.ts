@@ -13,6 +13,10 @@ export const intakeFormSchema = yup.object({
     maritalStatus: yup.string().required("Selecciona tu estado civil"),
     occupation: yup.string().required("La ocupación es obligatoria"),
     religion: yup.string().default(""),
+    timezone: yup
+        .string()
+        .required("Selecciona tu zona horaria")
+        .default("America/Bogota"),
 
     // Section 2: Motivo de la sesión
     consultationReason: yup
@@ -73,6 +77,7 @@ export type IntakeFormData = {
     maritalStatus: string;
     occupation: string;
     religion: string;
+    timezone: string;
     consultationReason: string;
     previousTherapy: string;
     previousTherapyDetails: string;

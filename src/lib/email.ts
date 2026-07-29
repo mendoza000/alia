@@ -1,6 +1,7 @@
 import { render } from "@react-email/render";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { TZDate } from "@date-fns/tz";
 import { Resend } from "resend";
 import { AppointmentCancelledEmail } from "../../emails/appointment-cancelled";
 import { AppointmentCancelledPatientEmail } from "../../emails/appointment-cancelled-patient";
@@ -27,7 +28,11 @@ function getFontUrl() {
 }
 
 function formatAppointmentDate(date: Date): string {
-  return format(date, "EEEE d 'de' MMMM 'a las' h:mm a", { locale: es });
+  return format(
+    new TZDate(date, "America/Bogota"),
+    "EEEE d 'de' MMMM 'a las' h:mm a",
+    { locale: es },
+  );
 }
 
 function buildGoogleCalendarUrl(
@@ -56,7 +61,16 @@ async function getAppointmentData(appointmentId: string) {
         select: { name: true, email: true, sessionDuration: true },
       },
       user: { select: { name: true, email: true } },
+      intakeForm: { select: { data: true } },
     },
+  });
+}
+
+function formatPatientLocalTime(dateTime: Date, data: unknown): string | null {
+  const timezone = (data as { timezone?: string } | null)?.timezone;
+  if (!timezone || timezone === "America/Bogota") return null;
+  return format(new TZDate(dateTime, timezone), "EEEE d 'de' MMMM 'a las' h:mm a", {
+    locale: es,
   });
 }
 
@@ -77,12 +91,13 @@ export async function sendAppointmentConfirmation(
   const appointment = await getAppointmentData(appointmentId);
   if (!appointment) return;
 
-  const { psychologist, user, dateTime, endTime } = appointment;
+  const { psychologist, user, dateTime, endTime, intakeForm } = appointment;
   const html = await render(
     AppointmentConfirmationEmail({
       patientName: user.name ?? user.email,
       psychologistName: psychologist.name,
       formattedDate: formatAppointmentDate(dateTime),
+      patientLocalTime: formatPatientLocalTime(dateTime, intakeForm?.data),
       duration: psychologist.sessionDuration,
       appointmentsUrl: `${getBaseUrl()}/mi-cuenta/citas`,
       googleCalendarUrl: buildGoogleCalendarUrl(

@@ -7,6 +7,7 @@ import {
     filterPastSlots,
     appointmentsToBusyPeriods,
     computeMonthAvailability,
+    toBogotaDate,
 } from "../availability";
 import type { Schedule } from "@/generated/prisma/client";
 
@@ -27,13 +28,20 @@ function makeSchedule(
 
 /**
  * Create a plain Date that matches how subtractBusyPeriods builds slot dates
- * internally (using TZDate string constructor).
+ * internally (via the real toBogotaDate implementation).
  */
 function slotDate(dateStr: string, time: string): Date {
-    return new Date(
-        new TZDate(`${dateStr}T${time}:00`, "America/Bogota").getTime(),
-    );
+    return new Date(toBogotaDate(dateStr, time).getTime());
 }
+
+describe("toBogotaDate", () => {
+    it("converts a Bogota wall-clock time to the correct absolute UTC instant regardless of the host system timezone", () => {
+        // 11:00 in America/Bogota (UTC-5, no DST) must always equal 16:00 UTC.
+        expect(toBogotaDate("2026-07-29", "11:00").getTime()).toBe(
+            Date.UTC(2026, 6, 29, 16, 0, 0),
+        );
+    });
+});
 
 describe("getScheduleForDay", () => {
     const schedules = [

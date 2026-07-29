@@ -9,8 +9,8 @@ import {
     subtractBusyPeriods,
     filterPastSlots,
     appointmentsToBusyPeriods,
+    toBogotaDate,
 } from "@/lib/availability";
-import { TZDate } from "@date-fns/tz";
 import { getDay, startOfDay, endOfDay } from "date-fns";
 
 export async function GET(request: NextRequest) {
@@ -42,10 +42,7 @@ export async function GET(request: NextRequest) {
         );
     }
 
-    const dateInBogota = new TZDate(
-        `${params.date}T00:00:00`,
-        "America/Bogota",
-    );
+    const dateInBogota = toBogotaDate(params.date, "00:00");
     const dayOfWeek = getDay(dateInBogota);
     const dayStart = startOfDay(dateInBogota);
     const dayEnd = endOfDay(dateInBogota);

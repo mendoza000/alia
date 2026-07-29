@@ -19,8 +19,8 @@ import {
     subtractBusyPeriods,
     filterPastSlots,
     appointmentsToBusyPeriods,
+    toBogotaDate,
 } from "@/lib/availability";
-import { TZDate } from "@date-fns/tz";
 import { getDay, addMinutes } from "date-fns";
 
 type CreateAppointmentResult =
@@ -71,10 +71,10 @@ export async function createAppointment(input: {
     }
 
     // 4. Parse times
-    const dateTime = new TZDate(`${data.dateTime}:00`, "America/Bogota");
-    const endTime = addMinutes(dateTime, psychologist.sessionDuration);
     const dateStr = data.dateTime.slice(0, 10);
     const timeStr = data.dateTime.slice(11, 16);
+    const dateTime = toBogotaDate(dateStr, timeStr);
+    const endTime = addMinutes(dateTime, psychologist.sessionDuration);
 
     // 5. Verify slot matches schedule
     const dayOfWeek = getDay(dateTime);
