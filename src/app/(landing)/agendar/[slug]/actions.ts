@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 import { createAppointmentSchema } from "@/lib/validators/appointment";
 import { getBlockingAppointments } from "@/lib/queries/appointments";
+import { getActivePatientAppointment } from "@/lib/queries/patient-appointments";
 import { getCachedFreeBusyPeriods } from "@/lib/google-calendar";
 import { createAppointmentEvent } from "@/lib/calendar-events";
 import {
@@ -37,6 +38,16 @@ export async function createAppointment(input: {
 
     if (!session?.user?.id) {
         return { success: false, error: "Debes iniciar sesión para agendar" };
+    }
+
+    const activeAppointment = await getActivePatientAppointment(
+        session.user.id,
+    );
+    if (activeAppointment) {
+        return {
+            success: false,
+            error: "Ya tienes una sesión activa. Solo puedes tener una sesión pendiente o confirmada a la vez.",
+        };
     }
 
     // 2. Validate input
@@ -149,6 +160,26 @@ export async function createAppointment(input: {
                 throw new Error("SLOT_TAKEN");
             }
 
+            const patientConflicting = await tx.appointment.findFirst({
+                where: {
+                    userId: session.user.id,
+                    OR: [
+                        { status: "CONFIRMED" },
+                        {
+                            status: "PENDING_FORM",
+                            OR: [
+                                { expiresAt: null },
+                                { expiresAt: { gt: now } },
+                            ],
+                        },
+                    ],
+                },
+            });
+
+            if (patientConflicting) {
+                throw new Error("PATIENT_HAS_ACTIVE_APPOINTMENT");
+            }
+
             return tx.appointment.create({
                 data: {
                     userId: session.user.id,
@@ -205,6 +236,15 @@ export async function createAppointment(input: {
             return {
                 success: false,
                 error: "Este horario ya no está disponible",
+            };
+        }
+        if (
+            error instanceof Error &&
+            error.message === "PATIENT_HAS_ACTIVE_APPOINTMENT"
+        ) {
+            return {
+                success: false,
+                error: "Ya tienes una sesión activa. Solo puedes tener una sesión pendiente o confirmada a la vez.",
             };
         }
         throw error;

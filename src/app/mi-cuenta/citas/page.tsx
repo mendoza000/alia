@@ -38,7 +38,9 @@ export default async function MisCitasPage() {
     const upcoming = appointments.filter(
         a =>
             a.dateTime > now &&
-            (a.status === "CONFIRMED" || a.status === "PENDING_FORM"),
+            (a.status === "CONFIRMED" ||
+                (a.status === "PENDING_FORM" &&
+                    (a.expiresAt === null || a.expiresAt > now))),
     );
     const past = appointments.filter(a => !upcoming.includes(a));
 

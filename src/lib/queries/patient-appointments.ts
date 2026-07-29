@@ -11,3 +11,26 @@ export async function getPatientAppointments(userId: string) {
         orderBy: { dateTime: "desc" },
     });
 }
+
+export async function getActivePatientAppointment(userId: string) {
+    const now = new Date();
+
+    return prisma.appointment.findFirst({
+        where: {
+            userId,
+            OR: [
+                { status: "CONFIRMED" },
+                {
+                    status: "PENDING_FORM",
+                    OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+                },
+            ],
+        },
+        include: {
+            psychologist: {
+                select: { name: true, slug: true },
+            },
+        },
+        orderBy: { dateTime: "asc" },
+    });
+}

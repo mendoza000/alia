@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import { getActivePsychologists } from "@/lib/queries/psychologists";
 import { getPublicDisplayRate } from "@/lib/admin/payment-rate-queries";
+import { getActivePatientAppointment } from "@/lib/queries/patient-appointments";
 import { BookingStepper } from "@/components/booking/booking-stepper";
+import { ActiveAppointmentNotice } from "@/components/booking/active-appointment-notice";
 import { PsychologistGrid } from "./psychologist-grid";
 
 export const metadata: Metadata = {
@@ -12,7 +15,27 @@ export const metadata: Metadata = {
 };
 
 export default async function AgendarPage() {
-    const country = (await headers()).get("x-vercel-ip-country");
+    const headersList = await headers();
+    const session = await auth.api.getSession({ headers: headersList });
+
+    if (session?.user?.id) {
+        const activeAppointment = await getActivePatientAppointment(
+            session.user.id,
+        );
+        if (activeAppointment) {
+            return (
+                <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
+                    <BookingStepper currentStep={1} />
+                    <ActiveAppointmentNotice
+                        psychologistName={activeAppointment.psychologist.name}
+                        dateTime={activeAppointment.dateTime}
+                    />
+                </section>
+            );
+        }
+    }
+
+    const country = headersList.get("x-vercel-ip-country");
     const [psychologists, globalRate] = await Promise.all([
         getActivePsychologists(),
         getPublicDisplayRate(country),

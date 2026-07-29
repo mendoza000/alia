@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import { getPsychologistBySlug } from "@/lib/queries/psychologists";
 import { getPublicDisplayRate } from "@/lib/admin/payment-rate-queries";
 import { getCachedFreeBusyPeriods } from "@/lib/google-calendar";
@@ -9,8 +10,11 @@ import {
     computeMonthAvailability,
 } from "@/lib/availability";
 import { getBlockingAppointments } from "@/lib/queries/appointments";
+import { getActivePatientAppointment } from "@/lib/queries/patient-appointments";
 import { TZDate } from "@date-fns/tz";
 import { startOfMonth, endOfMonth } from "date-fns";
+import { BookingStepper } from "@/components/booking/booking-stepper";
+import { ActiveAppointmentNotice } from "@/components/booking/active-appointment-notice";
 import { BookingFlow } from "./booking-flow";
 
 type Props = {
@@ -35,6 +39,24 @@ export default async function BookingPage({ params, searchParams }: Props) {
 
     const psychologist = await getPsychologistBySlug(slug);
     if (!psychologist) notFound();
+
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (session?.user?.id) {
+        const activeAppointment = await getActivePatientAppointment(
+            session.user.id,
+        );
+        if (activeAppointment) {
+            return (
+                <section className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-16 mt-10 lg:mt-20">
+                    <BookingStepper currentStep={2} />
+                    <ActiveAppointmentNotice
+                        psychologistName={activeAppointment.psychologist.name}
+                        dateTime={activeAppointment.dateTime}
+                    />
+                </section>
+            );
+        }
+    }
 
     const now = new TZDate(new Date(), "America/Bogota");
     const year = now.getFullYear();
