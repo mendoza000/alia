@@ -1,3 +1,5 @@
+import { AnalyticsScripts } from "@/components/analytics/analytics-scripts";
+import { RouteTracker } from "@/components/analytics/route-tracker";
 import { Footer } from "@/components/landing/footer";
 import { Header } from "@/components/landing/header";
 import { WhatsAppButton } from "@/components/landing/whatsapp-button";
@@ -13,6 +15,8 @@ export default async function LandingLayout({
 
     return (
         <div className="flex min-h-svh flex-col">
+            <AnalyticsScripts />
+            <RouteTracker />
             <Header />
             <main className="flex-1">{children}</main>
             <Footer settings={settings} />
