@@ -7,7 +7,7 @@ import type { SiteSettings } from "@/lib/admin/site-settings-queries";
 
 const quickLinks = [
     { label: "Inicio", href: "/" },
-    { label: "Psicólogos", href: "/psicologos" },
+    { label: "Psicólogos", href: "/#psicologos" },
     { label: "Agendar", href: "/agendar" },
     { label: "Preguntas frecuentes", href: "#faq" },
 ];
@@ -16,6 +16,7 @@ const legalLinks = [
     { label: "Política de Privacidad", href: "/privacidad" },
     { label: "Términos y Condiciones", href: "/terminos" },
     { label: "Política de Reembolso y Cancelación", href: "/reembolso" },
+    { label: "Consentimiento Informado", href: "/consentimiento-informado" },
 ];
 
 export function Footer({ settings }: { settings: SiteSettings }) {
@@ -99,7 +100,13 @@ export function Footer({ settings }: { settings: SiteSettings }) {
 
                 <Separator className="my-10 bg-primary-foreground/10" />
 
-                <div className="flex flex-col items-center justify-between gap-4 text-xs opacity-50  xl:text-sm">
+                <p className="mx-auto max-w-2xl text-center text-xs leading-relaxed opacity-40">
+                    Este servicio es de acompañamiento y bienestar emocional.
+                    No constituye terapia psicológica clínica, diagnóstico
+                    médico ni tratamiento psiquiátrico.
+                </p>
+
+                <div className="mt-6 flex flex-col items-center justify-between gap-4 text-xs opacity-50  xl:text-sm">
                     <p>
                         &copy; 2026 Alia Coaching Services LLC. Todos los
                         derechos reservados.

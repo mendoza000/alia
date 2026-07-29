@@ -38,9 +38,10 @@ const SECTIONS = [
             "gender",
             "maritalStatus",
             "occupation",
+            "religion",
         ],
     },
-    { title: "Motivo de consulta", fields: ["consultationReason"] },
+    { title: "Motivo de la sesión", fields: ["consultationReason"] },
     {
         title: "Historial de salud mental",
         fields: [
@@ -51,8 +52,14 @@ const SECTIONS = [
         ],
     },
     { title: "Historial médico", fields: ["medicalHistory"] },
-    { title: "Red de apoyo", fields: ["livingWith", "supportNetwork"] },
-    { title: "Expectativas de la terapia", fields: ["therapyExpectations"] },
+    {
+        title: "Red de apoyo / contacto de emergencia",
+        fields: ["livingWith", "emergencyContact"],
+    },
+    {
+        title: "Expectativas del acompañamiento",
+        fields: ["therapyExpectations"],
+    },
     {
         title: "Consentimiento informado",
         fields: ["informedConsent", "privacyPolicy"],
@@ -118,6 +125,7 @@ export function IntakeFormFlow({
             gender: str(priorData?.gender),
             maritalStatus: str(priorData?.maritalStatus),
             occupation: str(priorData?.occupation),
+            religion: str(priorData?.religion),
             consultationReason: "",
             previousTherapy: str(priorData?.previousTherapy),
             previousTherapyDetails: str(priorData?.previousTherapyDetails),
@@ -125,7 +133,7 @@ export function IntakeFormFlow({
             currentMedicationDetails: str(priorData?.currentMedicationDetails),
             medicalHistory: str(priorData?.medicalHistory),
             livingWith: str(priorData?.livingWith),
-            supportNetwork: str(priorData?.supportNetwork),
+            emergencyContact: str(priorData?.emergencyContact),
             therapyExpectations: str(priorData?.therapyExpectations),
             informedConsent: false,
             privacyPolicy: false,
@@ -200,7 +208,7 @@ export function IntakeFormFlow({
                         href={`/agendar/${psychologistSlug}`}
                         className="font-medium underline"
                     >
-                        agenda una nueva cita
+                        agenda una nueva sesión
                     </a>
                     .
                 </div>
@@ -314,6 +322,11 @@ function PersonalDataSection() {
             <h2 className="font-heading text-lg font-semibold">
                 Datos personales
             </h2>
+            <p className="text-xs text-muted-foreground">
+                Para que tu especialista pueda conocer tu historia antes de la
+                sesión, preparar un acompañamiento personalizado y ahorrar
+                tiempo en presentaciones. Tu información es 100% confidencial.
+            </p>
             <div className="grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                     <FormInput name="fullName" label="Nombre completo" />
@@ -336,6 +349,7 @@ function PersonalDataSection() {
                         { value: "Masculino", label: "Masculino" },
                         { value: "Femenino", label: "Femenino" },
                         { value: "No binario", label: "No binario" },
+                        { value: "Otro", label: "Otro" },
                         {
                             value: "Prefiero no decir",
                             label: "Prefiero no decir",
@@ -354,9 +368,8 @@ function PersonalDataSection() {
                         { value: "Viudo/a", label: "Viudo/a" },
                     ]}
                 />
-                <div className="sm:col-span-2">
-                    <FormInput name="occupation" label="Ocupación" />
-                </div>
+                <FormInput name="occupation" label="Ocupación" />
+                <FormInput name="religion" label="Religión" />
             </div>
         </div>
     );
@@ -366,7 +379,7 @@ function ConsultationReasonSection() {
     return (
         <div className="space-y-4">
             <h2 className="font-heading text-lg font-semibold">
-                Motivo de consulta
+                Motivo de la sesión
             </h2>
             <FormTextarea
                 name="consultationReason"
@@ -458,17 +471,18 @@ function SupportNetworkSection() {
     return (
         <div className="space-y-4">
             <h2 className="font-heading text-lg font-semibold">
-                Red de apoyo / situación familiar
+                Red de apoyo / contacto de emergencia
             </h2>
             <FormInput
                 name="livingWith"
                 label="¿Con quién vives actualmente?"
             />
             <FormTextarea
-                name="supportNetwork"
-                label="¿Cuentas con una red de apoyo? Describe brevemente."
+                name="emergencyContact"
+                label="¿Cuentas con una persona de contacto en caso de emergencia?"
+                description="Comparte su nombre y teléfono."
                 rows={3}
-                placeholder="Familia, amigos, pareja..."
+                placeholder="Nombre y teléfono..."
             />
         </div>
     );
@@ -478,11 +492,11 @@ function TherapyExpectationsSection() {
     return (
         <div className="space-y-4">
             <h2 className="font-heading text-lg font-semibold">
-                Expectativas de la terapia
+                Expectativas del acompañamiento
             </h2>
             <FormTextarea
                 name="therapyExpectations"
-                label="¿Qué esperas lograr con la terapia?"
+                label="¿Qué esperas lograr con el acompañamiento?"
                 rows={5}
                 placeholder="Tus metas, lo que te gustaría mejorar..."
             />
@@ -502,7 +516,21 @@ function ConsentSection() {
             </p>
             <FormCheckbox
                 name="informedConsent"
-                label="Acepto que la información proporcionada es verídica y autorizo su uso confidencial con fines terapéuticos, de acuerdo con la Ley 1581 de 2012 (Habeas Data)."
+                label={
+                    <>
+                        Acepto que la información proporcionada es verídica y
+                        he leído y acepto el{" "}
+                        <a
+                            href="/consentimiento-informado"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-medium underline"
+                        >
+                            Consentimiento Informado
+                        </a>{" "}
+                        del servicio de acompañamiento ALIA.
+                    </>
+                }
             />
             <FormCheckbox
                 name="privacyPolicy"

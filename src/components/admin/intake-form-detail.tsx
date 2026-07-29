@@ -90,7 +90,7 @@ export function IntakeFormDetail({
           <p className="font-medium">{psychologistName}</p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground uppercase tracking-wide">Fecha de cita</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Fecha de sesión</p>
           <p className="font-medium capitalize">
             {format(appointmentDate, "d 'de' MMMM 'de' yyyy, HH:mm", { locale: es })}
           </p>
@@ -116,11 +116,12 @@ export function IntakeFormDetail({
             <Field label="Género" value={data.gender} />
             <Field label="Estado civil" value={data.maritalStatus} />
             <Field label="Ocupación" value={data.occupation} />
+            <Field label="Religión" value={data.religion} />
           </div>
         </Section>
 
-        <Section title="Motivo de consulta">
-          <Field label="¿Por qué buscas terapia?" value={data.consultationReason} />
+        <Section title="Motivo de la sesión">
+          <Field label="¿Por qué buscas acompañamiento?" value={data.consultationReason} />
         </Section>
 
         <Section title="Historial de salud mental">
@@ -138,13 +139,13 @@ export function IntakeFormDetail({
           <Field label="Enfermedades o condiciones médicas relevantes" value={data.medicalHistory || "Ninguna"} />
         </Section>
 
-        <Section title="Red de apoyo">
+        <Section title="Red de apoyo / contacto de emergencia">
           <Field label="¿Con quién vives?" value={data.livingWith || "No especificado"} />
-          <Field label="Red de apoyo" value={data.supportNetwork || "No especificado"} />
+          <Field label="Contacto de emergencia" value={data.emergencyContact || "No especificado"} />
         </Section>
 
-        <Section title="Expectativas de terapia">
-          <Field label="¿Qué esperas lograr con la terapia?" value={data.therapyExpectations} />
+        <Section title="Expectativas del acompañamiento">
+          <Field label="¿Qué esperas lograr con el acompañamiento?" value={data.therapyExpectations} />
         </Section>
 
         <Section title="Consentimientos">

@@ -206,7 +206,7 @@ export function FormRadioGroup({
 
 interface FormCheckboxProps {
     name: string;
-    label: string;
+    label: React.ReactNode;
 }
 
 export function FormCheckbox({ name, label }: FormCheckboxProps) {

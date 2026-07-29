@@ -153,7 +153,7 @@ export function IntakeFormPDF({
 
         <View style={styles.meta}>
           <View style={styles.metaItem}>
-            <Text style={styles.metaLabel}>Paciente</Text>
+            <Text style={styles.metaLabel}>Persona</Text>
             <Text style={styles.metaValue}>{patientName}</Text>
             <Text style={{ ...styles.fieldValue, color: "#46494F" }}>{patientEmail}</Text>
           </View>
@@ -162,7 +162,7 @@ export function IntakeFormPDF({
             <Text style={styles.metaValue}>{psychologistName}</Text>
           </View>
           <View style={styles.metaItem}>
-            <Text style={styles.metaLabel}>Fecha de cita</Text>
+            <Text style={styles.metaLabel}>Fecha de sesión</Text>
             <Text style={styles.metaValue}>
               {format(appointmentDate, "d 'de' MMMM 'de' yyyy, HH:mm", { locale: es })}
             </Text>
@@ -186,13 +186,14 @@ export function IntakeFormPDF({
             <Field label="Género" value={data.gender} />
             <Field label="Estado civil" value={data.maritalStatus} />
             <Field label="Ocupación" value={data.occupation} />
+            <Field label="Religión" value={data.religion} />
           </View>
         </View>
 
         {/* Section 2 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>2. Motivo de consulta</Text>
-          <Field label="¿Por qué buscas terapia?" value={data.consultationReason} full />
+          <Text style={styles.sectionTitle}>2. Motivo de la sesión</Text>
+          <Field label="¿Por qué buscas acompañamiento?" value={data.consultationReason} full />
         </View>
 
         {/* Section 3 */}
@@ -218,16 +219,16 @@ export function IntakeFormPDF({
 
         {/* Section 5 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>5. Red de apoyo</Text>
+          <Text style={styles.sectionTitle}>5. Red de apoyo / contacto de emergencia</Text>
           <View style={styles.fieldGrid}>
             <Field label="¿Con quién vive?" value={data.livingWith || "No especificado"} />
-            <Field label="Red de apoyo" value={data.supportNetwork || "No especificado"} />
+            <Field label="Contacto de emergencia" value={data.emergencyContact || "No especificado"} />
           </View>
         </View>
 
         {/* Section 6 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>6. Expectativas de terapia</Text>
+          <Text style={styles.sectionTitle}>6. Expectativas del acompañamiento</Text>
           <Field label="¿Qué espera lograr?" value={data.therapyExpectations} full />
         </View>
 

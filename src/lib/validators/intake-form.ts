@@ -12,11 +12,12 @@ export const intakeFormSchema = yup.object({
     gender: yup.string().required("Selecciona tu género"),
     maritalStatus: yup.string().required("Selecciona tu estado civil"),
     occupation: yup.string().required("La ocupación es obligatoria"),
+    religion: yup.string().default(""),
 
-    // Section 2: Motivo de consulta
+    // Section 2: Motivo de la sesión
     consultationReason: yup
         .string()
-        .required("El motivo de consulta es obligatorio"),
+        .required("El motivo de la sesión es obligatorio"),
 
     // Section 3: Historial de salud mental
     previousTherapy: yup
@@ -43,14 +44,14 @@ export const intakeFormSchema = yup.object({
     // Section 4: Historial médico
     medicalHistory: yup.string().default(""),
 
-    // Section 5: Red de apoyo
+    // Section 5: Red de apoyo / contacto de emergencia
     livingWith: yup.string().default(""),
-    supportNetwork: yup.string().default(""),
+    emergencyContact: yup.string().default(""),
 
     // Section 6: Expectativas
     therapyExpectations: yup
         .string()
-        .required("Indica qué esperas lograr con la terapia"),
+        .required("Indica qué esperas lograr con el acompañamiento"),
 
     // Section 7: Consentimiento
     informedConsent: yup
@@ -71,6 +72,7 @@ export type IntakeFormData = {
     gender: string;
     maritalStatus: string;
     occupation: string;
+    religion: string;
     consultationReason: string;
     previousTherapy: string;
     previousTherapyDetails: string;
@@ -78,7 +80,7 @@ export type IntakeFormData = {
     currentMedicationDetails: string;
     medicalHistory: string;
     livingWith: string;
-    supportNetwork: string;
+    emergencyContact: string;
     therapyExpectations: string;
     informedConsent: boolean;
     privacyPolicy: boolean;
