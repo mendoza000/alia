@@ -49,7 +49,7 @@ export function HeroSection() {
                     animate={inView ? { opacity: 1, y: 0 } : undefined}
                     transition={{ duration: 0.6, ease, delay: 0.2 }}
                 >
-                    Agenda tu cita con psicólogos verificados. Un espacio
+                    Agenda tu sesión con psicólogos verificados. Un espacio
                     seguro, confidencial y pensado para ti.
                 </motion.p>
 
@@ -65,12 +65,12 @@ export function HeroSection() {
                         className="h-11 rounded-xl bg-accent px-6 text-base text-accent-foreground hover:bg-accent/80 xl:h-12 xl:px-8 xl:text-sm"
                         render={<Link href="/agendar" />}
                     >
-                        Agenda tu cita
+                        Agenda tu sesión
                     </Button>
                     <Button
                         variant="outline"
                         className="h-11 rounded-xl px-6 text-base xl:h-12 xl:px-8 xl:text-sm"
-                        render={<Link href="/psicologos" />}
+                        render={<Link href="#psicologos" />}
                     >
                         Conoce a nuestros psicólogos
                     </Button>
@@ -92,7 +92,7 @@ export function HeroSection() {
                         ))}
                     </div>
                     <p className="text-sm text-muted-foreground">
-                        100+ pacientes confían en nosotros
+                        100+ personas confían en nosotros
                     </p>
                 </motion.div>
             </div>

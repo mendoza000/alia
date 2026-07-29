@@ -5,18 +5,18 @@ export const bentoCards: BentoCard[] = [
     {
         id: "photo-1",
         type: "photo",
-        name: "Dra. María C.",
-        specialty: "Psicología Clínica",
+        name: "María C.",
+        specialty: "Psicología y bienestar",
         imgUrl: "https://plus.unsplash.com/premium_photo-1670884441862-ddb29ed1f25e?w=400&h=600&fit=crop&crop=face",
         className:
-            "aspect-[3/2] sm:aspect-[4/5] sm:col-span-1 md:aspect-auto md:col-start-1 md:row-start-1 md:row-span-2",
+            "aspect-[4/5] sm:col-span-1 md:aspect-auto md:col-start-1 md:row-start-1 md:row-span-2",
     },
     {
         id: "value-1",
         type: "value",
         title: "Profesionales verificados",
         description:
-            "Validamos título universitario, registro profesional y experiencia clínica de cada psicólogo.",
+            "Validamos título universitario, registro profesional y experiencia en acompañamiento de cada psicólogo.",
         supportImg: "/support/support-img-6.png",
         bg: "bg-card",
         className: "col-span-1 md:col-start-2 md:col-span-2 md:row-start-1",
@@ -24,7 +24,7 @@ export const bentoCards: BentoCard[] = [
         highlights: [
             "Título universitario",
             "Registro profesional activo",
-            "Experiencia clínica comprobada",
+            "Experiencia comprobada",
         ],
     },
     {
@@ -58,17 +58,17 @@ export const bentoCards: BentoCard[] = [
         highlights: [
             "Elige horario",
             "Completa formulario",
-            "Confirma tu cita",
+            "Confirma tu sesión",
         ],
     },
     {
         id: "photo-2",
         type: "photo",
-        name: "Dr. Juan R.",
-        specialty: "Terapia de Pareja",
+        name: "Juan R.",
+        specialty: "Acompañamiento de parejas",
         imgUrl: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&h=600&fit=crop&crop=face",
         className:
-            "aspect-[3/2] sm:aspect-[4/5] sm:col-span-1 md:aspect-auto md:col-start-3 md:row-start-3 md:min-h-[180px]",
+            "aspect-[4/5] sm:col-span-1 md:aspect-auto md:col-start-3 md:row-start-3 md:min-h-[180px]",
     },
 ];
 
