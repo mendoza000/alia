@@ -188,7 +188,7 @@ function AppointmentRow({
             )}
             {canComplete && (
               <DropdownMenuItem
-                onClick={() => handleAction(completeAppointment, "Cita marcada como completada")}
+                onClick={() => handleAction(completeAppointment, "Sesión marcada como completada")}
               >
                 <CheckCircle2 />
                 Marcar completada
@@ -207,10 +207,10 @@ function AppointmentRow({
                 {(canComplete || canNoShow) && <DropdownMenuSeparator />}
                 <DropdownMenuItem
                   variant="destructive"
-                  onClick={() => handleAction(cancelAppointment, "Cita cancelada")}
+                  onClick={() => handleAction(cancelAppointment, "Sesión cancelada")}
                 >
                   <XCircle />
-                  Cancelar cita
+                  Cancelar sesión
                 </DropdownMenuItem>
               </>
             )}
@@ -235,7 +235,7 @@ export function AppointmentsTable({
   if (appointments.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-12">
-        <p className="text-sm text-muted-foreground">No se encontraron citas</p>
+        <p className="text-sm text-muted-foreground">No se encontraron sesiones</p>
       </div>
     );
   }
@@ -245,7 +245,7 @@ export function AppointmentsTable({
       <Table>
         <TableHeader className="[&_th]:font-semibold">
           <TableRow>
-            <TableHead>Paciente</TableHead>
+            <TableHead>Persona</TableHead>
             <TableHead>Psicólogo</TableHead>
             <TableHead>Fecha / Hora</TableHead>
             <TableHead>Estado</TableHead>

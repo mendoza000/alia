@@ -15,6 +15,7 @@ import { es } from "date-fns/locale";
 import { toast } from "sonner";
 import { ease } from "@/lib/motion";
 import { formatCurrencyAmount } from "@/lib/currency";
+import { trackInitiateCheckout } from "@/lib/analytics/events";
 import type { Psychologist, Schedule } from "@/generated/prisma/client";
 import type { MonthAvailability } from "@/lib/availability";
 import { AvailabilityCalendar } from "@/components/availability/availability-calendar";
@@ -104,6 +105,15 @@ export function BookingFlow({
                 return;
             }
 
+            trackInitiateCheckout(
+                globalRate
+                    ? {
+                          value: globalRate.amount,
+                          currency: globalRate.currency,
+                      }
+                    : undefined,
+            );
+
             const path = result.skipForm
                 ? `/agendar/${psychologist.slug}/confirmacion?appointmentId=${result.appointmentId}`
                 : `/agendar/${psychologist.slug}/formulario?appointmentId=${result.appointmentId}`;
@@ -114,6 +124,7 @@ export function BookingFlow({
         selectedTime,
         psychologist.id,
         psychologist.slug,
+        globalRate,
         router,
         handleChangeSlot,
     ]);
@@ -130,7 +141,7 @@ export function BookingFlow({
             {/* Header */}
             <div className="mb-8 text-center">
                 <h1 className="font-heading text-3xl font-bold sm:text-4xl">
-                    Agendar cita
+                    Agendar sesión
                 </h1>
                 <p className="mt-2 text-muted-foreground">
                     con {psychologist.name}
@@ -259,7 +270,7 @@ function AuthStep({
             <div className="rounded-lg bg-card p-6 ring-1 ring-border/50 sm:p-8">
                 {/* Appointment preview */}
                 <div className="mb-6 rounded-md bg-secondary/50 p-4 text-center">
-                    <p className="text-sm text-muted-foreground">Tu cita</p>
+                    <p className="text-sm text-muted-foreground">Tu sesión</p>
                     <p className="mt-1 font-medium">{psychologistName}</p>
                     <p className="text-sm capitalize text-muted-foreground">
                         {formattedDate} — {selectedTime}
@@ -323,7 +334,7 @@ function SummaryStep({
         <div className="mx-auto max-w-md">
             <div className="rounded-lg bg-card p-6 ring-1 ring-border/50 sm:p-8">
                 <h2 className="mb-5 text-center font-heading text-xl font-bold">
-                    Resumen de tu cita
+                    Resumen de tu sesión
                 </h2>
 
                 {/* Psychologist info */}

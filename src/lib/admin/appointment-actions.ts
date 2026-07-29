@@ -17,9 +17,9 @@ export async function cancelAppointment(appointmentId: string): Promise<ActionRe
     select: { status: true },
   });
 
-  if (!appointment) return { success: false, error: "Cita no encontrada" };
+  if (!appointment) return { success: false, error: "Sesión no encontrada" };
   if (appointment.status === "CANCELLED") {
-    return { success: false, error: "La cita ya está cancelada" };
+    return { success: false, error: "La sesión ya está cancelada" };
   }
 
   await prisma.appointment.update({
@@ -50,9 +50,9 @@ export async function completeAppointment(appointmentId: string): Promise<Action
     select: { status: true },
   });
 
-  if (!appointment) return { success: false, error: "Cita no encontrada" };
+  if (!appointment) return { success: false, error: "Sesión no encontrada" };
   if (appointment.status !== "CONFIRMED") {
-    return { success: false, error: "Solo se pueden completar citas confirmadas" };
+    return { success: false, error: "Solo se pueden completar sesiones confirmadas" };
   }
 
   await prisma.appointment.update({
@@ -70,9 +70,9 @@ export async function markNoShow(appointmentId: string): Promise<ActionResult> {
     select: { status: true },
   });
 
-  if (!appointment) return { success: false, error: "Cita no encontrada" };
+  if (!appointment) return { success: false, error: "Sesión no encontrada" };
   if (appointment.status !== "CONFIRMED") {
-    return { success: false, error: "Solo se pueden marcar como no-show citas confirmadas" };
+    return { success: false, error: "Solo se pueden marcar como no-show sesiones confirmadas" };
   }
 
   await prisma.appointment.update({
@@ -94,9 +94,9 @@ export async function rescheduleAppointment(
     select: { status: true },
   });
 
-  if (!appointment) return { success: false, error: "Cita no encontrada" };
+  if (!appointment) return { success: false, error: "Sesión no encontrada" };
   if (appointment.status !== "CONFIRMED") {
-    return { success: false, error: "No se puede reagendar esta cita" };
+    return { success: false, error: "No se puede reagendar esta sesión" };
   }
 
   await prisma.appointment.update({

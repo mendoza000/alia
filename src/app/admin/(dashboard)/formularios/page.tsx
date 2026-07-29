@@ -34,7 +34,7 @@ export default async function FormulariosPage() {
         <div>
           <h1 className="font-heading text-2xl font-semibold">Formularios</h1>
           <p className="text-sm text-muted-foreground">
-            Formularios de inventario de vida de los pacientes
+            Formularios de inventario de vida de las personas
           </p>
         </div>
         <a href="/api/admin/formularios/export.csv" target="_blank">
@@ -53,9 +53,9 @@ export default async function FormulariosPage() {
           <Table>
             <TableHeader className="[&_th]:font-semibold">
               <TableRow>
-                <TableHead>Paciente</TableHead>
+                <TableHead>Persona</TableHead>
                 <TableHead>Psicólogo</TableHead>
-                <TableHead>Fecha de cita</TableHead>
+                <TableHead>Fecha de sesión</TableHead>
                 <TableHead>Formulario enviado</TableHead>
                 <TableHead className="w-10" />
               </TableRow>

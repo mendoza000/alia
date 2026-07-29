@@ -55,7 +55,7 @@ export function AppointmentConfirmationEmail({
           }
         `}</style>
       </Head>
-      <Preview>Tu cita con {psychologistName} está confirmada</Preview>
+      <Preview>Tu sesión con {psychologistName} está confirmada</Preview>
       <Body style={body}>
         <Container style={container}>
           <Section style={header}>
@@ -66,10 +66,10 @@ export function AppointmentConfirmationEmail({
 
           <Section style={content}>
             <Heading as="h2" style={heading}>
-              ¡Tu cita está confirmada!
+              ¡Tu sesión está confirmada!
             </Heading>
             <Text style={intro}>
-              Hola {patientName}, tu cita quedó confirmada.
+              Hola {patientName}, tu sesión quedó confirmada.
             </Text>
 
             <Section style={card}>
@@ -85,7 +85,7 @@ export function AppointmentConfirmationEmail({
 
             <Section style={actions}>
               <Button href={appointmentsUrl} style={primaryButton}>
-                Ver mis citas
+                Ver mis sesiones
               </Button>
               <Button href={googleCalendarUrl} style={calendarButton}>
                 + Agregar a Google Calendar

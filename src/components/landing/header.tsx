@@ -71,7 +71,7 @@ export function Header() {
                         className="rounded-full bg-accent px-5 text-accent-foreground transition-all hover:scale-[1.02] hover:bg-accent/80"
                         render={<Link href="/agendar" />}
                     >
-                        Agenda tu cita
+                        Agenda tu sesión
                     </Button>
                 </div>
 
@@ -115,7 +115,7 @@ export function Header() {
                                 className="mt-4 rounded-full bg-accent text-accent-foreground transition-all hover:scale-[1.02] hover:bg-accent/80"
                                 render={<Link href="/agendar" />}
                             >
-                                Agenda tu cita
+                                Agenda tu sesión
                             </Button>
                         </nav>
                     </SheetContent>

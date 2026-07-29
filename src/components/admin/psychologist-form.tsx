@@ -111,14 +111,14 @@ export function PsychologistForm({
       >
         {/* Name + Email */}
         <div className="grid gap-4 sm:grid-cols-2">
-          <FormInput name="name" label="Nombre completo" placeholder="Dra. María López" />
+          <FormInput name="name" label="Nombre completo" placeholder="María López" />
           <FormInput name="email" label="Correo electrónico" type="email" placeholder="maria@ejemplo.com" />
         </div>
 
         {/* Phone + Specialty */}
         <div className="grid gap-4 sm:grid-cols-2">
           <FormInput name="phone" label="Teléfono" placeholder="+57 300 123 4567" />
-          <FormInput name="specialty" label="Especialidad" placeholder="Psicología clínica" />
+          <FormInput name="specialty" label="Especialidad" placeholder="Acompañamiento de parejas" />
         </div>
 
         {/* Duration */}

@@ -35,14 +35,14 @@ export function UpcomingAppointments({
 			<CardHeader className="flex items-center justify-between">
 				<div>
 					<CardTitle className="text-base font-medium">
-						Próximas citas
+						Próximas sesiones
 					</CardTitle>
 					{appointments.length > 0 && (
 						<CardDescription>
 							{appointments.length}{" "}
 							{appointments.length === 1
-								? "cita pendiente"
-								: "citas pendientes"}
+								? "sesión pendiente"
+								: "sesiones pendientes"}
 						</CardDescription>
 					)}
 				</div>
@@ -119,7 +119,7 @@ export function UpcomingAppointments({
 					<div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
 						<CalendarClock className="mb-2 size-8 opacity-50" />
 						<p className="text-sm">
-							No hay citas próximas programadas
+							No hay sesiones próximas programadas
 						</p>
 					</div>
 				)}

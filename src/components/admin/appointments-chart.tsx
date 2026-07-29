@@ -17,7 +17,7 @@ import {
 
 const chartConfig = {
 	count: {
-		label: "Citas",
+		label: "Sesiones",
 		color: "var(--chart-1)",
 	},
 } satisfies ChartConfig;
@@ -40,7 +40,7 @@ export function AppointmentsChart({ data }: AppointmentsChartProps) {
 					</span>
 				</CardDescription>
 				<CardTitle className="font-heading text-2xl">
-					{total.toLocaleString("es-CO")} citas
+					{total.toLocaleString("es-CO")} sesiones
 				</CardTitle>
 			</CardHeader>
 			<CardContent>

@@ -51,7 +51,7 @@ export function AppointmentCancelledPatientEmail({
           }
         `}</style>
       </Head>
-      <Preview>Tu cita con {psychologistName} fue cancelada</Preview>
+      <Preview>Tu sesión con {psychologistName} fue cancelada</Preview>
       <Body style={body}>
         <Container style={container}>
           <Section style={header}>
@@ -62,7 +62,7 @@ export function AppointmentCancelledPatientEmail({
 
           <Section style={content}>
             <Heading as="h2" style={heading}>
-              Tu cita fue cancelada
+              Tu sesión fue cancelada
             </Heading>
             <Text style={intro}>
               Hola {patientName}, tu sesión con {psychologistName} fue
@@ -78,13 +78,13 @@ export function AppointmentCancelledPatientEmail({
             </Section>
 
             <Text style={message}>
-              Puedes agendar una nueva cita cuando quieras. Estamos aquí para
-              acompañarte.
+              Puedes agendar una nueva sesión cuando quieras. Estamos aquí
+              para acompañarte.
             </Text>
 
             <Section style={{ textAlign: "center" }}>
               <Button href={scheduleUrl} style={primaryButton}>
-                Agendar nueva cita
+                Agendar nueva sesión
               </Button>
             </Section>
           </Section>

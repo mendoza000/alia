@@ -8,7 +8,8 @@ import { IntakeFormFlow } from "./intake-form-flow";
 
 export const metadata: Metadata = {
     title: "Formulario — Inventario de Vida",
-    description: "Completa tu formulario de inventario de vida para tu cita.",
+    description:
+        "Completa tu formulario de inventario de vida para tu sesión.",
 };
 
 type Props = {

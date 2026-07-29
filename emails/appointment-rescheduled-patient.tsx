@@ -55,7 +55,7 @@ export function AppointmentRescheduledPatientEmail({
           }
         `}</style>
       </Head>
-      <Preview>Tu cita con {psychologistName} fue reagendada</Preview>
+      <Preview>Tu sesión con {psychologistName} fue reagendada</Preview>
       <Body style={body}>
         <Container style={container}>
           <Section style={header}>
@@ -66,15 +66,15 @@ export function AppointmentRescheduledPatientEmail({
 
           <Section style={content}>
             <Section style={badge}>
-              <Text style={badgeText}>Cita reagendada</Text>
+              <Text style={badgeText}>Sesión reagendada</Text>
             </Section>
 
             <Heading as="h2" style={heading}>
               Nueva fecha para tu sesión
             </Heading>
             <Text style={intro}>
-              Hola {patientName}, tu cita con {psychologistName} fue reagendada
-              a la siguiente fecha.
+              Hola {patientName}, tu sesión con {psychologistName} fue
+              reagendada a la siguiente fecha.
             </Text>
 
             <Section style={card}>
@@ -90,7 +90,7 @@ export function AppointmentRescheduledPatientEmail({
 
             <Section style={actions}>
               <Button href={appointmentsUrl} style={primaryButton}>
-                Ver mis citas
+                Ver mis sesiones
               </Button>
               <Button href={googleCalendarUrl} style={calendarButton}>
                 + Agregar a Google Calendar

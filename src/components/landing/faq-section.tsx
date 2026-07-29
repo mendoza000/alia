@@ -10,31 +10,31 @@ import {
 const faqs = [
     {
         question: "¿Qué es ALIA?",
-        answer: "ALIA es una plataforma que conecta personas con psicólogos profesionales verificados. Facilitamos el agendamiento de citas, el proceso de pago y el seguimiento de tu bienestar emocional.",
+        answer: "ALIA es una plataforma que conecta personas con psicólogos profesionales verificados. Facilitamos el agendamiento de sesiones, el proceso de pago y el seguimiento de tu bienestar emocional.",
     },
     {
-        question: "¿Cómo agendo una cita?",
-        answer: "Elige un psicólogo, selecciona un horario disponible y completa un breve formulario. Tu cita queda confirmada de inmediato y recibirás la confirmación por correo electrónico.",
+        question: "¿Cómo agendo una sesión?",
+        answer: "Elige un psicólogo, selecciona un horario disponible y completa un breve formulario. Tu sesión queda confirmada de inmediato y recibirás la confirmación por correo electrónico.",
     },
     {
         question: "¿Qué métodos de pago aceptan?",
-        answer: "El pago de tu sesión se realiza después de la consulta, a través de un enlace de pago seguro que te enviaremos por correo (procesado con Stripe), que acepta tarjetas de crédito y débito.",
+        answer: "El pago se realiza después de la sesión, a través de un enlace de pago seguro que te enviaremos por correo (procesado con Stripe), que acepta tarjetas de crédito y débito.",
     },
     {
         question: "¿Cuánto dura una sesión?",
-        answer: "Las sesiones tienen una duración aproximada de 50 minutos, siguiendo el estándar de la práctica psicológica profesional.",
+        answer: "Las sesiones tienen una duración aproximada de 60 minutos.",
     },
     {
-        question: "¿Puedo cancelar o reagendar mi cita?",
-        answer: "Sí, puedes cancelar o reagendar tu cita desde tu cuenta con al menos 24 horas de anticipación sin costo adicional.",
+        question: "¿Puedo cancelar o reagendar mi sesión?",
+        answer: "Sí, puedes cancelar o reagendar tu sesión desde tu cuenta con al menos 24 horas de anticipación sin costo adicional.",
     },
     {
         question: "¿Es confidencial la información que comparto?",
-        answer: "Absolutamente. Toda la información que compartas es estrictamente confidencial y está protegida bajo las leyes colombianas de protección de datos personales y el secreto profesional.",
+        answer: "Absolutamente. Toda la información que compartas es estrictamente confidencial, protegida bajo estrictas políticas de privacidad y el secreto profesional.",
     },
     {
         question: "¿Cómo elijo al psicólogo adecuado para mí?",
-        answer: "Cada psicólogo cuenta con un perfil detallado donde puedes conocer su formación, especialidades y enfoque terapéutico. Esto te ayudará a elegir al profesional que mejor se adapte a tus necesidades.",
+        answer: "Cada psicólogo cuenta con un perfil detallado donde puedes conocer su formación, especialidades y enfoque de acompañamiento. Esto te ayudará a elegir al profesional que mejor se adapte a tus necesidades.",
     },
 ];
 

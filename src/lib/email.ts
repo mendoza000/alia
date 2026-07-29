@@ -39,7 +39,7 @@ function buildGoogleCalendarUrl(
     d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
   const params = new URLSearchParams({
     action: "TEMPLATE",
-    text: `Consulta con ${psychologistName}`,
+    text: `Sesión con ${psychologistName}`,
     dates: `${fmt(dateTime)}/${fmt(endTime)}`,
     details: "Sesión de psicología agendada a través de ALIA",
   });
@@ -99,7 +99,7 @@ export async function sendAppointmentConfirmation(
   await resend.emails.send({
     from: FROM,
     to: user.email,
-    subject: `Tu cita con ${psychologist.name} está confirmada`,
+    subject: `Tu sesión con ${psychologist.name} está confirmada`,
     html,
   });
 }
@@ -128,7 +128,7 @@ export async function sendNewAppointmentNotification(
   await resend.emails.send({
     from: FROM,
     to: psychologist.email,
-    subject: `Nueva cita agendada — ${user.name ?? user.email}`,
+    subject: `Nueva sesión agendada — ${user.name ?? user.email}`,
     html,
   });
 }
@@ -187,7 +187,7 @@ export async function sendAppointmentCancelled(
   await resend.emails.send({
     from: FROM,
     to: psychologist.email,
-    subject: `Cita cancelada — ${user.name ?? user.email}`,
+    subject: `Sesión cancelada — ${user.name ?? user.email}`,
     html,
   });
 }
@@ -214,7 +214,7 @@ export async function sendAppointmentCancelledPatient(
   await resend.emails.send({
     from: FROM,
     to: user.email,
-    subject: `Tu cita con ${psychologist.name} fue cancelada`,
+    subject: `Tu sesión con ${psychologist.name} fue cancelada`,
     html,
   });
 }
@@ -247,7 +247,7 @@ export async function sendAppointmentRescheduled(
   await resend.emails.send({
     from: FROM,
     to: user.email,
-    subject: `Tu cita con ${psychologist.name} fue reagendada`,
+    subject: `Tu sesión con ${psychologist.name} fue reagendada`,
     html,
   });
 }

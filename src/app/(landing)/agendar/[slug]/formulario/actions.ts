@@ -49,24 +49,27 @@ export async function submitIntakeForm(input: {
     });
 
     if (!appointment) {
-        return { success: false, error: "Cita no encontrada" };
+        return { success: false, error: "Sesión no encontrada" };
     }
 
     if (appointment.userId !== session.user.id) {
-        return { success: false, error: "No tienes permiso para esta cita" };
+        return {
+            success: false,
+            error: "No tienes permiso para esta sesión",
+        };
     }
 
     if (appointment.status !== "PENDING_FORM") {
         return {
             success: false,
-            error: "Esta cita ya tiene un formulario completado",
+            error: "Esta sesión ya tiene un formulario completado",
         };
     }
 
     if (appointment.expiresAt && appointment.expiresAt < new Date()) {
         return {
             success: false,
-            error: "Tu tiempo para completar el formulario ha expirado. Por favor agenda una nueva cita.",
+            error: "Tu tiempo para completar el formulario ha expirado. Por favor agenda una nueva sesión.",
         };
     }
 

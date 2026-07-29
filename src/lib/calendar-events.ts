@@ -22,9 +22,9 @@ export async function createAppointmentEvent(
   const baseUrl = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
 
   const eventId = await createCalendarEvent(appointment.psychologist.calendarId, {
-    summary: `Consulta — ${patientName}`,
+    summary: `Sesión — ${patientName}`,
     description: [
-      `Paciente: ${patientName}`,
+      `Persona: ${patientName}`,
       `Email: ${appointment.user.email}`,
       `Formulario: ${baseUrl}/admin/formularios/${appointmentId}`,
     ].join("\n"),

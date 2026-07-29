@@ -25,18 +25,18 @@ export async function GET() {
   });
 
   const csvHeaders = [
-    "Paciente",
+    "Persona",
     "Email",
     "Psicólogo",
-    "Fecha cita",
+    "Fecha sesión",
     "Formulario enviado",
     "Teléfono",
     "Fecha nacimiento",
     "Género",
     "Estado civil",
     "Ocupación",
-    "Motivo consulta",
-    "Terapia previa",
+    "Motivo de la sesión",
+    "Tratamiento previo",
     "Medicación",
     "Expectativas",
   ];

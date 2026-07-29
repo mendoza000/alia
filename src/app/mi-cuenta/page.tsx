@@ -69,7 +69,7 @@ export default async function MiCuentaPage() {
                         href="/mi-cuenta/citas"
                         className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                     >
-                        Mis citas
+                        Mis sesiones
                     </Link>
                     <SignOutButton />
                 </div>

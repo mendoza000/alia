@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
     return {
         title: `Agendar con ${psychologist.name}`,
-        description: `Agenda tu cita con ${psychologist.name}, especialista en ${psychologist.specialty}.`,
+        description: `Agenda tu sesión con ${psychologist.name}, especialista en ${psychologist.specialty}.`,
     };
 }
 

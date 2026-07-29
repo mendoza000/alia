@@ -55,7 +55,7 @@ export function NewAppointmentNotificationEmail({
           }
         `}</style>
       </Head>
-      <Preview>Nueva cita agendada — {patientName}</Preview>
+      <Preview>Nueva sesión agendada — {patientName}</Preview>
       <Body style={body}>
         <Container style={container}>
           <Section style={header}>
@@ -66,14 +66,14 @@ export function NewAppointmentNotificationEmail({
 
           <Section style={content}>
             <Heading as="h2" style={heading}>
-              Nueva cita agendada
+              Nueva sesión agendada
             </Heading>
             <Text style={intro}>
               Hola {psychologistName}, tienes una nueva sesión confirmada.
             </Text>
 
             <Section style={card}>
-              <Text style={cardLabel}>Paciente</Text>
+              <Text style={cardLabel}>Persona</Text>
               <Text style={cardValue}>{patientName}</Text>
               <Text style={cardEmail}>{patientEmail}</Text>
               <Hr style={divider} />
@@ -85,13 +85,13 @@ export function NewAppointmentNotificationEmail({
             </Section>
 
             <Text style={hint}>
-              Revisa el formulario de inventario de vida del paciente antes de
-              la sesión.
+              Revisa el formulario de inventario de vida de la persona antes
+              de la sesión.
             </Text>
 
             <Section style={{ textAlign: "center" }}>
               <Button href={intakeFormUrl} style={accentButton}>
-                Ver formulario del paciente
+                Ver formulario de la persona
               </Button>
             </Section>
           </Section>

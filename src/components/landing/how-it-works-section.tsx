@@ -20,7 +20,7 @@ const steps = [
     },
     {
         icon: CalendarCheck,
-        title: "Agenda tu cita",
+        title: "Agenda tu sesión",
         description: "Selecciona el horario que mejor se ajuste a tu rutina.",
     },
     {
@@ -30,7 +30,7 @@ const steps = [
     },
     {
         icon: MailCheck,
-        title: "Revisa tu cita",
+        title: "Revisa tu sesión",
         description:
             "Recibe la confirmación al instante con todos los detalles de tu sesión.",
     },

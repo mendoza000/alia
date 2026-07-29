@@ -86,7 +86,7 @@ export function PsychologistTable({
           <TableRow>
             <TableHead>Psicólogo</TableHead>
             <TableHead>Especialidad</TableHead>
-            <TableHead>Citas</TableHead>
+            <TableHead>Sesiones</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead className="w-10" />
           </TableRow>

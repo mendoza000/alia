@@ -44,7 +44,7 @@ export default async function AdminDashboardPage() {
 
 	const statCards = [
 		{
-			title: "Citas hoy",
+			title: "Sesiones hoy",
 			value: stats.appointmentsToday,
 			icon: Calendar,
 			bgColor: "bg-accent/20",
@@ -58,7 +58,7 @@ export default async function AdminDashboardPage() {
 			},
 		},
 		{
-			title: "Pacientes totales",
+			title: "Personas totales",
 			value: stats.totalPatients.toLocaleString("es-CO"),
 			icon: UsersRound,
 			bgColor: "bg-secondary",
@@ -101,7 +101,7 @@ export default async function AdminDashboardPage() {
 						icon: TrendingUp,
 						bgColor: "bg-accent/20",
 						borderColor: "border-accent/30",
-						description: `${stats.topPsychologist.appointmentCount} citas este mes`,
+						description: `${stats.topPsychologist.appointmentCount} sesiones este mes`,
 					},
 				]
 			: []),
@@ -124,13 +124,13 @@ export default async function AdminDashboardPage() {
 							<span className="font-medium text-foreground">
 								{stats.appointmentsToday}{" "}
 								{stats.appointmentsToday === 1
-									? "cita"
-									: "citas"}
+									? "sesión"
+									: "sesiones"}
 							</span>{" "}
 							programadas para hoy
 						</>
 					) : (
-						"No tienes citas programadas para hoy"
+						"No tienes sesiones programadas para hoy"
 					)}
 				</p>
 			</div>

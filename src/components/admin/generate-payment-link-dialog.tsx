@@ -92,7 +92,7 @@ export function GeneratePaymentLinkDialog({
         <DialogHeader>
           <DialogTitle>Generar link de pago</DialogTitle>
           <DialogDescription>
-            Elige la moneda en la que se le va a cobrar al paciente.
+            Elige la moneda en la que se le va a cobrar a la persona.
           </DialogDescription>
         </DialogHeader>
 

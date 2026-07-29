@@ -24,17 +24,17 @@ async function resolveCheckoutUrl(
     },
   });
 
-  if (!appointment) return { success: false, error: "Cita no encontrada" };
+  if (!appointment) return { success: false, error: "Sesión no encontrada" };
 
   if (!["CONFIRMED", "COMPLETED", "NO_SHOW"].includes(appointment.status)) {
     return {
       success: false,
-      error: "Solo se puede cobrar una cita confirmada en adelante",
+      error: "Solo se puede cobrar una sesión confirmada en adelante",
     };
   }
 
   if (appointment.payment?.status === "APPROVED") {
-    return { success: false, error: "Esta cita ya fue pagada" };
+    return { success: false, error: "Esta sesión ya fue pagada" };
   }
 
   const rate = await prisma.paymentRate.findUnique({ where: { currency } });

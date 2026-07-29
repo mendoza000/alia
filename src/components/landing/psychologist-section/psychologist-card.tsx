@@ -91,7 +91,7 @@ export function PsychologistCard({
                     href={`/agendar/${psychologist.slug}`}
                     className="relative z-10 mt-4 inline-flex items-center justify-center rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-accent-foreground transition-all hover:scale-[1.02] hover:bg-accent/80"
                 >
-                    Agendar cita
+                    Agendar sesión
                 </Link>
             </div>
         </motion.article>

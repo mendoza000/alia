@@ -6,9 +6,9 @@ import { BookingStepper } from "@/components/booking/booking-stepper";
 import { PsychologistGrid } from "./psychologist-grid";
 
 export const metadata: Metadata = {
-    title: "Agendar cita",
+    title: "Agendar sesión",
     description:
-        "Elige a tu psicólogo y agenda tu cita de forma fácil y rápida.",
+        "Elige a tu psicólogo y agenda tu sesión de forma fácil y rápida.",
 };
 
 export default async function AgendarPage() {
@@ -26,7 +26,7 @@ export default async function AgendarPage() {
                     Elige a tu psicólogo
                 </h1>
                 <p className="mt-3 text-muted-foreground">
-                    Selecciona al profesional con el que deseas agendar tu cita
+                    Selecciona al profesional con el que deseas agendar tu sesión
                 </p>
             </div>
 

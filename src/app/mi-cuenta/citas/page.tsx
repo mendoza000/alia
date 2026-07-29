@@ -8,7 +8,7 @@ import { getPatientAppointments } from "@/lib/queries/patient-appointments";
 import { Badge } from "@/components/ui/badge";
 
 export const metadata: Metadata = {
-    title: "Mis citas",
+    title: "Mis sesiones",
 };
 
 const STATUS_CONFIG: Record<
@@ -45,7 +45,9 @@ export default async function MisCitasPage() {
     return (
         <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
             <div className="flex items-center justify-between">
-                <h1 className="font-heading text-3xl font-bold">Mis citas</h1>
+                <h1 className="font-heading text-3xl font-bold">
+                    Mis sesiones
+                </h1>
                 <Link
                     href="/mi-cuenta"
                     className="text-sm text-muted-foreground hover:underline"
@@ -57,13 +59,13 @@ export default async function MisCitasPage() {
             {appointments.length === 0 ? (
                 <div className="mt-8 rounded-lg bg-card p-8 text-center ring-1 ring-border/50">
                     <p className="text-muted-foreground">
-                        Aún no tienes citas agendadas.
+                        Aún no tienes sesiones agendadas.
                     </p>
                     <Link
                         href="/agendar"
                         className="mt-4 inline-block text-sm font-medium text-accent hover:underline"
                     >
-                        Agendar una cita
+                        Agendar una sesión
                     </Link>
                 </div>
             ) : (

@@ -138,9 +138,9 @@ export function PaymentTable({ payments }: { payments: PaymentRow[] }) {
       <Table>
         <TableHeader className="[&_th]:font-semibold">
           <TableRow>
-            <TableHead>Paciente</TableHead>
+            <TableHead>Persona</TableHead>
             <TableHead>Psicólogo</TableHead>
-            <TableHead>Fecha cita</TableHead>
+            <TableHead>Fecha sesión</TableHead>
             <TableHead>Subtotal</TableHead>
             <TableHead>Descuento</TableHead>
             <TableHead>Total</TableHead>

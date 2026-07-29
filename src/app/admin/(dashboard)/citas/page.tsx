@@ -44,9 +44,9 @@ export default async function CitasPage({ searchParams }: Props) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-heading text-2xl font-semibold">Citas</h1>
+        <h1 className="font-heading text-2xl font-semibold">Sesiones</h1>
         <p className="text-sm text-muted-foreground">
-          Gestiona todas las citas de la plataforma
+          Gestiona todas las sesiones de la plataforma
         </p>
       </div>
 

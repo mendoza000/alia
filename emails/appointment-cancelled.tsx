@@ -48,7 +48,7 @@ export function AppointmentCancelledEmail({
           }
         `}</style>
       </Head>
-      <Preview>Cita cancelada — {patientName}</Preview>
+      <Preview>Sesión cancelada — {patientName}</Preview>
       <Body style={body}>
         <Container style={container}>
           <Section style={header}>
@@ -59,7 +59,7 @@ export function AppointmentCancelledEmail({
 
           <Section style={content}>
             <Heading as="h2" style={heading}>
-              Cita cancelada
+              Sesión cancelada
             </Heading>
             <Text style={intro}>
               Hola {psychologistName}, la siguiente sesión fue cancelada y el
@@ -67,7 +67,7 @@ export function AppointmentCancelledEmail({
             </Text>
 
             <Section style={card}>
-              <Text style={cardLabel}>Paciente</Text>
+              <Text style={cardLabel}>Persona</Text>
               <Text style={cardValue}>{patientName}</Text>
               <Hr style={divider} />
               <Text style={cardLabel}>Fecha y hora cancelada</Text>

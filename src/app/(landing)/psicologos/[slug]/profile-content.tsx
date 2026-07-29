@@ -134,7 +134,7 @@ export function ProfileContent({
                                 href={`/agendar/${psychologist.slug}`}
                                 className="mt-2 inline-flex w-fit items-center justify-center rounded-full bg-accent px-8 py-3 font-medium text-accent-foreground transition-all hover:scale-[1.02] hover:bg-accent/80"
                             >
-                                Agendar cita
+                                Agendar sesión
                             </Link>,
                         ].map((element, i) => (
                             <motion.div

@@ -24,7 +24,7 @@ const navSections = [
         label: "GESTIÓN",
         items: [
             { href: "/admin/psicologos", label: "Psicólogos", icon: Users },
-            { href: "/admin/citas", label: "Citas", icon: Calendar },
+            { href: "/admin/citas", label: "Sesiones", icon: Calendar },
             {
                 href: "/admin/formularios",
                 label: "Formularios",

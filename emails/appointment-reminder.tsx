@@ -90,7 +90,7 @@ export function AppointmentReminderEmail({
 
             <Section style={actions}>
               <Button href={appointmentsUrl} style={primaryButton}>
-                Ver mis citas
+                Ver mis sesiones
               </Button>
               <Button href={googleCalendarUrl} style={calendarButton}>
                 + Agregar a Google Calendar
