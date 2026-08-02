@@ -121,6 +121,7 @@ export function BookingFlow({
             const result = await createAppointment({
                 psychologistId: psychologist.id,
                 dateTime: `${selectedDate}T${selectedTime}`,
+                timezone: confirmedTimezone ?? BOGOTA_TZ,
             });
 
             if (!result.success) {

@@ -30,6 +30,7 @@ type CreateAppointmentResult =
 export async function createAppointment(input: {
     psychologistId: string;
     dateTime: string;
+    timezone?: string;
 }): Promise<CreateAppointmentResult> {
     // 1. Verify session
     const session = await auth.api.getSession({
@@ -51,7 +52,7 @@ export async function createAppointment(input: {
     }
 
     // 2. Validate input
-    let data: { psychologistId: string; dateTime: string };
+    let data: { psychologistId: string; dateTime: string; timezone: string };
     try {
         data = await createAppointmentSchema.validate(input, {
             stripUnknown: true,
@@ -216,12 +217,17 @@ export async function createAppointment(input: {
         });
 
         if (existingForm) {
+            const carriedOverData = {
+                ...(existingForm.data as Record<string, unknown>),
+                timezone: data.timezone,
+            };
+
             await prisma.$transaction([
                 prisma.intakeForm.create({
                     data: {
                         appointmentId: appointment.id,
                         userId: session.user.id,
-                        data: existingForm.data as Prisma.InputJsonValue,
+                        data: carriedOverData as Prisma.InputJsonValue,
                     },
                 }),
                 prisma.appointment.update({
