@@ -21,6 +21,10 @@ const schema = yup.object({
         .string()
         .min(6, "La contraseña debe tener al menos 6 caracteres")
         .required("La contraseña es obligatoria"),
+    confirmPassword: yup
+        .string()
+        .oneOf([yup.ref("password")], "Las contraseñas no coinciden")
+        .required("Confirma tu contraseña"),
 });
 
 type SignUpForm = yup.InferType<typeof schema>;
@@ -92,6 +96,19 @@ export function EmailSignUpForm({ callbackURL }: { callbackURL?: string }) {
                 {errors.password && (
                     <p className="text-xs text-destructive">
                         {errors.password.message}
+                    </p>
+                )}
+            </div>
+            <div className="grid gap-1.5">
+                <Label htmlFor="confirmPassword">Confirmar contraseña</Label>
+                <InputPassword
+                    id="confirmPassword"
+                    autoComplete="new-password"
+                    {...register("confirmPassword")}
+                />
+                {errors.confirmPassword && (
+                    <p className="text-xs text-destructive">
+                        {errors.confirmPassword.message}
                     </p>
                 )}
             </div>
