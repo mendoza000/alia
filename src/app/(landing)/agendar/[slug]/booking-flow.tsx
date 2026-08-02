@@ -48,7 +48,7 @@ function getInitials(name: string) {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-type Step = "calendar" | "auth" | "timezone" | "summary";
+type Step = "timezone" | "calendar" | "auth" | "summary";
 
 type BookingFlowProps = {
     psychologist: Psychologist & { schedules: Schedule[] };
@@ -97,11 +97,11 @@ export function BookingFlow({
     const isAuthenticated = !!session?.user;
 
     const step: Step = useMemo(() => {
+        if (!confirmedTimezone) return "timezone";
         if (!hasSelection || isSessionPending) return "calendar";
         if (!isAuthenticated) return "auth";
-        if (!confirmedTimezone) return "timezone";
         return "summary";
-    }, [hasSelection, isSessionPending, isAuthenticated, confirmedTimezone]);
+    }, [confirmedTimezone, hasSelection, isSessionPending, isAuthenticated]);
 
     const handleSlotSelect = useCallback((date: string, time: string) => {
         setSelectedDate(date);
@@ -173,6 +173,21 @@ export function BookingFlow({
             </div>
 
             <AnimatePresence mode="wait">
+                {step === "timezone" && (
+                    <motion.div
+                        key="timezone"
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -16 }}
+                        transition={{ duration: 0.35, ease }}
+                    >
+                        <TimezoneConfirmStep
+                            detectedTimezone={detectedTimezone}
+                            onConfirm={setConfirmedTimezone}
+                        />
+                    </motion.div>
+                )}
+
                 {step === "calendar" && (
                     <motion.div
                         key="calendar"
@@ -187,7 +202,7 @@ export function BookingFlow({
                             initialYear={initialYear}
                             initialMonth={initialMonth}
                             onSlotSelect={handleSlotSelect}
-                            patientTimezone={detectedTimezone}
+                            patientTimezone={confirmedTimezone ?? BOGOTA_TZ}
                         />
                     </motion.div>
                 )}
@@ -204,24 +219,9 @@ export function BookingFlow({
                             psychologistName={psychologist.name}
                             selectedDate={selectedDate!}
                             selectedTime={selectedTime!}
-                            patientTimezone={detectedTimezone}
+                            patientTimezone={confirmedTimezone ?? BOGOTA_TZ}
                             callbackURL={callbackURL}
                             onChangeSlot={handleChangeSlot}
-                        />
-                    </motion.div>
-                )}
-
-                {step === "timezone" && (
-                    <motion.div
-                        key="timezone"
-                        initial={{ opacity: 0, y: 16 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -16 }}
-                        transition={{ duration: 0.35, ease }}
-                    >
-                        <TimezoneConfirmStep
-                            detectedTimezone={detectedTimezone}
-                            onConfirm={setConfirmedTimezone}
                         />
                     </motion.div>
                 )}
