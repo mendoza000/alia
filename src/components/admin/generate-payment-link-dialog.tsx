@@ -90,7 +90,7 @@ export function GeneratePaymentLinkDialog({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Generar link de pago</DialogTitle>
+          <DialogTitle className="font-bold text-xl">Generar link de pago</DialogTitle>
           <DialogDescription>
             Elige la moneda en la que se le va a cobrar a la persona.
           </DialogDescription>
@@ -113,11 +113,18 @@ export function GeneratePaymentLinkDialog({
         </Select>
 
         {url && (
-          <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2">
-            <p className="flex-1 truncate text-sm text-muted-foreground">
-              {url}
-            </p>
-            <CopyLinkButton text={url} />
+          <div className="min-w-0 space-y-2">
+            <div className="min-w-0 rounded-lg border border-border bg-muted/40 px-3 py-2">
+              <p className="truncate text-sm text-muted-foreground">{url}</p>
+            </div>
+            <CopyLinkButton
+              text={url}
+              label="Copiar link de pago"
+              showLabel
+              variant="outline"
+              size="default"
+              className="w-full"
+            />
           </div>
         )}
 

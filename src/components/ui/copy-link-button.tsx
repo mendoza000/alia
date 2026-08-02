@@ -3,15 +3,21 @@
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import type { VariantProps } from "class-variance-authority";
 
 export function CopyLinkButton({
   text,
   label = "Copiar link",
+  showLabel = false,
+  variant = "ghost",
+  size = "icon-sm",
+  className,
 }: {
   text: string;
   label?: string;
-}) {
+  showLabel?: boolean;
+} & VariantProps<typeof buttonVariants> & { className?: string }) {
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
@@ -27,13 +33,15 @@ export function CopyLinkButton({
 
   return (
     <Button
-      variant="ghost"
-      size="icon-sm"
+      variant={variant}
+      size={size}
       onClick={handleCopy}
       aria-label={label}
       title={label}
+      className={className}
     >
       {copied ? <Check className="text-emerald-600" /> : <Copy />}
+      {showLabel && (copied ? "¡Copiado!" : label)}
     </Button>
   );
 }
