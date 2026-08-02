@@ -1,7 +1,7 @@
 import Stripe from "stripe";
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: "2026-06-24.dahlia",
+  apiVersion: "2026-07-29.dahlia",
 });
 
 // Currencies with no minor unit — Stripe expects the amount as-is, not multiplied by 100.
