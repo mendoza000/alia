@@ -17,11 +17,11 @@ const fingerprintPaths = [
 
 export function FingerprintAnimation({ animate }: { animate: boolean }) {
     return (
-        <div className="relative flex w-full items-end justify-center">
+        <div className="relative flex w-full items-center justify-center">
             <svg
                 viewBox="0 0 24 24"
                 fill="none"
-                className="w-12 h-12 text-accent sm:w-14 sm:h-14"
+                className="w-14 h-14 text-accent 2xl:w-16 2xl:h-16 3xl:w-20 3xl:h-20"
             >
                 {fingerprintPaths.map((d, i) => (
                     <motion.path

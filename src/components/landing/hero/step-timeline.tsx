@@ -60,7 +60,7 @@ export function StepTimeline({ animate }: { animate: boolean }) {
 
                                 {/* Main circle */}
                                 <motion.div
-                                    className="relative flex size-8 items-center justify-center rounded-full bg-accent/10 ring-1 ring-accent/20 sm:size-10"
+                                    className="relative flex size-10 items-center justify-center rounded-full bg-accent/10 ring-1 ring-accent/20 2xl:size-11 3xl:size-14"
                                     initial={{ scale: 0, opacity: 0 }}
                                     animate={
                                         animate
@@ -89,7 +89,7 @@ export function StepTimeline({ animate }: { animate: boolean }) {
                                             delay: step.iconDelay,
                                         }}
                                     >
-                                        <StepIcon className="size-3.5 text-accent sm:size-4" />
+                                        <StepIcon className="size-4 text-accent 3xl:size-5" />
                                     </motion.div>
                                 </motion.div>
 
@@ -117,7 +117,7 @@ export function StepTimeline({ animate }: { animate: boolean }) {
 
                             {/* Label */}
                             <motion.span
-                                className="text-xs text-muted-foreground"
+                                className="text-xs text-muted-foreground 3xl:text-sm"
                                 initial={{ opacity: 0, y: 6 }}
                                 animate={
                                     animate ? { opacity: 1, y: 0 } : undefined
@@ -134,9 +134,9 @@ export function StepTimeline({ animate }: { animate: boolean }) {
 
                         {/* Connecting line */}
                         {i < 2 && (
-                            <div className="relative mx-1.5 sm:mx-2">
+                            <div className="relative mx-2 2xl:mx-2.5 3xl:mx-3">
                                 {/* Background track */}
-                                <div className="h-0.5 w-7 rounded-full bg-border/50 sm:w-10" />
+                                <div className="h-0.5 w-10 rounded-full bg-border/50 2xl:w-11 3xl:w-14" />
 
                                 {/* Animated gradient fill */}
                                 <motion.div

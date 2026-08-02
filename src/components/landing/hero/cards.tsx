@@ -54,7 +54,7 @@ export function ValueCard({ card }: { card: BentoCard }) {
             <div
                 className={`relative hidden flex-1 overflow-hidden pt-2 2xl:flex ${
                     card.id === "value-2"
-                        ? "-mx-5 items-end justify-center"
+                        ? "-mx-5 items-center justify-center"
                         : "items-center justify-center"
                 }`}
             >
