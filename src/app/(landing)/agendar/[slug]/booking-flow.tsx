@@ -23,6 +23,7 @@ import { BOGOTA_TZ } from "@/lib/availability";
 import {
     TIMEZONE_OPTIONS,
     detectBrowserTimezone,
+    formatInTimezone,
     matchTimezoneOption,
 } from "@/lib/timezones";
 import { AvailabilityCalendar } from "@/components/availability/availability-calendar";
@@ -203,6 +204,7 @@ export function BookingFlow({
                             psychologistName={psychologist.name}
                             selectedDate={selectedDate!}
                             selectedTime={selectedTime!}
+                            patientTimezone={detectedTimezone}
                             callbackURL={callbackURL}
                             onChangeSlot={handleChangeSlot}
                         />
@@ -237,6 +239,7 @@ export function BookingFlow({
                             globalRate={globalRate}
                             selectedDate={selectedDate!}
                             selectedTime={selectedTime!}
+                            patientTimezone={confirmedTimezone!}
                             session={session!}
                             isCreating={isCreating}
                             onChangeSlot={handleChangeSlot}
@@ -292,12 +295,14 @@ function AuthStep({
     psychologistName,
     selectedDate,
     selectedTime,
+    patientTimezone,
     callbackURL,
     onChangeSlot,
 }: {
     psychologistName: string;
     selectedDate: string;
     selectedTime: string;
+    patientTimezone: string;
     callbackURL: string;
     onChangeSlot: () => void;
 }) {
@@ -305,6 +310,11 @@ function AuthStep({
         new Date(`${selectedDate}T12:00:00`),
         "EEEE d 'de' MMMM, yyyy",
         { locale: es },
+    );
+    const displayTime = formatInTimezone(
+        selectedDate,
+        selectedTime,
+        patientTimezone,
     );
 
     return (
@@ -315,7 +325,7 @@ function AuthStep({
                     <p className="text-sm text-muted-foreground">Tu sesión</p>
                     <p className="mt-1 font-medium">{psychologistName}</p>
                     <p className="text-sm capitalize text-muted-foreground">
-                        {formattedDate} — {selectedTime} (Colombia)
+                        {formattedDate} — {displayTime}
                     </p>
                 </div>
 
@@ -430,6 +440,7 @@ function SummaryStep({
     globalRate,
     selectedDate,
     selectedTime,
+    patientTimezone,
     session,
     isCreating,
     onChangeSlot,
@@ -439,6 +450,7 @@ function SummaryStep({
     globalRate: { amount: number; currency: string } | null;
     selectedDate: string;
     selectedTime: string;
+    patientTimezone: string;
     session: {
         user: {
             id: string;
@@ -455,6 +467,11 @@ function SummaryStep({
         new Date(`${selectedDate}T12:00:00`),
         "EEEE d 'de' MMMM, yyyy",
         { locale: es },
+    );
+    const displayTime = formatInTimezone(
+        selectedDate,
+        selectedTime,
+        patientTimezone,
     );
 
     return (
@@ -500,9 +517,7 @@ function SummaryStep({
                     </div>
                     <div className="flex justify-between">
                         <span className="text-muted-foreground">Hora</span>
-                        <span className="font-medium">
-                            {selectedTime} (Colombia)
-                        </span>
+                        <span className="font-medium">{displayTime}</span>
                     </div>
                     <div className="flex justify-between">
                         <span className="text-muted-foreground">Duración</span>

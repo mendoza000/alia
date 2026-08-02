@@ -1,3 +1,7 @@
+import { format } from "date-fns";
+import { TZDate } from "@date-fns/tz";
+import { toBogotaDate } from "@/lib/availability";
+
 export const TIMEZONE_OPTIONS = [
     { value: "America/Bogota", label: "Colombia" },
     { value: "America/Mexico_City", label: "México" },
@@ -24,6 +28,17 @@ function formatOffsetLabel(iana: string): string {
     const offset = parts.find(p => p.type === "timeZoneName")?.value ?? "";
     const city = iana.split("/").pop()?.replace(/_/g, " ") ?? iana;
     return `${city} (${offset})`;
+}
+
+// Converts a Bogota-based date + time (as stored/scheduled in the system)
+// into the wall-clock time the patient sees in their own timezone.
+export function formatInTimezone(
+    dateStr: string,
+    time: string,
+    timezone: string,
+): string {
+    const bogotaInstant = toBogotaDate(dateStr, time);
+    return format(new TZDate(bogotaInstant, timezone), "h:mm a");
 }
 
 export function matchTimezoneOption(iana: string): {

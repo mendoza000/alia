@@ -3,10 +3,10 @@
 import { AnimatePresence, motion } from "motion/react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { TZDate } from "@date-fns/tz";
 import Link from "next/link";
 import { ease } from "@/lib/motion";
-import { BOGOTA_TZ, toBogotaDate, type TimeSlot } from "@/lib/availability";
+import { BOGOTA_TZ, type TimeSlot } from "@/lib/availability";
+import { formatInTimezone } from "@/lib/timezones";
 
 type TimeSlotsPanelProps = {
     date: Date | null;
@@ -16,15 +16,6 @@ type TimeSlotsPanelProps = {
     patientTimezone?: string;
 };
 
-function formatInTimezone(
-    dateStr: string,
-    time: string,
-    timezone: string,
-): string {
-    const bogotaInstant = toBogotaDate(dateStr, time);
-    return format(new TZDate(bogotaInstant, timezone), "h:mm a");
-}
-
 export function TimeSlotsPanel({
     date,
     slots,
@@ -32,8 +23,6 @@ export function TimeSlotsPanel({
     onSlotSelect,
     patientTimezone,
 }: TimeSlotsPanelProps) {
-    const showLocalTime =
-        !!patientTimezone && patientTimezone !== BOGOTA_TZ;
     return (
         <div className="min-h-[200px]">
             {date ? (
@@ -41,17 +30,9 @@ export function TimeSlotsPanel({
                     <h3 className="mb-1 text-lg font-semibold text-foreground">
                         Horarios disponibles
                     </h3>
-                    <p
-                        className={`text-sm font-medium capitalize text-foreground ${showLocalTime ? "mb-1" : "mb-3"}`}
-                    >
+                    <p className="mb-3 text-sm font-medium capitalize text-foreground">
                         {format(date, "EEEE d 'de' MMMM", { locale: es })}
                     </p>
-                    {showLocalTime && (
-                        <p className="mb-3 text-xs text-muted-foreground">
-                            Horarios en hora de Colombia · convertidos a tu
-                            zona horaria debajo
-                        </p>
-                    )}
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={date.toISOString()}
@@ -69,23 +50,14 @@ export function TimeSlotsPanel({
                                             "yyyy-MM-dd",
                                         );
                                         const slotClassName =
-                                            "w-full flex flex-col items-center justify-center gap-0.5 rounded-lg bg-background px-3 py-2.5 text-base ring-1 ring-border/50 transition-colors hover:bg-accent/20";
-                                        const localTime = showLocalTime
-                                            ? formatInTimezone(
-                                                  dateStr,
-                                                  slot.start,
-                                                  patientTimezone!,
-                                              )
-                                            : null;
+                                            "w-full flex items-center justify-center rounded-lg bg-background px-3 py-2.5 text-base ring-1 ring-border/50 transition-colors hover:bg-accent/20";
+                                        const displayTime = formatInTimezone(
+                                            dateStr,
+                                            slot.start,
+                                            patientTimezone ?? BOGOTA_TZ,
+                                        );
                                         const slotContent = (
-                                            <>
-                                                <span>{slot.start}</span>
-                                                {localTime && (
-                                                    <span className="text-xs font-normal text-muted-foreground">
-                                                        {localTime} tu hora
-                                                    </span>
-                                                )}
-                                            </>
+                                            <span>{displayTime}</span>
                                         );
                                         return (
                                             <motion.div
