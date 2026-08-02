@@ -5,14 +5,13 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 import { createAppointmentSchema } from "@/lib/validators/appointment";
-import { getBlockingAppointments } from "@/lib/queries/appointments";
+import {
+    getBlockingAppointments,
+    getConfirmedCountsByDate,
+} from "@/lib/queries/appointments";
 import { getActivePatientAppointment } from "@/lib/queries/patient-appointments";
 import { getCachedFreeBusyPeriods } from "@/lib/google-calendar";
-import { createAppointmentEvent } from "@/lib/calendar-events";
-import {
-    sendAppointmentConfirmation,
-    sendNewAppointmentNotification,
-} from "@/lib/email";
+import { confirmAndNotifyAppointment } from "@/lib/appointments/confirm-and-notify";
 import {
     getScheduleForDay,
     generateTimeSlots,
@@ -20,6 +19,7 @@ import {
     filterPastSlots,
     appointmentsToBusyPeriods,
     toBogotaDate,
+    DAILY_CONFIRMED_APPOINTMENT_CAP,
 } from "@/lib/availability";
 import { getDay, addMinutes } from "date-fns";
 
@@ -89,6 +89,21 @@ export async function createAppointment(input: {
         return {
             success: false,
             error: "Este horario no está disponible",
+        };
+    }
+
+    // 5b. Daily confirmed appointment cap for this psychologist
+    const dayStart = toBogotaDate(dateStr, "00:00");
+    const dayEnd = toBogotaDate(dateStr, "23:59");
+    const confirmedCountByDate = await getConfirmedCountsByDate(
+        psychologist.id,
+        dayStart,
+        dayEnd,
+    );
+    if ((confirmedCountByDate[dateStr] ?? 0) >= DAILY_CONFIRMED_APPOINTMENT_CAP) {
+        return {
+            success: false,
+            error: "Este psicólogo ya alcanzó el máximo de sesiones para este día",
         };
     }
 
@@ -215,17 +230,7 @@ export async function createAppointment(input: {
                 }),
             ]);
 
-            try {
-                await createAppointmentEvent(appointment.id);
-            } catch (err) {
-                console.error("Google Calendar event creation failed:", err);
-            }
-            try {
-                await sendAppointmentConfirmation(appointment.id);
-                await sendNewAppointmentNotification(appointment.id);
-            } catch (err) {
-                console.error("Confirmation email failed:", err);
-            }
+            await confirmAndNotifyAppointment(appointment.id);
 
             return { success: true, appointmentId: appointment.id, skipForm: true };
         }

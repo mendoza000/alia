@@ -7,7 +7,10 @@ import {
     computeMonthAvailability,
     type MonthAvailability,
 } from "@/lib/availability";
-import { getBlockingAppointments } from "@/lib/queries/appointments";
+import {
+    getBlockingAppointments,
+    getConfirmedCountsByDate,
+} from "@/lib/queries/appointments";
 import { TZDate } from "@date-fns/tz";
 import { endOfMonth, startOfMonth } from "date-fns";
 
@@ -29,16 +32,18 @@ export async function getMonthAvailability(
     const timeMin = startOfMonth(firstDay);
     const timeMax = endOfMonth(firstDay);
 
-    const [calendarBusy, appointments] = await Promise.all([
-        psychologist.calendarId
-            ? getCachedFreeBusyPeriods(
-                  psychologist.calendarId,
-                  timeMin,
-                  timeMax,
-              )
-            : Promise.resolve([]),
-        getBlockingAppointments(psychologist.id, timeMin, timeMax),
-    ]);
+    const [calendarBusy, appointments, confirmedCountByDate] =
+        await Promise.all([
+            psychologist.calendarId
+                ? getCachedFreeBusyPeriods(
+                      psychologist.calendarId,
+                      timeMin,
+                      timeMax,
+                  )
+                : Promise.resolve([]),
+            getBlockingAppointments(psychologist.id, timeMin, timeMax),
+            getConfirmedCountsByDate(psychologistId, timeMin, timeMax),
+        ]);
 
     const allBusyPeriods = [
         ...calendarBusy,
@@ -51,5 +56,6 @@ export async function getMonthAvailability(
         year,
         month,
         psychologist.sessionDuration,
+        confirmedCountByDate,
     );
 }

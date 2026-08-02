@@ -8,6 +8,7 @@ import { getAllPsychologists } from "@/lib/admin/psychologist-queries";
 import { getAllRates } from "@/lib/admin/payment-rate-queries";
 import { AppointmentsTable } from "@/components/admin/appointments-table";
 import { AppointmentsFilters } from "@/components/admin/appointments-filters";
+import { NewManualAppointmentDialog } from "@/components/admin/new-manual-appointment-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type Props = {
@@ -43,11 +44,14 @@ export default async function CitasPage({ searchParams }: Props) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-heading text-2xl font-semibold">Sesiones</h1>
-        <p className="text-sm text-muted-foreground">
-          Gestiona todas las sesiones de la plataforma
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-heading text-2xl font-semibold">Sesiones</h1>
+          <p className="text-sm text-muted-foreground">
+            Gestiona todas las sesiones de la plataforma
+          </p>
+        </div>
+        <NewManualAppointmentDialog psychologists={psychologistOptions} />
       </div>
 
       <Suspense fallback={<Skeleton className="h-9 w-96" />}>

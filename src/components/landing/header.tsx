@@ -48,7 +48,7 @@ export function Header() {
                         alt="ALIA — Tu psicólogo Aliado"
                         width={160}
                         height={160}
-                        className="h-12 w-auto lg:h-14"
+                        className="h-14 w-auto lg:h-16"
                     />
                 </Link>
 
@@ -96,7 +96,7 @@ export function Header() {
                                 alt="ALIA"
                                 width={120}
                                 height={120}
-                                className="h-10 w-auto"
+                                className="h-14 w-auto"
                             />
                         </SheetTitle>
                         <nav className="mt-8 flex flex-col gap-4 border-t border-accent/20 pt-6">

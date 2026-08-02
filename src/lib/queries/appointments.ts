@@ -1,4 +1,31 @@
 import { prisma } from "@/lib/db";
+import { TZDate } from "@date-fns/tz";
+import { format } from "date-fns";
+
+export async function getConfirmedCountsByDate(
+    psychologistId: string,
+    timeMin: Date,
+    timeMax: Date,
+): Promise<Record<string, number>> {
+    const appointments = await prisma.appointment.findMany({
+        where: {
+            psychologistId,
+            status: "CONFIRMED",
+            dateTime: { gte: timeMin, lte: timeMax },
+        },
+        select: { dateTime: true },
+    });
+
+    const counts: Record<string, number> = {};
+    for (const a of appointments) {
+        const dateStr = format(
+            new TZDate(a.dateTime, "America/Bogota"),
+            "yyyy-MM-dd",
+        );
+        counts[dateStr] = (counts[dateStr] ?? 0) + 1;
+    }
+    return counts;
+}
 
 export async function getBlockingAppointments(
     psychologistId: string,

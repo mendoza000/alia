@@ -5,7 +5,7 @@ import { motion, useInView } from "motion/react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ease } from "@/lib/motion";
-import { bentoCards, avatarGradients } from "./data";
+import { bentoCards } from "./data";
 import { PhotoCard, ValueCard, DecorativeCard } from "./cards";
 
 export function HeroSection() {
@@ -76,21 +76,13 @@ export function HeroSection() {
                     </Button>
                 </motion.div>
 
-                {/* Avatar stack — social proof */}
+                {/* Social proof */}
                 <motion.div
                     className="mt-8 flex items-center gap-3"
                     initial={{ opacity: 0, x: -10 }}
                     animate={inView ? { opacity: 1, x: 0 } : undefined}
                     transition={{ duration: 0.5, ease, delay: 0.45 }}
                 >
-                    <div className="flex -space-x-3">
-                        {avatarGradients.map((gradient, i) => (
-                            <div
-                                key={i}
-                                className={`size-9 rounded-full ring-2 ring-background ${gradient}`}
-                            />
-                        ))}
-                    </div>
                     <p className="text-sm text-muted-foreground">
                         100+ personas confían en nosotros
                     </p>

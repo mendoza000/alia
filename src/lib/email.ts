@@ -10,18 +10,19 @@ import { AppointmentReminderEmail } from "../../emails/appointment-reminder";
 import { AppointmentRescheduledPatientEmail } from "../../emails/appointment-rescheduled-patient";
 import { NewAppointmentNotificationEmail } from "../../emails/new-appointment-notification";
 import { PaymentRequestEmail } from "../../emails/payment-request";
+import { PasswordResetEmail } from "../../emails/password-reset";
+import { VerifyEmail } from "../../emails/verify-email";
 import { prisma } from "@/lib/db";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = process.env.EMAIL_FROM ?? "ALIA <onboarding@resend.dev>";
 
-const SUPABASE_STORAGE = "https://hqatzpberpxebsemokrs.supabase.co/storage/v1/object/public/psychologist-photos";
-const LOGO_DARK_URL  = `${SUPABASE_STORAGE}/logo-alia.png`;
-const LOGO_LIGHT_URL = `${SUPABASE_STORAGE}/logo-alia-text-white.png`;
-
 function getBaseUrl() {
   return process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
 }
+
+const LOGO_DARK_URL  = `${getBaseUrl()}/logo-alia.png`;
+const LOGO_LIGHT_URL = `${getBaseUrl()}/logo-alia-text-white.png`;
 
 function getFontUrl() {
   return `${getBaseUrl()}/fonts/Robecha%20Daniera-Regular.ttf`;
@@ -263,6 +264,52 @@ export async function sendAppointmentRescheduled(
     from: FROM,
     to: user.email,
     subject: `Tu sesión con ${psychologist.name} fue reagendada`,
+    html,
+  });
+}
+
+export async function sendPasswordResetEmail(
+  userEmail: string,
+  userName: string,
+  resetUrl: string,
+): Promise<void> {
+  const html = await render(
+    PasswordResetEmail({
+      userName,
+      resetUrl,
+      logoUrl: LOGO_DARK_URL,
+      logoLightUrl: LOGO_LIGHT_URL,
+      fontUrl: getFontUrl(),
+    }),
+  );
+
+  await resend.emails.send({
+    from: FROM,
+    to: userEmail,
+    subject: "Restablece tu contraseña de ALIA",
+    html,
+  });
+}
+
+export async function sendVerificationEmail(
+  userEmail: string,
+  userName: string,
+  verificationUrl: string,
+): Promise<void> {
+  const html = await render(
+    VerifyEmail({
+      userName,
+      verificationUrl,
+      logoUrl: LOGO_DARK_URL,
+      logoLightUrl: LOGO_LIGHT_URL,
+      fontUrl: getFontUrl(),
+    }),
+  );
+
+  await resend.emails.send({
+    from: FROM,
+    to: userEmail,
+    subject: "Confirma tu correo en ALIA",
     html,
   });
 }

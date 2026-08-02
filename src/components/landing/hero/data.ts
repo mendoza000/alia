@@ -71,9 +71,3 @@ export const bentoCards: BentoCard[] = [
             "aspect-[4/5] sm:col-span-1 md:aspect-auto md:col-start-3 md:row-start-3 md:min-h-[180px]",
     },
 ];
-
-export const avatarGradients = [
-    "bg-gradient-to-br from-accent/60 to-secondary",
-    "bg-gradient-to-br from-secondary to-accent/40",
-    "bg-gradient-to-br from-accent/30 to-secondary/80",
-];

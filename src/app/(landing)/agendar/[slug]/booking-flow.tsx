@@ -18,10 +18,24 @@ import { formatCurrencyAmount } from "@/lib/currency";
 import { trackInitiateCheckout } from "@/lib/analytics/events";
 import type { Psychologist, Schedule } from "@/generated/prisma/client";
 import type { MonthAvailability } from "@/lib/availability";
+import { BOGOTA_TZ } from "@/lib/availability";
+import {
+    TIMEZONE_OPTIONS,
+    detectBrowserTimezone,
+    matchTimezoneOption,
+} from "@/lib/timezones";
 import { AvailabilityCalendar } from "@/components/availability/availability-calendar";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
+import { EmailSignInForm } from "@/components/auth/email-sign-in-form";
 import { useSession, signOut } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { BookingStepper } from "@/components/booking/booking-stepper";
 import { createAppointment } from "./actions";
 
@@ -32,7 +46,7 @@ function getInitials(name: string) {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-type Step = "calendar" | "auth" | "summary";
+type Step = "calendar" | "auth" | "timezone" | "summary";
 
 type BookingFlowProps = {
     psychologist: Psychologist & { schedules: Schedule[] };
@@ -63,21 +77,29 @@ export function BookingFlow({
         preselectedTime,
     );
     const [isCreating, startCreating] = useTransition();
+    // Starts at BOGOTA_TZ so server and client render the same markup on
+    // first paint — Intl.DateTimeFormat().resolvedOptions().timeZone reads
+    // the server's own timezone during SSR, not the browser's, which would
+    // otherwise cause a hydration mismatch. The real value is filled in
+    // client-side right after mount.
+    const [detectedTimezone, setDetectedTimezone] = useState(BOGOTA_TZ);
+    const [confirmedTimezone, setConfirmedTimezone] = useState<string | null>(
+        null,
+    );
+
+    useEffect(() => {
+        setDetectedTimezone(detectBrowserTimezone());
+    }, []);
 
     const hasSelection = selectedDate && selectedTime;
     const isAuthenticated = !!session?.user;
 
-    const currentStep: Step = useMemo(() => {
+    const step: Step = useMemo(() => {
         if (!hasSelection || isSessionPending) return "calendar";
         if (!isAuthenticated) return "auth";
+        if (!confirmedTimezone) return "timezone";
         return "summary";
-    }, [hasSelection, isSessionPending, isAuthenticated]);
-
-    // Auto-advance from auth to summary when session loads
-    const [step, setStep] = useState<Step>(currentStep);
-    useEffect(() => {
-        setStep(currentStep);
-    }, [currentStep]);
+    }, [hasSelection, isSessionPending, isAuthenticated, confirmedTimezone]);
 
     const handleSlotSelect = useCallback((date: string, time: string) => {
         setSelectedDate(date);
@@ -85,7 +107,6 @@ export function BookingFlow({
     }, []);
 
     const handleChangeSlot = useCallback(() => {
-        setStep("calendar");
         setSelectedDate(null);
         setSelectedTime(null);
     }, []);
@@ -116,7 +137,7 @@ export function BookingFlow({
 
             const path = result.skipForm
                 ? `/agendar/${psychologist.slug}/confirmacion?appointmentId=${result.appointmentId}`
-                : `/agendar/${psychologist.slug}/formulario?appointmentId=${result.appointmentId}`;
+                : `/agendar/${psychologist.slug}/formulario?appointmentId=${result.appointmentId}&timezone=${encodeURIComponent(confirmedTimezone ?? BOGOTA_TZ)}`;
             router.push(path);
         });
     }, [
@@ -127,6 +148,7 @@ export function BookingFlow({
         globalRate,
         router,
         handleChangeSlot,
+        confirmedTimezone,
     ]);
 
     const callbackURL =
@@ -163,6 +185,7 @@ export function BookingFlow({
                             initialYear={initialYear}
                             initialMonth={initialMonth}
                             onSlotSelect={handleSlotSelect}
+                            patientTimezone={detectedTimezone}
                         />
                     </motion.div>
                 )}
@@ -181,6 +204,21 @@ export function BookingFlow({
                             selectedTime={selectedTime!}
                             callbackURL={callbackURL}
                             onChangeSlot={handleChangeSlot}
+                        />
+                    </motion.div>
+                )}
+
+                {step === "timezone" && (
+                    <motion.div
+                        key="timezone"
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -16 }}
+                        transition={{ duration: 0.35, ease }}
+                    >
+                        <TimezoneConfirmStep
+                            detectedTimezone={detectedTimezone}
+                            onConfirm={setConfirmedTimezone}
                         />
                     </motion.div>
                 )}
@@ -218,12 +256,14 @@ function CalendarStep({
     initialYear,
     initialMonth,
     onSlotSelect,
+    patientTimezone,
 }: {
     psychologist: Psychologist & { schedules: Schedule[] };
     initialAvailability: MonthAvailability;
     initialYear: number;
     initialMonth: number;
     onSlotSelect: (date: string, time: string) => void;
+    patientTimezone: string;
 }) {
     return (
         <div>
@@ -239,6 +279,7 @@ function CalendarStep({
                 initialYear={initialYear}
                 initialMonth={initialMonth}
                 onSlotSelect={onSlotSelect}
+                patientTimezone={patientTimezone}
             />
         </div>
     );
@@ -273,7 +314,7 @@ function AuthStep({
                     <p className="text-sm text-muted-foreground">Tu sesión</p>
                     <p className="mt-1 font-medium">{psychologistName}</p>
                     <p className="text-sm capitalize text-muted-foreground">
-                        {formattedDate} — {selectedTime}
+                        {formattedDate} — {selectedTime} (Colombia)
                     </p>
                 </div>
 
@@ -284,6 +325,14 @@ function AuthStep({
                     <GoogleSignInButton callbackURL={callbackURL} />
                 </div>
 
+                <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
+                    <div className="h-px flex-1 bg-border" />
+                    o continúa con correo
+                    <div className="h-px flex-1 bg-border" />
+                </div>
+
+                <EmailSignInForm callbackURL={callbackURL} />
+
                 <button
                     type="button"
                     onClick={onChangeSlot}
@@ -291,6 +340,73 @@ function AuthStep({
                 >
                     Cambiar horario
                 </button>
+            </div>
+        </div>
+    );
+}
+
+// ---------- Timezone Confirm Step ----------
+
+function TimezoneConfirmStep({
+    detectedTimezone,
+    onConfirm,
+}: {
+    detectedTimezone: string;
+    onConfirm: (timezone: string) => void;
+}) {
+    const detectedOption = useMemo(
+        () => matchTimezoneOption(detectedTimezone),
+        [detectedTimezone],
+    );
+    const [selected, setSelected] = useState(detectedOption.value);
+    const options = useMemo(() => {
+        const hasDetected = TIMEZONE_OPTIONS.some(
+            o => o.value === detectedOption.value,
+        );
+        return hasDetected
+            ? TIMEZONE_OPTIONS
+            : [detectedOption, ...TIMEZONE_OPTIONS];
+    }, [detectedOption]);
+
+    return (
+        <div className="mx-auto max-w-md">
+            <div className="rounded-lg bg-card p-6 ring-1 ring-border/50 sm:p-8 text-center">
+                <p className="text-sm text-muted-foreground">
+                    Detectamos que tu zona horaria es
+                </p>
+                <p className="mt-1 font-medium">{detectedOption.label}</p>
+                <p className="mt-3 text-sm text-muted-foreground">
+                    Tu sesión se mostrará en esta hora para evitar confusiones.
+                    ¿Es correcta?
+                </p>
+
+                <div className="mt-5 flex justify-center">
+                    <Select
+                        value={selected}
+                        onValueChange={value => {
+                            if (value) setSelected(value);
+                        }}
+                    >
+                        <SelectTrigger className="w-full">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {options.map(o => (
+                                <SelectItem key={o.value} value={o.value}>
+                                    {o.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <Button
+                    onClick={() => onConfirm(selected)}
+                    className="mt-6 w-full bg-accent text-accent-foreground hover:bg-accent/80"
+                    size="lg"
+                >
+                    Confirmar
+                </Button>
             </div>
         </div>
     );
@@ -373,7 +489,9 @@ function SummaryStep({
                     </div>
                     <div className="flex justify-between">
                         <span className="text-muted-foreground">Hora</span>
-                        <span className="font-medium">{selectedTime}</span>
+                        <span className="font-medium">
+                            {selectedTime} (Colombia)
+                        </span>
                     </div>
                     <div className="flex justify-between">
                         <span className="text-muted-foreground">Duración</span>
@@ -381,17 +499,17 @@ function SummaryStep({
                             {psychologist.sessionDuration} min
                         </span>
                     </div>
-                    {globalRate !== null && (
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">Valor</span>
-                            <span className="font-medium">
-                                {formatCurrencyAmount(
-                                    globalRate.amount,
-                                    globalRate.currency,
-                                )}
-                            </span>
-                        </div>
-                    )}
+                    <div className="flex justify-between">
+                        <span className="text-muted-foreground">Valor</span>
+                        <span className="font-medium">
+                            {globalRate !== null
+                                ? formatCurrencyAmount(
+                                      globalRate.amount,
+                                      globalRate.currency,
+                                  )
+                                : "Se coordina con tu psicólogo"}
+                        </span>
+                    </div>
                 </div>
 
                 {/* Authenticated user */}

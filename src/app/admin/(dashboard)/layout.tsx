@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Toaster } from "@/components/ui/sonner";
 import { auth } from "@/lib/auth";
+import { getAdminAlerts } from "@/lib/admin/alerts-queries";
 
 export default async function AdminDashboardLayout({
 	children,
@@ -20,9 +21,11 @@ export default async function AdminDashboardLayout({
 		.join("")
 		.toUpperCase();
 
+	const alerts = await getAdminAlerts();
+
 	return (
 		<>
-			<AdminShell userName={userName} initials={initials}>
+			<AdminShell userName={userName} initials={initials} alerts={alerts}>
 				{children}
 			</AdminShell>
 			<Toaster position="top-right" richColors />

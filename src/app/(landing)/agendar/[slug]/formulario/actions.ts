@@ -8,11 +8,7 @@ import {
     intakeFormSchema,
     type IntakeFormData,
 } from "@/lib/validators/intake-form";
-import { createAppointmentEvent } from "@/lib/calendar-events";
-import {
-    sendAppointmentConfirmation,
-    sendNewAppointmentNotification,
-} from "@/lib/email";
+import { confirmAndNotifyAppointment } from "@/lib/appointments/confirm-and-notify";
 
 type SubmitResult = { success: true } | { success: false; error: string };
 
@@ -88,17 +84,7 @@ export async function submitIntakeForm(input: {
         }),
     ]);
 
-    try {
-        await createAppointmentEvent(input.appointmentId);
-    } catch (err) {
-        console.error("Google Calendar event creation failed:", err);
-    }
-    try {
-        await sendAppointmentConfirmation(input.appointmentId);
-        await sendNewAppointmentNotification(input.appointmentId);
-    } catch (err) {
-        console.error("Confirmation email failed:", err);
-    }
+    await confirmAndNotifyAppointment(input.appointmentId);
 
     return { success: true };
 }

@@ -9,7 +9,10 @@ import {
     appointmentsToBusyPeriods,
     computeMonthAvailability,
 } from "@/lib/availability";
-import { getBlockingAppointments } from "@/lib/queries/appointments";
+import {
+    getBlockingAppointments,
+    getConfirmedCountsByDate,
+} from "@/lib/queries/appointments";
 import { getActivePatientAppointment } from "@/lib/queries/patient-appointments";
 import { TZDate } from "@date-fns/tz";
 import { startOfMonth, endOfMonth } from "date-fns";
@@ -67,17 +70,19 @@ export default async function BookingPage({ params, searchParams }: Props) {
     const timeMax = endOfMonth(firstDay);
 
     const country = (await headers()).get("x-vercel-ip-country");
-    const [calendarBusy, appointments, globalRate] = await Promise.all([
-        psychologist.calendarId
-            ? getCachedFreeBusyPeriods(
-                  psychologist.calendarId,
-                  timeMin,
-                  timeMax,
-              )
-            : Promise.resolve([]),
-        getBlockingAppointments(psychologist.id, timeMin, timeMax),
-        getPublicDisplayRate(country),
-    ]);
+    const [calendarBusy, appointments, globalRate, confirmedCountByDate] =
+        await Promise.all([
+            psychologist.calendarId
+                ? getCachedFreeBusyPeriods(
+                      psychologist.calendarId,
+                      timeMin,
+                      timeMax,
+                  )
+                : Promise.resolve([]),
+            getBlockingAppointments(psychologist.id, timeMin, timeMax),
+            getPublicDisplayRate(country),
+            getConfirmedCountsByDate(psychologist.id, timeMin, timeMax),
+        ]);
 
     const allBusyPeriods = [
         ...calendarBusy,
@@ -90,6 +95,7 @@ export default async function BookingPage({ params, searchParams }: Props) {
         year,
         month,
         psychologist.sessionDuration,
+        confirmedCountByDate,
     );
 
     // Validate preselected date/time

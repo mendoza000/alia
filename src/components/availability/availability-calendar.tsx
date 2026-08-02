@@ -21,6 +21,7 @@ type AvailabilityCalendarProps = {
     initialYear: number;
     initialMonth: number;
     onSlotSelect?: (date: string, time: string) => void;
+    patientTimezone?: string;
 };
 
 export function AvailabilityCalendar({
@@ -30,6 +31,7 @@ export function AvailabilityCalendar({
     initialYear,
     initialMonth,
     onSlotSelect,
+    patientTimezone,
 }: AvailabilityCalendarProps) {
     const defaultDate = useMemo(() => {
         const today = format(new Date(), "yyyy-MM-dd");
@@ -97,6 +99,7 @@ export function AvailabilityCalendar({
                     slots={selectedSlots}
                     psychologistSlug={psychologistSlug}
                     onSlotSelect={onSlotSelect}
+                    patientTimezone={patientTimezone}
                 />
 
                 <div

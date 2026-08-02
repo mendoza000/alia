@@ -6,6 +6,7 @@ import { es } from "date-fns/locale";
 import { auth } from "@/lib/auth";
 import { getPatientAppointments } from "@/lib/queries/patient-appointments";
 import { Badge } from "@/components/ui/badge";
+import { CancelAppointmentButton } from "@/components/patient/cancel-appointment-button";
 
 export const metadata: Metadata = {
     title: "Mis sesiones",
@@ -82,6 +83,7 @@ export default async function MisCitasPage() {
                                     <AppointmentCard
                                         key={a.id}
                                         appointment={a}
+                                        cancellable
                                     />
                                 ))}
                             </div>
@@ -111,8 +113,10 @@ export default async function MisCitasPage() {
 
 function AppointmentCard({
     appointment,
+    cancellable = false,
 }: {
     appointment: Awaited<ReturnType<typeof getPatientAppointments>>[number];
+    cancellable?: boolean;
 }) {
     const config = STATUS_CONFIG[appointment.status] ?? {
         label: appointment.status,
@@ -136,7 +140,12 @@ function AppointmentCard({
                     )}
                 </p>
             </div>
-            <Badge variant={config.variant}>{config.label}</Badge>
+            <div className="flex items-center gap-2">
+                <Badge variant={config.variant}>{config.label}</Badge>
+                {cancellable && (
+                    <CancelAppointmentButton appointmentId={appointment.id} />
+                )}
+            </div>
         </div>
     );
 }

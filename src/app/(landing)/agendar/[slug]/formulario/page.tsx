@@ -14,12 +14,12 @@ export const metadata: Metadata = {
 
 type Props = {
     params: Promise<{ slug: string }>;
-    searchParams: Promise<{ appointmentId?: string }>;
+    searchParams: Promise<{ appointmentId?: string; timezone?: string }>;
 };
 
 export default async function IntakeFormPage({ params, searchParams }: Props) {
     const { slug } = await params;
-    const { appointmentId } = await searchParams;
+    const { appointmentId, timezone } = await searchParams;
 
     if (!appointmentId) notFound();
 
@@ -64,6 +64,7 @@ export default async function IntakeFormPage({ params, searchParams }: Props) {
             userEmail={session.user.email}
             priorData={priorData}
             expiresAt={appointment.expiresAt?.toISOString() ?? null}
+            confirmedTimezone={timezone ?? null}
         />
     );
 }

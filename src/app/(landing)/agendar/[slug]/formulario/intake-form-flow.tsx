@@ -21,25 +21,12 @@ import {
 } from "@/components/form/form-fields";
 import { FormDatePicker } from "@/components/form/form-date-picker";
 import { Button } from "@/components/ui/button";
+import { TIMEZONE_OPTIONS } from "@/lib/timezones";
 import { submitIntakeForm } from "./actions";
 
 function str(v: unknown): string {
     return typeof v === "string" ? v : "";
 }
-
-const TIMEZONE_OPTIONS = [
-    { value: "America/Bogota", label: "Colombia" },
-    { value: "America/Mexico_City", label: "México" },
-    { value: "America/New_York", label: "Estados Unidos (Este)" },
-    { value: "America/Chicago", label: "Estados Unidos (Centro)" },
-    { value: "America/Denver", label: "Estados Unidos (Montaña)" },
-    { value: "America/Los_Angeles", label: "Estados Unidos (Pacífico)" },
-    { value: "America/Lima", label: "Perú" },
-    { value: "America/Santiago", label: "Chile" },
-    { value: "America/Argentina/Buenos_Aires", label: "Argentina" },
-    { value: "America/Caracas", label: "Venezuela" },
-    { value: "Europe/Madrid", label: "España" },
-];
 
 const SECTIONS = [
     {
@@ -87,6 +74,7 @@ type IntakeFormFlowProps = {
     userEmail: string;
     priorData: Record<string, unknown> | null;
     expiresAt: string | null;
+    confirmedTimezone: string | null;
 };
 
 export function IntakeFormFlow({
@@ -96,6 +84,7 @@ export function IntakeFormFlow({
     userEmail,
     priorData,
     expiresAt,
+    confirmedTimezone,
 }: IntakeFormFlowProps) {
     const router = useRouter();
     const [currentSection, setCurrentSection] = useState(0);
@@ -140,7 +129,10 @@ export function IntakeFormFlow({
             maritalStatus: str(priorData?.maritalStatus),
             occupation: str(priorData?.occupation),
             religion: str(priorData?.religion),
-            timezone: str(priorData?.timezone) || "America/Bogota",
+            timezone:
+                confirmedTimezone ||
+                str(priorData?.timezone) ||
+                "America/Bogota",
             consultationReason: "",
             previousTherapy: str(priorData?.previousTherapy),
             previousTherapyDetails: str(priorData?.previousTherapyDetails),

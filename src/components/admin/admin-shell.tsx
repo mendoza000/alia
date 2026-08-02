@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, LogOut, Menu, Search } from "lucide-react";
+import { LogOut, Menu, Search } from "lucide-react";
 import Image from "next/image";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { SidebarNav } from "@/components/admin/sidebar-nav";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { NotificationBell } from "@/components/admin/notification-bell";
+import type { AdminAlert } from "@/lib/admin/alerts-queries";
 
 function SidebarHeader() {
 	return (
@@ -56,10 +58,12 @@ function SidebarFooter({
 export function AdminShell({
 	userName,
 	initials,
+	alerts,
 	children,
 }: {
 	userName: string;
 	initials: string;
+	alerts: AdminAlert[];
 	children: React.ReactNode;
 }) {
 	const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -111,13 +115,7 @@ export function AdminShell({
 							</kbd>
 						</div>
 						{/* Notification bell */}
-						<button
-							type="button"
-							className="relative rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-						>
-							<Bell className="size-4" />
-							<span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-accent" />
-						</button>
+						<NotificationBell alerts={alerts} />
 					</div>
 				</header>
 				<main className="min-w-0 flex-1 overflow-x-auto bg-background p-4 md:p-6">{children}</main>

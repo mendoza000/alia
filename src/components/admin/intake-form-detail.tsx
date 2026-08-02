@@ -4,7 +4,8 @@ import { es } from "date-fns/locale";
 import type { IntakeFormData } from "@/lib/validators/intake-form";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeftIcon, DownloadIcon } from "lucide-react";
+import { ArrowLeftIcon, DownloadIcon, PencilIcon, TrashIcon } from "lucide-react";
+import { DeleteIntakeFormDialog } from "@/components/admin/delete-intake-form-dialog";
 
 type IntakeFormDetailProps = {
   appointmentId: string;
@@ -75,12 +76,29 @@ export function IntakeFormDetail({
           <h1 className="font-heading text-2xl font-semibold">{patientName}</h1>
           <p className="text-sm text-muted-foreground">{patientEmail}</p>
         </div>
-        <a href={`/api/admin/formularios/${appointmentId}/pdf`} target="_blank">
-          <Button variant="outline" size="sm" className="gap-2">
-            <DownloadIcon className="size-4" />
-            Exportar PDF
-          </Button>
-        </a>
+        <div className="flex items-center gap-2">
+          <a href={`/api/admin/formularios/${appointmentId}/pdf`} target="_blank">
+            <Button variant="outline" size="sm" className="gap-2">
+              <DownloadIcon className="size-4" />
+              Exportar PDF
+            </Button>
+          </a>
+          <Link href={`/admin/formularios/${appointmentId}/editar`}>
+            <Button variant="outline" size="sm" className="gap-2">
+              <PencilIcon className="size-4" />
+              Editar
+            </Button>
+          </Link>
+          <DeleteIntakeFormDialog
+            appointmentId={appointmentId}
+            patientName={patientName}
+          >
+            <Button variant="outline" size="sm" className="gap-2 text-destructive hover:text-destructive">
+              <TrashIcon className="size-4" />
+              Eliminar
+            </Button>
+          </DeleteIntakeFormDialog>
+        </div>
       </div>
 
       {/* Meta */}

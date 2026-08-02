@@ -2,46 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import { deleteAppointmentEvent, updateAppointmentEvent } from "@/lib/calendar-events";
-import {
-  sendAppointmentCancelled,
-  sendAppointmentCancelledPatient,
-  sendAppointmentRescheduled,
-} from "@/lib/email";
+import { updateAppointmentEvent } from "@/lib/calendar-events";
+import { sendAppointmentRescheduled } from "@/lib/email";
+import { cancelAppointmentCore, type CancelResult } from "@/lib/appointments/cancel-appointment";
 
 type ActionResult = { success: true } | { success: false; error: string };
 
-export async function cancelAppointment(appointmentId: string): Promise<ActionResult> {
-  const appointment = await prisma.appointment.findUnique({
-    where: { id: appointmentId },
-    select: { status: true },
-  });
-
-  if (!appointment) return { success: false, error: "Sesión no encontrada" };
-  if (appointment.status === "CANCELLED") {
-    return { success: false, error: "La sesión ya está cancelada" };
-  }
-
-  await prisma.appointment.update({
-    where: { id: appointmentId },
-    data: { status: "CANCELLED" },
-  });
-
-  try {
-    await deleteAppointmentEvent(appointmentId);
-  } catch (err) {
-    console.error("Google Calendar event deletion failed:", err);
-  }
-
-  try {
-    await sendAppointmentCancelled(appointmentId);
-    await sendAppointmentCancelledPatient(appointmentId);
-  } catch (err) {
-    console.error("Cancellation email failed:", err);
-  }
-
+export async function cancelAppointment(appointmentId: string): Promise<CancelResult> {
+  const result = await cancelAppointmentCore(appointmentId);
   revalidatePath("/admin/citas", "layout");
-  return { success: true };
+  return result;
 }
 
 export async function completeAppointment(appointmentId: string): Promise<ActionResult> {

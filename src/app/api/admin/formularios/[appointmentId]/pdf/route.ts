@@ -6,7 +6,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { IntakeFormPDF } from "@/components/admin/intake-form-pdf";
-import type { IntakeFormData } from "@/lib/validators/intake-form";
+import { intakeFormSchema, type IntakeFormData } from "@/lib/validators/intake-form";
 
 export async function GET(
   _req: Request,
@@ -32,7 +32,10 @@ export async function GET(
     return new NextResponse("Formulario no encontrado", { status: 404 });
   }
 
-  const formData = appointment.intakeForm.data as unknown as IntakeFormData;
+  const formData = intakeFormSchema.cast(appointment.intakeForm.data, {
+    assert: false,
+    stripUnknown: true,
+  }) as IntakeFormData;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const element = createElement(IntakeFormPDF, {
@@ -44,7 +47,15 @@ export async function GET(
     data: formData,
   }) as JSX.Element as Parameters<typeof renderToBuffer>[0];
 
-  const buffer = await renderToBuffer(element);
+  let buffer: Buffer;
+  try {
+    buffer = await renderToBuffer(element);
+  } catch (err) {
+    console.error("PDF render failed:", err);
+    return new NextResponse("No se pudo generar el PDF del formulario", {
+      status: 500,
+    });
+  }
 
   const filename = `formulario-${appointment.user.name.replace(/\s+/g, "-").toLowerCase()}.pdf`;
 

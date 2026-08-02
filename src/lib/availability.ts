@@ -20,7 +20,7 @@ export type DayAvailability = {
 
 export type MonthAvailability = Record<string, DayAvailability>;
 
-const BOGOTA_TZ = "America/Bogota";
+export const BOGOTA_TZ = "America/Bogota";
 
 function timeToMinutes(time: string): number {
     const [h, m] = time.split(":").map(Number);
@@ -109,12 +109,15 @@ export function subtractBusyPeriods(
     });
 }
 
+export const DAILY_CONFIRMED_APPOINTMENT_CAP = 5;
+
 export function computeMonthAvailability(
     schedules: Schedule[],
     busyPeriods: { start: Date; end: Date }[],
     year: number,
     month: number,
     sessionDuration: number,
+    confirmedCountByDate: Record<string, number> = {},
 ): MonthAvailability {
     const firstDay = new TZDate(year, month - 1, 1, BOGOTA_TZ);
     const lastDay = endOfMonth(firstDay);
@@ -148,6 +151,15 @@ export function computeMonthAvailability(
             result[dateStr] = {
                 date: dateStr,
                 status: "no_schedule",
+                slots: [],
+            };
+            continue;
+        }
+
+        if ((confirmedCountByDate[dateStr] ?? 0) >= DAILY_CONFIRMED_APPOINTMENT_CAP) {
+            result[dateStr] = {
+                date: dateStr,
+                status: "fully_booked",
                 slots: [],
             };
             continue;

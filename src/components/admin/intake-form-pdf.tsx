@@ -1,3 +1,4 @@
+import path from "node:path";
 import {
   Document,
   Page,
@@ -11,15 +12,13 @@ import { es } from "date-fns/locale";
 import type { IntakeFormData } from "@/lib/validators/intake-form";
 
 Font.register({
-  family: "Inter",
-  fonts: [
-    { src: "https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff" },
-  ],
+  family: "KleinText",
+  src: path.join(process.cwd(), "public/fonts/Klein-Text-Book-trial.ttf"),
 });
 
 const styles = StyleSheet.create({
   page: {
-    fontFamily: "Inter",
+    fontFamily: "KleinText",
     fontSize: 10,
     paddingTop: 40,
     paddingBottom: 40,
