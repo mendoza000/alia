@@ -4,6 +4,7 @@ import {
     useCallback,
     useEffect,
     useMemo,
+    useRef,
     useState,
     useTransition,
 } from "react";
@@ -380,6 +381,15 @@ function TimezoneConfirmStep({
         [detectedTimezone],
     );
     const [selected, setSelected] = useState(detectedOption.value);
+    const hasManualSelection = useRef(false);
+
+    // detectedTimezone starts as a hydration-safe placeholder and is
+    // corrected right after mount (see BookingFlow). Follow that correction
+    // until the patient picks a value themselves.
+    useEffect(() => {
+        if (!hasManualSelection.current) setSelected(detectedOption.value);
+    }, [detectedOption.value]);
+
     const options = useMemo(() => {
         const hasDetected = TIMEZONE_OPTIONS.some(
             o => o.value === detectedOption.value,
@@ -405,7 +415,10 @@ function TimezoneConfirmStep({
                     <Select
                         value={selected}
                         onValueChange={value => {
-                            if (value) setSelected(value);
+                            if (value) {
+                                hasManualSelection.current = true;
+                                setSelected(value);
+                            }
                         }}
                     >
                         <SelectTrigger className="w-full">
