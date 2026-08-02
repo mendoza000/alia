@@ -99,7 +99,6 @@ export async function createManualAppointment(
       body: {
         email: input.patientEmail,
         name: input.patientName,
-        role: "patient",
       },
       headers: await headers(),
     });
