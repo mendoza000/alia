@@ -4,6 +4,7 @@ import { Bell } from "lucide-react";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
+	DropdownMenuGroup,
 	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
@@ -24,7 +25,9 @@ export function NotificationBell({ alerts }: { alerts: AdminAlert[] }) {
 				)}
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end" className="w-72">
-				<DropdownMenuLabel>Alertas</DropdownMenuLabel>
+				<DropdownMenuGroup>
+					<DropdownMenuLabel>Alertas</DropdownMenuLabel>
+				</DropdownMenuGroup>
 				<DropdownMenuSeparator />
 				{alerts.length === 0 ? (
 					<p className="px-1.5 py-2 text-sm text-muted-foreground">
@@ -32,8 +35,15 @@ export function NotificationBell({ alerts }: { alerts: AdminAlert[] }) {
 					</p>
 				) : (
 					alerts.map((alert) => (
-						<DropdownMenuItem key={alert.id} render={<a href={alert.href} />}>
+						<DropdownMenuItem
+							key={alert.id}
+							className="flex-col items-start gap-0.5"
+							render={<a href={alert.href} />}
+						>
 							<span className="text-sm">{alert.message}</span>
+							<span className="text-xs text-muted-foreground">
+								{alert.detail}
+							</span>
 						</DropdownMenuItem>
 					))
 				)}

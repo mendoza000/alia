@@ -1,8 +1,11 @@
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import { prisma } from "@/lib/db";
 
 export type AdminAlert = {
   id: string;
   message: string;
+  detail: string;
   href: string;
 };
 
@@ -20,7 +23,13 @@ export async function getAdminAlerts(): Promise<AdminAlert[]> {
         status: "PENDING_FORM",
         expiresAt: { gt: now, lte: expiringSoon },
       },
-      select: { id: true, user: { select: { name: true } } },
+      select: {
+        id: true,
+        expiresAt: true,
+        dateTime: true,
+        user: { select: { name: true } },
+        psychologist: { select: { name: true } },
+      },
       orderBy: { expiresAt: "asc" },
     }),
     prisma.payment.findMany({
@@ -31,22 +40,39 @@ export async function getAdminAlerts(): Promise<AdminAlert[]> {
       },
       select: {
         id: true,
-        appointment: { select: { user: { select: { name: true } } } },
+        createdAt: true,
+        appointment: {
+          select: {
+            dateTime: true,
+            user: { select: { name: true } },
+          },
+        },
       },
       orderBy: { createdAt: "asc" },
     }),
   ]);
 
-  const alerts: AdminAlert[] = expiringForms.map((appt) => ({
-    id: `form-${appt.id}`,
-    message: `El formulario de ${appt.user.name} vence en menos de 30 min`,
-    href: "/admin/citas",
-  }));
+  const alerts: AdminAlert[] = expiringForms.map((appt) => {
+    const minutesLeft = Math.max(
+      1,
+      Math.round((appt.expiresAt.getTime() - now.getTime()) / 60_000),
+    );
+    return {
+      id: `form-${appt.id}`,
+      message: `El formulario de ${appt.user.name} vence en ${minutesLeft} min`,
+      detail: `Sesión con ${appt.psychologist.name} · ${format(appt.dateTime, "d MMM, HH:mm", { locale: es })}`,
+      href: "/admin/citas",
+    };
+  });
 
   for (const payment of stalePayments) {
+    const daysElapsed = Math.floor(
+      (now.getTime() - payment.createdAt.getTime()) / (24 * 60 * 60 * 1000),
+    );
     alerts.push({
       id: `payment-${payment.id}`,
-      message: `Pago pendiente hace más de 3 días — ${payment.appointment.user.name}`,
+      message: `Pago pendiente hace ${daysElapsed} días — ${payment.appointment.user.name}`,
+      detail: `Sesión del ${format(payment.appointment.dateTime, "d MMM, HH:mm", { locale: es })}`,
       href: "/admin/pagos",
     });
   }
