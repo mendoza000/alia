@@ -9,6 +9,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -332,6 +333,16 @@ function AuthStep({
                 </div>
 
                 <EmailSignInForm callbackURL={callbackURL} />
+
+                <p className="mt-6 text-center text-sm text-muted-foreground">
+                    ¿No tienes cuenta?{" "}
+                    <Link
+                        href={`/registro?callbackURL=${encodeURIComponent(callbackURL)}`}
+                        className="font-medium underline-offset-2 hover:underline"
+                    >
+                        Crea una
+                    </Link>
+                </p>
 
                 <button
                     type="button"
