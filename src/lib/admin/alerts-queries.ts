@@ -52,18 +52,23 @@ export async function getAdminAlerts(): Promise<AdminAlert[]> {
     }),
   ]);
 
-  const alerts: AdminAlert[] = expiringForms.map((appt) => {
-    const minutesLeft = Math.max(
-      1,
-      Math.round((appt.expiresAt.getTime() - now.getTime()) / 60_000),
-    );
-    return {
-      id: `form-${appt.id}`,
-      message: `El formulario de ${appt.user.name} vence en ${minutesLeft} min`,
-      detail: `Sesión con ${appt.psychologist.name} · ${format(appt.dateTime, "d MMM, HH:mm", { locale: es })}`,
-      href: "/admin/citas",
-    };
-  });
+  const alerts: AdminAlert[] = expiringForms
+    .filter(
+      (appt): appt is typeof appt & { expiresAt: Date } =>
+        appt.expiresAt !== null,
+    )
+    .map((appt) => {
+      const minutesLeft = Math.max(
+        1,
+        Math.round((appt.expiresAt.getTime() - now.getTime()) / 60_000),
+      );
+      return {
+        id: `form-${appt.id}`,
+        message: `El formulario de ${appt.user.name} vence en ${minutesLeft} min`,
+        detail: `Sesión con ${appt.psychologist.name} · ${format(appt.dateTime, "d MMM, HH:mm", { locale: es })}`,
+        href: "/admin/citas",
+      };
+    });
 
   for (const payment of stalePayments) {
     const daysElapsed = Math.floor(
