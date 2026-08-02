@@ -79,23 +79,17 @@ export default async function ConfirmationPage({
     const country = headersList.get("x-vercel-ip-country");
     const rate = await getPublicDisplayRate(country);
 
-    const dateTimeInBogota = new TZDate(appointment.dateTime, "America/Bogota");
-    const formattedDate = format(dateTimeInBogota, "EEEE d 'de' MMMM, yyyy", {
+    const patientTimezone =
+        (appointment.intakeForm?.data as { timezone?: string } | null)
+            ?.timezone ?? "America/Bogota";
+    const dateTimeInPatientTz = new TZDate(
+        appointment.dateTime,
+        patientTimezone,
+    );
+    const formattedDate = format(dateTimeInPatientTz, "EEEE d 'de' MMMM, yyyy", {
         locale: es,
     });
-    const formattedTime = format(dateTimeInBogota, "HH:mm");
-
-    const patientTimezone = (
-        appointment.intakeForm?.data as { timezone?: string } | null
-    )?.timezone;
-    const patientLocalTime =
-        patientTimezone && patientTimezone !== "America/Bogota"
-            ? format(
-                  new TZDate(appointment.dateTime, patientTimezone),
-                  "EEEE d 'de' MMMM, h:mm a",
-                  { locale: es },
-              )
-            : null;
+    const formattedTime = format(dateTimeInPatientTz, "h:mm a");
 
     return (
         <section className="mx-auto max-w-lg px-4 py-10 sm:px-6 sm:py-16 mt-10 lg:mt-20">
@@ -120,14 +114,9 @@ export default async function ConfirmationPage({
                 <div className="mt-4 rounded-md bg-secondary/50 p-4 text-sm">
                     <p className="font-medium capitalize">{formattedDate}</p>
                     <p className="text-muted-foreground">
-                        {formattedTime} (hora de Colombia) —{" "}
+                        {formattedTime} —{" "}
                         {appointment.psychologist.sessionDuration} min
                     </p>
-                    {patientLocalTime && (
-                        <p className="mt-1 text-muted-foreground capitalize">
-                            Hora en tu zona horaria: {patientLocalTime}
-                        </p>
-                    )}
                 </div>
                 <p className="mt-4 text-sm text-muted-foreground">
                     Recibirás un correo de confirmación con los detalles. El
