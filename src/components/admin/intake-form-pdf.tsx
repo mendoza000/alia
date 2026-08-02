@@ -16,6 +16,24 @@ Font.register({
   src: path.join(process.cwd(), "public/fonts/Klein-Text-Book-trial.ttf"),
 });
 
+// KleinText is a trial webfont: its vendor replaced every digit glyph (0-9)
+// with an identical placeholder, so any number rendered in it is unreadable.
+// Wrap digit runs in Helvetica (a built-in PDF font) instead.
+function withDigitFallback(text: string) {
+  return text
+    .split(/(\d+)/g)
+    .filter((part) => part !== "")
+    .map((part, i) =>
+      /^\d+$/.test(part) ? (
+        <Text key={i} style={{ fontFamily: "Helvetica" }}>
+          {part}
+        </Text>
+      ) : (
+        part
+      ),
+    );
+}
+
 const styles = StyleSheet.create({
   page: {
     fontFamily: "KleinText",
@@ -129,7 +147,9 @@ function Field({ label, value, full = false }: { label: string; value: string | 
   return (
     <View style={full ? styles.fieldFull : styles.field}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{display}</Text>
+      <Text style={styles.fieldValue}>
+        {typeof display === "string" ? withDigitFallback(display) : display}
+      </Text>
     </View>
   );
 }
@@ -163,20 +183,24 @@ export function IntakeFormPDF({
           <View style={styles.metaItem}>
             <Text style={styles.metaLabel}>Fecha de sesión</Text>
             <Text style={styles.metaValue}>
-              {format(appointmentDate, "d 'de' MMMM 'de' yyyy, HH:mm", { locale: es })}
+              {withDigitFallback(
+                format(appointmentDate, "d 'de' MMMM 'de' yyyy, HH:mm", { locale: es }),
+              )}
             </Text>
           </View>
           <View style={styles.metaItem}>
             <Text style={styles.metaLabel}>Formulario enviado</Text>
             <Text style={styles.metaValue}>
-              {format(submittedAt, "d MMM yyyy, HH:mm", { locale: es })}
+              {withDigitFallback(
+                format(submittedAt, "d MMM yyyy, HH:mm", { locale: es }),
+              )}
             </Text>
           </View>
         </View>
 
         {/* Section 1 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>1. Datos personales</Text>
+          <Text style={styles.sectionTitle}>{withDigitFallback("1. Datos personales")}</Text>
           <View style={styles.fieldGrid}>
             <Field label="Nombre completo" value={data.fullName} />
             <Field label="Correo electrónico" value={data.email} />
@@ -191,13 +215,13 @@ export function IntakeFormPDF({
 
         {/* Section 2 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>2. Motivo de la sesión</Text>
+          <Text style={styles.sectionTitle}>{withDigitFallback("2. Motivo de la sesión")}</Text>
           <Field label="¿Por qué buscas acompañamiento?" value={data.consultationReason} full />
         </View>
 
         {/* Section 3 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>3. Historial de salud mental</Text>
+          <Text style={styles.sectionTitle}>{withDigitFallback("3. Historial de salud mental")}</Text>
           <View style={styles.fieldGrid}>
             <Field label="Tratamiento previo" value={data.previousTherapy} />
             {data.previousTherapy === "Sí" && (
@@ -212,13 +236,13 @@ export function IntakeFormPDF({
 
         {/* Section 4 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>4. Historial médico</Text>
+          <Text style={styles.sectionTitle}>{withDigitFallback("4. Historial médico")}</Text>
           <Field label="Enfermedades o condiciones" value={data.medicalHistory || "Ninguna"} full />
         </View>
 
         {/* Section 5 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>5. Red de apoyo / contacto de emergencia</Text>
+          <Text style={styles.sectionTitle}>{withDigitFallback("5. Red de apoyo / contacto de emergencia")}</Text>
           <View style={styles.fieldGrid}>
             <Field label="¿Con quién vive?" value={data.livingWith || "No especificado"} />
             <Field label="Contacto de emergencia" value={data.emergencyContact || "No especificado"} />
@@ -227,13 +251,13 @@ export function IntakeFormPDF({
 
         {/* Section 6 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>6. Expectativas del acompañamiento</Text>
+          <Text style={styles.sectionTitle}>{withDigitFallback("6. Expectativas del acompañamiento")}</Text>
           <Field label="¿Qué espera lograr?" value={data.therapyExpectations} full />
         </View>
 
         {/* Section 7 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>7. Consentimientos</Text>
+          <Text style={styles.sectionTitle}>{withDigitFallback("7. Consentimientos")}</Text>
           <View style={styles.fieldGrid}>
             <Field label="Consentimiento informado" value={data.informedConsent} />
             <Field label="Política de privacidad" value={data.privacyPolicy} />
@@ -241,7 +265,9 @@ export function IntakeFormPDF({
         </View>
 
         <Text style={styles.footer}>
-          ALIA — Documento generado el {format(new Date(), "d 'de' MMMM 'de' yyyy", { locale: es })} · Confidencial
+          {withDigitFallback(
+            `ALIA — Documento generado el ${format(new Date(), "d 'de' MMMM 'de' yyyy", { locale: es })} · Confidencial`,
+          )}
         </Text>
       </Page>
     </Document>
