@@ -4,8 +4,28 @@ import { buildIcsContent } from "@/lib/calendar/ics";
 
 export const dynamic = "force-dynamic";
 
+function isAndroid(userAgent: string | null): boolean {
+  return !!userAgent && /Android/i.test(userAgent);
+}
+
+function buildGoogleCalendarUrl(
+  dateTime: Date,
+  endTime: Date,
+  psychologistName: string,
+): string {
+  const fmt = (d: Date) =>
+    d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: `Sesión ALIA — ${psychologistName}`,
+    dates: `${fmt(dateTime)}/${fmt(endTime)}`,
+    details: `Sesión de acompañamiento con ${psychologistName} a través de ALIA`,
+  });
+  return `https://calendar.google.com/calendar/render?${params}`;
+}
+
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ appointmentId: string }> },
 ) {
   const { appointmentId } = await params;
@@ -17,6 +37,16 @@ export async function GET(
 
   if (!appointment) {
     return NextResponse.json({ error: "No encontrada" }, { status: 404 });
+  }
+
+  if (isAndroid(req.headers.get("user-agent"))) {
+    return NextResponse.redirect(
+      buildGoogleCalendarUrl(
+        appointment.dateTime,
+        appointment.endTime,
+        appointment.psychologist.name,
+      ),
+    );
   }
 
   const ics = buildIcsContent({
