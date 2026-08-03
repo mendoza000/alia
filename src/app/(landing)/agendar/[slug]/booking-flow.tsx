@@ -20,7 +20,7 @@ import { formatCurrencyAmount } from "@/lib/currency";
 import { trackInitiateCheckout } from "@/lib/analytics/events";
 import type { Psychologist, Schedule } from "@/generated/prisma/client";
 import type { MonthAvailability } from "@/lib/availability";
-import { BOGOTA_TZ } from "@/lib/availability";
+import { CARACAS_TZ } from "@/lib/availability";
 import {
     TIMEZONE_OPTIONS,
     detectBrowserTimezone,
@@ -80,12 +80,12 @@ export function BookingFlow({
         preselectedTime,
     );
     const [isCreating, startCreating] = useTransition();
-    // Starts at BOGOTA_TZ so server and client render the same markup on
+    // Starts at CARACAS_TZ so server and client render the same markup on
     // first paint — Intl.DateTimeFormat().resolvedOptions().timeZone reads
     // the server's own timezone during SSR, not the browser's, which would
     // otherwise cause a hydration mismatch. The real value is filled in
     // client-side right after mount.
-    const [detectedTimezone, setDetectedTimezone] = useState(BOGOTA_TZ);
+    const [detectedTimezone, setDetectedTimezone] = useState(CARACAS_TZ);
     const [confirmedTimezone, setConfirmedTimezone] = useState<string | null>(
         null,
     );
@@ -121,7 +121,7 @@ export function BookingFlow({
             const result = await createAppointment({
                 psychologistId: psychologist.id,
                 dateTime: `${selectedDate}T${selectedTime}`,
-                timezone: confirmedTimezone ?? BOGOTA_TZ,
+                timezone: confirmedTimezone ?? CARACAS_TZ,
             });
 
             if (!result.success) {
@@ -141,7 +141,7 @@ export function BookingFlow({
 
             const path = result.skipForm
                 ? `/agendar/${psychologist.slug}/confirmacion?appointmentId=${result.appointmentId}`
-                : `/agendar/${psychologist.slug}/formulario?appointmentId=${result.appointmentId}&timezone=${encodeURIComponent(confirmedTimezone ?? BOGOTA_TZ)}`;
+                : `/agendar/${psychologist.slug}/formulario?appointmentId=${result.appointmentId}&timezone=${encodeURIComponent(confirmedTimezone ?? CARACAS_TZ)}`;
             router.push(path);
         });
     }, [
@@ -204,7 +204,7 @@ export function BookingFlow({
                             initialYear={initialYear}
                             initialMonth={initialMonth}
                             onSlotSelect={handleSlotSelect}
-                            patientTimezone={confirmedTimezone ?? BOGOTA_TZ}
+                            patientTimezone={confirmedTimezone ?? CARACAS_TZ}
                         />
                     </motion.div>
                 )}
@@ -221,7 +221,7 @@ export function BookingFlow({
                             psychologistName={psychologist.name}
                             selectedDate={selectedDate!}
                             selectedTime={selectedTime!}
-                            patientTimezone={confirmedTimezone ?? BOGOTA_TZ}
+                            patientTimezone={confirmedTimezone ?? CARACAS_TZ}
                             callbackURL={callbackURL}
                             onChangeSlot={handleChangeSlot}
                         />

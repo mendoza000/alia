@@ -1,23 +1,23 @@
 import { prisma } from "@/lib/db";
 
-/** Colombia UTC-5 offset in ms */
-const COLOMBIA_OFFSET_MS = 5 * 60 * 60 * 1000;
+/** Venezuela UTC-4 offset in ms */
+const VENEZUELA_OFFSET_MS = 4 * 60 * 60 * 1000;
 
-function colombiaToday() {
-	const now = new Date(Date.now() - COLOMBIA_OFFSET_MS);
+function venezuelaToday() {
+	const now = new Date(Date.now() - VENEZUELA_OFFSET_MS);
 	const start = new Date(now);
 	start.setUTCHours(0, 0, 0, 0);
 	const end = new Date(now);
 	end.setUTCHours(23, 59, 59, 999);
 	// Convert back to UTC
 	return {
-		start: new Date(start.getTime() + COLOMBIA_OFFSET_MS),
-		end: new Date(end.getTime() + COLOMBIA_OFFSET_MS),
+		start: new Date(start.getTime() + VENEZUELA_OFFSET_MS),
+		end: new Date(end.getTime() + VENEZUELA_OFFSET_MS),
 	};
 }
 
 export async function getDashboardStats() {
-	const { start, end } = colombiaToday();
+	const { start, end } = venezuelaToday();
 	const monthStart = new Date(start);
 	monthStart.setUTCDate(1);
 	monthStart.setUTCHours(0, 0, 0, 0);
@@ -129,7 +129,7 @@ export async function getAppointmentsTrend() {
 		orderBy: { dateTime: "asc" },
 	});
 
-	// Group by date (Colombia timezone)
+	// Group by date (Venezuela timezone)
 	const grouped = new Map<string, number>();
 	for (let i = 0; i < 30; i++) {
 		const d = new Date();
@@ -139,8 +139,8 @@ export async function getAppointmentsTrend() {
 	}
 
 	for (const apt of appointments) {
-		const colDate = new Date(apt.dateTime.getTime() - COLOMBIA_OFFSET_MS);
-		const key = colDate.toISOString().slice(0, 10);
+		const veDate = new Date(apt.dateTime.getTime() - VENEZUELA_OFFSET_MS);
+		const key = veDate.toISOString().slice(0, 10);
 		if (grouped.has(key)) {
 			grouped.set(key, (grouped.get(key) ?? 0) + 1);
 		}

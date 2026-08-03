@@ -9,7 +9,7 @@ import {
     subtractBusyPeriods,
     filterPastSlots,
     appointmentsToBusyPeriods,
-    toBogotaDate,
+    toCaracasDate,
 } from "@/lib/availability";
 import { getDay, startOfDay, endOfDay } from "date-fns";
 
@@ -42,10 +42,10 @@ export async function GET(request: NextRequest) {
         );
     }
 
-    const dateInBogota = toBogotaDate(params.date, "00:00");
-    const dayOfWeek = getDay(dateInBogota);
-    const dayStart = startOfDay(dateInBogota);
-    const dayEnd = endOfDay(dateInBogota);
+    const dateInCaracas = toCaracasDate(params.date, "00:00");
+    const dayOfWeek = getDay(dateInCaracas);
+    const dayStart = startOfDay(dateInCaracas);
+    const dayEnd = endOfDay(dateInCaracas);
 
     const daySchedules = getScheduleForDay(psychologist.schedules, dayOfWeek);
     if (daySchedules.length === 0) {

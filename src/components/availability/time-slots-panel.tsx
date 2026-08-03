@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import Link from "next/link";
 import { ease } from "@/lib/motion";
-import { BOGOTA_TZ, type TimeSlot } from "@/lib/availability";
+import { CARACAS_TZ, type TimeSlot } from "@/lib/availability";
 import { formatInTimezone } from "@/lib/timezones";
 
 type TimeSlotsPanelProps = {
@@ -54,7 +54,7 @@ export function TimeSlotsPanel({
                                         const displayTime = formatInTimezone(
                                             dateStr,
                                             slot.start,
-                                            patientTimezone ?? BOGOTA_TZ,
+                                            patientTimezone ?? CARACAS_TZ,
                                         );
                                         const slotContent = (
                                             <span>{displayTime}</span>

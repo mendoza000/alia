@@ -78,7 +78,7 @@ export function AppointmentConfirmationEmail({
               <Text style={cardLabel}>Psicólogo</Text>
               <Text style={cardValue}>{psychologistName}</Text>
               <Hr style={divider} />
-              <Text style={cardLabel}>Fecha y hora (Colombia)</Text>
+              <Text style={cardLabel}>Fecha y hora (Venezuela)</Text>
               <Text style={cardValue}>{formattedDate}</Text>
               {patientLocalTime && (
                 <>

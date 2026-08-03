@@ -7,7 +7,7 @@ import {
     filterPastSlots,
     appointmentsToBusyPeriods,
     computeMonthAvailability,
-    toBogotaDate,
+    toCaracasDate,
 } from "../availability";
 import type { Schedule } from "@/generated/prisma/client";
 
@@ -28,17 +28,17 @@ function makeSchedule(
 
 /**
  * Create a plain Date that matches how subtractBusyPeriods builds slot dates
- * internally (via the real toBogotaDate implementation).
+ * internally (via the real toCaracasDate implementation).
  */
 function slotDate(dateStr: string, time: string): Date {
-    return new Date(toBogotaDate(dateStr, time).getTime());
+    return new Date(toCaracasDate(dateStr, time).getTime());
 }
 
-describe("toBogotaDate", () => {
-    it("converts a Bogota wall-clock time to the correct absolute UTC instant regardless of the host system timezone", () => {
-        // 11:00 in America/Bogota (UTC-5, no DST) must always equal 16:00 UTC.
-        expect(toBogotaDate("2026-07-29", "11:00").getTime()).toBe(
-            Date.UTC(2026, 6, 29, 16, 0, 0),
+describe("toCaracasDate", () => {
+    it("converts a Caracas wall-clock time to the correct absolute UTC instant regardless of the host system timezone", () => {
+        // 11:00 in America/Caracas (UTC-4, no DST) must always equal 15:00 UTC.
+        expect(toCaracasDate("2026-07-29", "11:00").getTime()).toBe(
+            Date.UTC(2026, 6, 29, 15, 0, 0),
         );
     });
 });
@@ -207,9 +207,9 @@ describe("filterPastSlots", () => {
             { start: "14:00", end: "15:00" },
             { start: "16:00", end: "17:00" },
         ];
-        // Simulate "now" as 14:30 Bogota
+        // Simulate "now" as 14:30 Caracas
         const now = new Date(
-            new TZDate(2026, 6, 6, 14, 30, 0, "America/Bogota").getTime(),
+            new TZDate(2026, 6, 6, 14, 30, 0, "America/Caracas").getTime(),
         );
         const result = filterPastSlots(slots, "2026-07-06", now);
         expect(result).toHaveLength(1);
@@ -222,7 +222,7 @@ describe("filterPastSlots", () => {
             { start: "10:00", end: "11:00" },
         ];
         const now = new Date(
-            new TZDate(2026, 6, 6, 14, 30, 0, "America/Bogota").getTime(),
+            new TZDate(2026, 6, 6, 14, 30, 0, "America/Caracas").getTime(),
         );
         const result = filterPastSlots(slots, "2026-07-07", now);
         expect(result).toEqual(slots);
@@ -234,7 +234,7 @@ describe("filterPastSlots", () => {
             { start: "10:00", end: "11:00" },
         ];
         const now = new Date(
-            new TZDate(2026, 6, 6, 17, 0, 0, "America/Bogota").getTime(),
+            new TZDate(2026, 6, 6, 17, 0, 0, "America/Caracas").getTime(),
         );
         const result = filterPastSlots(slots, "2026-07-06", now);
         expect(result).toEqual([]);

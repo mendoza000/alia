@@ -18,7 +18,7 @@ import {
   subtractBusyPeriods,
   filterPastSlots,
   appointmentsToBusyPeriods,
-  toBogotaDate,
+  toCaracasDate,
   DAILY_CONFIRMED_APPOINTMENT_CAP,
 } from "@/lib/availability";
 
@@ -46,7 +46,7 @@ export async function createManualAppointment(
     return { success: false, error: "Psicólogo no encontrado" };
   }
 
-  const slotStart = toBogotaDate(input.date, input.time);
+  const slotStart = toCaracasDate(input.date, input.time);
   const slotEnd = addMinutes(slotStart, psychologist.sessionDuration);
 
   const dayOfWeek = getDay(slotStart);
@@ -62,8 +62,8 @@ export async function createManualAppointment(
 
   const confirmedCountByDate = await getConfirmedCountsByDate(
     psychologist.id,
-    toBogotaDate(input.date, "00:00"),
-    toBogotaDate(input.date, "23:59"),
+    toCaracasDate(input.date, "00:00"),
+    toCaracasDate(input.date, "23:59"),
   );
   if (
     (confirmedCountByDate[input.date] ?? 0) >= DAILY_CONFIRMED_APPOINTMENT_CAP

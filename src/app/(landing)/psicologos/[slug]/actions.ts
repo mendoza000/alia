@@ -5,6 +5,7 @@ import { getCachedFreeBusyPeriods } from "@/lib/google-calendar";
 import {
     appointmentsToBusyPeriods,
     computeMonthAvailability,
+    CARACAS_TZ,
     type MonthAvailability,
 } from "@/lib/availability";
 import {
@@ -28,7 +29,7 @@ export async function getMonthAvailability(
 
     if (!psychologist) return {};
 
-    const firstDay = new TZDate(year, month - 1, 1, "America/Bogota");
+    const firstDay = new TZDate(year, month - 1, 1, CARACAS_TZ);
     const timeMin = startOfMonth(firstDay);
     const timeMax = endOfMonth(firstDay);
 

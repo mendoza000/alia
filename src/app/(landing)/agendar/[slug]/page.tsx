@@ -8,6 +8,7 @@ import { getCachedFreeBusyPeriods } from "@/lib/google-calendar";
 import {
     appointmentsToBusyPeriods,
     computeMonthAvailability,
+    CARACAS_TZ,
 } from "@/lib/availability";
 import {
     getBlockingAppointments,
@@ -68,11 +69,11 @@ export default async function BookingPage({ params, searchParams }: Props) {
         }
     }
 
-    const now = new TZDate(new Date(), "America/Bogota");
+    const now = new TZDate(new Date(), CARACAS_TZ);
     const year = now.getFullYear();
     const month = now.getMonth() + 1;
 
-    const firstDay = new TZDate(year, month - 1, 1, "America/Bogota");
+    const firstDay = new TZDate(year, month - 1, 1, CARACAS_TZ);
     const timeMin = startOfMonth(firstDay);
     const timeMax = endOfMonth(firstDay);
 

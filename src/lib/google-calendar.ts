@@ -28,7 +28,7 @@ export async function getFreeBusyPeriods(
                 timeMin: timeMin.toISOString(),
                 timeMax: timeMax.toISOString(),
                 items: [{ id: calendarId }],
-                timeZone: "America/Bogota",
+                timeZone: "America/Caracas",
             },
         });
 
@@ -68,11 +68,11 @@ export async function createCalendarEvent(
                 description: event.description,
                 start: {
                     dateTime: event.startDateTime.toISOString(),
-                    timeZone: "America/Bogota",
+                    timeZone: "America/Caracas",
                 },
                 end: {
                     dateTime: event.endDateTime.toISOString(),
-                    timeZone: "America/Bogota",
+                    timeZone: "America/Caracas",
                 },
             },
         });
@@ -110,11 +110,11 @@ export async function updateCalendarEvent(
             requestBody: {
                 start: {
                     dateTime: startDateTime.toISOString(),
-                    timeZone: "America/Bogota",
+                    timeZone: "America/Caracas",
                 },
                 end: {
                     dateTime: endDateTime.toISOString(),
-                    timeZone: "America/Bogota",
+                    timeZone: "America/Caracas",
                 },
             },
         });

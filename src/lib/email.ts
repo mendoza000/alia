@@ -13,6 +13,7 @@ import { PaymentRequestEmail } from "../../emails/payment-request";
 import { PasswordResetEmail } from "../../emails/password-reset";
 import { VerifyEmail } from "../../emails/verify-email";
 import { prisma } from "@/lib/db";
+import { CARACAS_TZ } from "@/lib/availability";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = process.env.EMAIL_FROM ?? "ALIA <onboarding@resend.dev>";
@@ -30,7 +31,7 @@ function getFontUrl() {
 
 function formatAppointmentDate(date: Date): string {
   return format(
-    new TZDate(date, "America/Bogota"),
+    new TZDate(date, CARACAS_TZ),
     "EEEE d 'de' MMMM 'a las' h:mm a",
     { locale: es },
   );
@@ -57,7 +58,7 @@ async function getAppointmentData(appointmentId: string) {
 
 function formatPatientLocalTime(dateTime: Date, data: unknown): string | null {
   const timezone = (data as { timezone?: string } | null)?.timezone;
-  if (!timezone || timezone === "America/Bogota") return null;
+  if (!timezone || timezone === CARACAS_TZ) return null;
   return format(new TZDate(dateTime, timezone), "EEEE d 'de' MMMM 'a las' h:mm a", {
     locale: es,
   });

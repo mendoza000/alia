@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { TZDate } from "@date-fns/tz";
 import { format } from "date-fns";
+import { CARACAS_TZ } from "@/lib/availability";
 
 export async function getConfirmedCountsByDate(
     psychologistId: string,
@@ -19,7 +20,7 @@ export async function getConfirmedCountsByDate(
     const counts: Record<string, number> = {};
     for (const a of appointments) {
         const dateStr = format(
-            new TZDate(a.dateTime, "America/Bogota"),
+            new TZDate(a.dateTime, CARACAS_TZ),
             "yyyy-MM-dd",
         );
         counts[dateStr] = (counts[dateStr] ?? 0) + 1;

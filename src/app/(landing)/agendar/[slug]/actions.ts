@@ -18,7 +18,7 @@ import {
     subtractBusyPeriods,
     filterPastSlots,
     appointmentsToBusyPeriods,
-    toBogotaDate,
+    toCaracasDate,
     DAILY_CONFIRMED_APPOINTMENT_CAP,
 } from "@/lib/availability";
 import { getDay, addMinutes } from "date-fns";
@@ -74,7 +74,7 @@ export async function createAppointment(input: {
     // 4. Parse times
     const dateStr = data.dateTime.slice(0, 10);
     const timeStr = data.dateTime.slice(11, 16);
-    const dateTime = toBogotaDate(dateStr, timeStr);
+    const dateTime = toCaracasDate(dateStr, timeStr);
     const endTime = addMinutes(dateTime, psychologist.sessionDuration);
 
     // 5. Verify slot matches schedule
@@ -94,8 +94,8 @@ export async function createAppointment(input: {
     }
 
     // 5b. Daily confirmed appointment cap for this psychologist
-    const dayStart = toBogotaDate(dateStr, "00:00");
-    const dayEnd = toBogotaDate(dateStr, "23:59");
+    const dayStart = toCaracasDate(dateStr, "00:00");
+    const dayEnd = toCaracasDate(dateStr, "23:59");
     const confirmedCountByDate = await getConfirmedCountsByDate(
         psychologist.id,
         dayStart,

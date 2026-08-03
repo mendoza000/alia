@@ -20,7 +20,10 @@ export type DayAvailability = {
 
 export type MonthAvailability = Record<string, DayAvailability>;
 
-export const BOGOTA_TZ = "America/Bogota";
+// Reference timezone for interpreting a psychologist's Schedule
+// (startTime/endTime wall-clock strings) and for "today" cutoffs — the
+// psychologists and admin team operate out of Venezuela.
+export const CARACAS_TZ = "America/Caracas";
 
 function timeToMinutes(time: string): number {
     const [h, m] = time.split(":").map(Number);
@@ -74,22 +77,22 @@ export function filterPastSlots(
     dateStr: string,
     now: Date,
 ): TimeSlot[] {
-    const nowInBogota = new TZDate(now, BOGOTA_TZ);
-    const todayStr = format(nowInBogota, "yyyy-MM-dd");
+    const nowInCaracas = new TZDate(now, CARACAS_TZ);
+    const todayStr = format(nowInCaracas, "yyyy-MM-dd");
 
     if (dateStr !== todayStr) return slots;
 
-    const nowMinutes = nowInBogota.getHours() * 60 + nowInBogota.getMinutes();
+    const nowMinutes = nowInCaracas.getHours() * 60 + nowInCaracas.getMinutes();
     return slots.filter(slot => timeToMinutes(slot.start) > nowMinutes);
 }
 
 // TZDate's string constructor parses the naive string using the runtime's
 // system timezone (like `new Date(string)`) — it does NOT interpret it as
 // wall-clock time in the given zone. Only the numeric constructor does that.
-export function toBogotaDate(dateStr: string, time: string): TZDate {
+export function toCaracasDate(dateStr: string, time: string): TZDate {
     const [year, month, day] = dateStr.split("-").map(Number);
     const [hour, minute] = time.split(":").map(Number);
-    return new TZDate(year, month - 1, day, hour, minute, 0, BOGOTA_TZ);
+    return new TZDate(year, month - 1, day, hour, minute, 0, CARACAS_TZ);
 }
 
 export function subtractBusyPeriods(
@@ -100,8 +103,8 @@ export function subtractBusyPeriods(
     if (busyPeriods.length === 0) return slots;
 
     return slots.filter(slot => {
-        const slotStart = toBogotaDate(dateStr, slot.start);
-        const slotEnd = toBogotaDate(dateStr, slot.end);
+        const slotStart = toCaracasDate(dateStr, slot.start);
+        const slotEnd = toCaracasDate(dateStr, slot.end);
 
         return !busyPeriods.some(busy => {
             return slotStart < busy.end && slotEnd > busy.start;
@@ -119,14 +122,14 @@ export function computeMonthAvailability(
     sessionDuration: number,
     confirmedCountByDate: Record<string, number> = {},
 ): MonthAvailability {
-    const firstDay = new TZDate(year, month - 1, 1, BOGOTA_TZ);
+    const firstDay = new TZDate(year, month - 1, 1, CARACAS_TZ);
     const lastDay = endOfMonth(firstDay);
     const days = eachDayOfInterval({
         start: startOfMonth(firstDay),
         end: lastDay,
     });
 
-    const now = new TZDate(new Date(), BOGOTA_TZ);
+    const now = new TZDate(new Date(), CARACAS_TZ);
     const todayStart = startOfDay(now);
 
     const result: MonthAvailability = {};
