@@ -59,6 +59,7 @@ type BookingFlowProps = {
     initialMonth: number;
     preselectedDate: string | null;
     preselectedTime: string | null;
+    preselectedTimezone: string | null;
 };
 
 export function BookingFlow({
@@ -69,6 +70,7 @@ export function BookingFlow({
     initialMonth,
     preselectedDate,
     preselectedTime,
+    preselectedTimezone,
 }: BookingFlowProps) {
     const router = useRouter();
     const { data: session, isPending: isSessionPending } = useSession();
@@ -87,7 +89,7 @@ export function BookingFlow({
     // client-side right after mount.
     const [detectedTimezone, setDetectedTimezone] = useState(CARACAS_TZ);
     const [confirmedTimezone, setConfirmedTimezone] = useState<string | null>(
-        null,
+        preselectedTimezone,
     );
 
     useEffect(() => {
@@ -155,10 +157,15 @@ export function BookingFlow({
         confirmedTimezone,
     ]);
 
-    const callbackURL =
-        typeof window !== "undefined"
-            ? window.location.href
-            : `/agendar/${psychologist.slug}${selectedDate && selectedTime ? `?date=${selectedDate}&time=${selectedTime}` : ""}`;
+    const callbackURL = `/agendar/${psychologist.slug}${
+        selectedDate && selectedTime
+            ? `?date=${selectedDate}&time=${selectedTime}${
+                  confirmedTimezone
+                      ? `&tz=${encodeURIComponent(confirmedTimezone)}`
+                      : ""
+              }`
+            : ""
+    }`;
 
     return (
         <section className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-16 mt-10 lg:mt-20">

@@ -23,8 +23,17 @@ import { BookingFlow } from "./booking-flow";
 
 type Props = {
     params: Promise<{ slug: string }>;
-    searchParams: Promise<{ date?: string; time?: string }>;
+    searchParams: Promise<{ date?: string; time?: string; tz?: string }>;
 };
+
+function isValidTimezone(tz: string): boolean {
+    try {
+        new Intl.DateTimeFormat(undefined, { timeZone: tz });
+        return true;
+    } catch {
+        return false;
+    }
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug } = await params;
@@ -39,7 +48,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function BookingPage({ params, searchParams }: Props) {
     const { slug } = await params;
-    const { date, time } = await searchParams;
+    const { date, time, tz } = await searchParams;
 
     const psychologist = await getPsychologistBySlug(slug);
     if (!psychologist) notFound();
@@ -106,10 +115,11 @@ export default async function BookingPage({ params, searchParams }: Props) {
         confirmedCountByDate,
     );
 
-    // Validate preselected date/time
+    // Validate preselected date/time/timezone
     const preselectedDate =
         date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null;
     const preselectedTime = time && /^\d{2}:\d{2}$/.test(time) ? time : null;
+    const preselectedTimezone = tz && isValidTimezone(tz) ? tz : null;
 
     return (
         <BookingFlow
@@ -120,6 +130,7 @@ export default async function BookingPage({ params, searchParams }: Props) {
             initialMonth={month}
             preselectedDate={preselectedDate}
             preselectedTime={preselectedTime}
+            preselectedTimezone={preselectedTimezone}
         />
     );
 }
