@@ -21,6 +21,7 @@ export function formatCurrencyAmount(amount: number, currency: string): string {
   return new Intl.NumberFormat("es-CO", {
     style: "currency",
     currency,
+    currencyDisplay: "code",
     maximumFractionDigits: 0,
   }).format(amount);
 }
