@@ -55,6 +55,13 @@ export default async function BookingPage({ params, searchParams }: Props) {
                     <ActiveAppointmentNotice
                         psychologistName={activeAppointment.psychologist.name}
                         dateTime={activeAppointment.dateTime}
+                        patientTimezone={
+                            (
+                                activeAppointment.intakeForm?.data as {
+                                    timezone?: string;
+                                } | null
+                            )?.timezone
+                        }
                     />
                 </section>
             );

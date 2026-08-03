@@ -7,15 +7,20 @@ import { CalendarClockIcon } from "lucide-react";
 type ActiveAppointmentNoticeProps = {
     psychologistName: string;
     dateTime: Date;
+    patientTimezone?: string;
 };
 
 export function ActiveAppointmentNotice({
     psychologistName,
     dateTime,
+    patientTimezone,
 }: ActiveAppointmentNoticeProps) {
-    const dateTimeInBogota = new TZDate(dateTime, "America/Bogota");
+    const dateTimeInPatientTz = new TZDate(
+        dateTime,
+        patientTimezone ?? "America/Bogota",
+    );
     const formattedDate = format(
-        dateTimeInBogota,
+        dateTimeInPatientTz,
         "EEEE d 'de' MMMM, yyyy — HH:mm",
         { locale: es },
     );

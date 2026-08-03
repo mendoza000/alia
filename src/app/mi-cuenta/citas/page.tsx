@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { TZDate } from "@date-fns/tz";
 import { auth } from "@/lib/auth";
 import { getPatientAppointments } from "@/lib/queries/patient-appointments";
 import { Badge } from "@/components/ui/badge";
@@ -123,6 +124,14 @@ function AppointmentCard({
         variant: "outline" as const,
     };
 
+    const patientTimezone =
+        (appointment.intakeForm?.data as { timezone?: string } | null)
+            ?.timezone ?? "America/Bogota";
+    const dateTimeInPatientTz = new TZDate(
+        appointment.dateTime,
+        patientTimezone,
+    );
+
     return (
         <div className="flex items-center justify-between rounded-lg bg-card p-4 ring-1 ring-border/50">
             <div>
@@ -134,7 +143,7 @@ function AppointmentCard({
                 </Link>
                 <p className="mt-0.5 text-sm capitalize text-muted-foreground">
                     {format(
-                        appointment.dateTime,
+                        dateTimeInPatientTz,
                         "EEEE d 'de' MMMM, yyyy — HH:mm",
                         { locale: es },
                     )}
