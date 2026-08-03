@@ -19,7 +19,7 @@ interface AppointmentReminderEmailProps {
   formattedDate: string;
   duration: number;
   appointmentsUrl: string;
-  googleCalendarUrl: string;
+  calendarUrl: string;
   logoUrl: string;
   logoLightUrl: string;
   fontUrl: string;
@@ -31,7 +31,7 @@ export function AppointmentReminderEmail({
   formattedDate,
   duration,
   appointmentsUrl,
-  googleCalendarUrl,
+  calendarUrl,
   logoUrl,
   logoLightUrl,
   fontUrl,
@@ -92,8 +92,8 @@ export function AppointmentReminderEmail({
               <Button href={appointmentsUrl} style={primaryButton}>
                 Ver mis sesiones
               </Button>
-              <Button href={googleCalendarUrl} style={calendarButton}>
-                + Agregar a Google Calendar
+              <Button href={calendarUrl} style={calendarButton}>
+                + Agregar al calendario
               </Button>
             </Section>
           </Section>

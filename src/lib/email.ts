@@ -36,20 +36,8 @@ function formatAppointmentDate(date: Date): string {
   );
 }
 
-function buildGoogleCalendarUrl(
-  dateTime: Date,
-  endTime: Date,
-  psychologistName: string,
-): string {
-  const fmt = (d: Date) =>
-    d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
-  const params = new URLSearchParams({
-    action: "TEMPLATE",
-    text: `Sesión con ${psychologistName}`,
-    dates: `${fmt(dateTime)}/${fmt(endTime)}`,
-    details: "Sesión de psicología agendada a través de ALIA",
-  });
-  return `https://calendar.google.com/calendar/render?${params}`;
+function buildCalendarUrl(appointmentId: string): string {
+  return `${getBaseUrl()}/api/appointments/${appointmentId}/ics`;
 }
 
 async function getAppointmentData(appointmentId: string) {
@@ -92,7 +80,7 @@ export async function sendAppointmentConfirmation(
   const appointment = await getAppointmentData(appointmentId);
   if (!appointment) return;
 
-  const { psychologist, user, dateTime, endTime, intakeForm } = appointment;
+  const { psychologist, user, dateTime, intakeForm } = appointment;
   const html = await render(
     AppointmentConfirmationEmail({
       patientName: user.name ?? user.email,
@@ -101,11 +89,7 @@ export async function sendAppointmentConfirmation(
       patientLocalTime: formatPatientLocalTime(dateTime, intakeForm?.data),
       duration: psychologist.sessionDuration,
       appointmentsUrl: `${getBaseUrl()}/mi-cuenta/citas`,
-      googleCalendarUrl: buildGoogleCalendarUrl(
-        dateTime,
-        endTime,
-        psychologist.name,
-      ),
+      calendarUrl: buildCalendarUrl(appointmentId),
       logoUrl: LOGO_DARK_URL,
       logoLightUrl: LOGO_LIGHT_URL,
       fontUrl: getFontUrl(),
@@ -155,7 +139,7 @@ export async function sendAppointmentReminder(
   const appointment = await getAppointmentData(appointmentId);
   if (!appointment) return;
 
-  const { psychologist, user, dateTime, endTime } = appointment;
+  const { psychologist, user, dateTime } = appointment;
   const html = await render(
     AppointmentReminderEmail({
       patientName: user.name ?? user.email,
@@ -163,11 +147,7 @@ export async function sendAppointmentReminder(
       formattedDate: formatAppointmentDate(dateTime),
       duration: psychologist.sessionDuration,
       appointmentsUrl: `${getBaseUrl()}/mi-cuenta/citas`,
-      googleCalendarUrl: buildGoogleCalendarUrl(
-        dateTime,
-        endTime,
-        psychologist.name,
-      ),
+      calendarUrl: buildCalendarUrl(appointmentId),
       logoUrl: LOGO_DARK_URL,
       logoLightUrl: LOGO_LIGHT_URL,
       fontUrl: getFontUrl(),
@@ -241,7 +221,7 @@ export async function sendAppointmentRescheduled(
   const appointment = await getAppointmentData(appointmentId);
   if (!appointment) return;
 
-  const { psychologist, user, dateTime, endTime } = appointment;
+  const { psychologist, user, dateTime } = appointment;
   const html = await render(
     AppointmentRescheduledPatientEmail({
       patientName: user.name ?? user.email,
@@ -249,11 +229,7 @@ export async function sendAppointmentRescheduled(
       formattedDate: formatAppointmentDate(dateTime),
       duration: psychologist.sessionDuration,
       appointmentsUrl: `${getBaseUrl()}/mi-cuenta/citas`,
-      googleCalendarUrl: buildGoogleCalendarUrl(
-        dateTime,
-        endTime,
-        psychologist.name,
-      ),
+      calendarUrl: buildCalendarUrl(appointmentId),
       logoUrl: LOGO_DARK_URL,
       logoLightUrl: LOGO_LIGHT_URL,
       fontUrl: getFontUrl(),

@@ -18,8 +18,7 @@ const LOGO_DARK_URL  = `${SUPABASE_STORAGE}/logo-alia.png`;
 const LOGO_LIGHT_URL = `${SUPABASE_STORAGE}/logo-alia-text-white.png`;
 const FONT_URL = `${BASE_URL}/fonts/Robecha%20Daniera-Regular.ttf`;
 
-const GCAL_URL =
-  "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Consulta+con+Dra.+Laura+Mart%C3%ADnez&dates=20250422T150000Z%2F20250422T160000Z&details=Sesi%C3%B3n+de+psicolog%C3%ADa+agendada+a+trav%C3%A9s+de+ALIA";
+const CALENDAR_URL = `${BASE_URL}/api/appointments/test-id/ics`;
 
 const DATA = {
   patientName:       "Ana García",
@@ -55,7 +54,7 @@ async function main() {
       formattedDate:    DATA.formattedDate,
       duration:         DATA.duration,
       appointmentsUrl:  DATA.appointmentsUrl,
-      googleCalendarUrl: GCAL_URL,
+      calendarUrl: CALENDAR_URL,
       logoUrl:          LOGO_DARK_URL,
       logoLightUrl:     LOGO_LIGHT_URL,
       fontUrl:          FONT_URL,
@@ -87,7 +86,7 @@ async function main() {
       formattedDate:    DATA.formattedDate,
       duration:         DATA.duration,
       appointmentsUrl:  DATA.appointmentsUrl,
-      googleCalendarUrl: GCAL_URL,
+      calendarUrl: CALENDAR_URL,
       logoUrl:          LOGO_DARK_URL,
       logoLightUrl:     LOGO_LIGHT_URL,
       fontUrl:          FONT_URL,
@@ -130,7 +129,7 @@ async function main() {
       formattedDate:    DATA.formattedDateNew,
       duration:         DATA.duration,
       appointmentsUrl:  DATA.appointmentsUrl,
-      googleCalendarUrl: GCAL_URL,
+      calendarUrl: CALENDAR_URL,
       logoUrl:          LOGO_DARK_URL,
       logoLightUrl:     LOGO_LIGHT_URL,
       fontUrl:          FONT_URL,

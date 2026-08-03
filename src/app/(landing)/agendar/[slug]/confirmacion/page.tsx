@@ -21,25 +21,6 @@ type Props = {
     searchParams: Promise<{ appointmentId?: string }>;
 };
 
-function buildGoogleCalendarUrl(
-    dateTime: Date,
-    sessionDuration: number,
-    psychologistName: string,
-): string {
-    const end = new Date(dateTime.getTime() + sessionDuration * 60 * 1000);
-    const fmt = (d: Date) =>
-        d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
-
-    const params = new URLSearchParams({
-        action: "TEMPLATE",
-        text: `Sesión ALIA — ${psychologistName}`,
-        dates: `${fmt(dateTime)}/${fmt(end)}`,
-        details: `Sesión de acompañamiento con ${psychologistName} a través de ALIA`,
-    });
-
-    return `https://calendar.google.com/calendar/render?${params.toString()}`;
-}
-
 export default async function ConfirmationPage({
     params,
     searchParams,
@@ -123,17 +104,11 @@ export default async function ConfirmationPage({
                     pago de la sesión se coordina después de la sesión.
                 </p>
                 <a
-                    href={buildGoogleCalendarUrl(
-                        appointment.dateTime,
-                        appointment.psychologist.sessionDuration,
-                        appointment.psychologist.name,
-                    )}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href={`/api/appointments/${appointment.id}/ics`}
                     className="mt-4 inline-flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-secondary"
                 >
                     <CalendarPlusIcon className="size-4" />
-                    Agregar a Google Calendar
+                    Agregar al calendario
                 </a>
             </div>
         </section>
