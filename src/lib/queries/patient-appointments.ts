@@ -20,7 +20,7 @@ export async function getActivePatientAppointment(userId: string) {
         where: {
             userId,
             OR: [
-                { status: "CONFIRMED" },
+                { status: "CONFIRMED", endTime: { gt: now } },
                 {
                     status: "PENDING_FORM",
                     OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],

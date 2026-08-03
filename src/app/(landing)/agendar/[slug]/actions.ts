@@ -180,7 +180,7 @@ export async function createAppointment(input: {
                 where: {
                     userId: session.user.id,
                     OR: [
-                        { status: "CONFIRMED" },
+                        { status: "CONFIRMED", endTime: { gt: now } },
                         {
                             status: "PENDING_FORM",
                             OR: [
