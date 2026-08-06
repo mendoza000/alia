@@ -1,5 +1,6 @@
 import { AnalyticsScripts } from "@/components/analytics/analytics-scripts";
 import { RouteTracker } from "@/components/analytics/route-tracker";
+import { CookieConsentBanner } from "@/components/consent/cookie-consent-banner";
 import { Footer } from "@/components/landing/footer";
 import { Header } from "@/components/landing/header";
 import { WhatsAppButton } from "@/components/landing/whatsapp-button";
@@ -26,6 +27,7 @@ export default async function LandingLayout({
             <Footer settings={settings} />
             <WhatsAppButton whatsappNumber={settings.whatsappNumber} />
             <Toaster position="top-right" richColors />
+            <CookieConsentBanner initialConsent={initialConsent} />
         </div>
     );
 }

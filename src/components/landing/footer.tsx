@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { Separator } from "@/components/ui/separator";
 import type { SiteSettings } from "@/lib/admin/site-settings-queries";
+import { ManageCookiesTrigger } from "./manage-cookies-trigger";
 
 const quickLinks = [
     { label: "Inicio", href: "/" },
@@ -121,6 +122,7 @@ export function Footer({ settings }: { settings: SiteSettings }) {
                                 {link.label}
                             </Link>
                         ))}
+                        <ManageCookiesTrigger className="hover:opacity-100" />
                     </div>
                 </div>
             </div>
