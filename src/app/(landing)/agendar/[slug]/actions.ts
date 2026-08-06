@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
+import { CURRENT_TERMS_VERSION } from "@/lib/legal/terms";
 import { createAppointmentSchema } from "@/lib/validators/appointment";
 import {
     getBlockingAppointments,
@@ -31,6 +32,7 @@ export async function createAppointment(input: {
     psychologistId: string;
     dateTime: string;
     timezone?: string;
+    termsVersion: string;
 }): Promise<CreateAppointmentResult> {
     // 1. Verify session
     const session = await auth.api.getSession({
@@ -52,13 +54,25 @@ export async function createAppointment(input: {
     }
 
     // 2. Validate input
-    let data: { psychologistId: string; dateTime: string; timezone: string };
+    let data: {
+        psychologistId: string;
+        dateTime: string;
+        timezone: string;
+        termsVersion: string;
+    };
     try {
         data = await createAppointmentSchema.validate(input, {
             stripUnknown: true,
         });
     } catch {
         return { success: false, error: "Datos inválidos" };
+    }
+
+    if (data.termsVersion !== CURRENT_TERMS_VERSION) {
+        return {
+            success: false,
+            error: "La versión de los Términos y Condiciones cambió. Por favor recarga la página e intenta de nuevo.",
+        };
     }
 
     // 3. Fetch psychologist
@@ -101,7 +115,9 @@ export async function createAppointment(input: {
         dayStart,
         dayEnd,
     );
-    if ((confirmedCountByDate[dateStr] ?? 0) >= DAILY_CONFIRMED_APPOINTMENT_CAP) {
+    if (
+        (confirmedCountByDate[dateStr] ?? 0) >= DAILY_CONFIRMED_APPOINTMENT_CAP
+    ) {
         return {
             success: false,
             error: "Este psicólogo ya alcanzó el máximo de sesiones para este día",
@@ -205,6 +221,8 @@ export async function createAppointment(input: {
                     status: "PENDING_FORM",
                     expiresAt: new Date(now.getTime() + 15 * 60 * 1000),
                     patientCountry,
+                    termsVersion: data.termsVersion,
+                    termsAcceptedAt: now,
                 },
             });
         });
@@ -238,10 +256,18 @@ export async function createAppointment(input: {
 
             await confirmAndNotifyAppointment(appointment.id);
 
-            return { success: true, appointmentId: appointment.id, skipForm: true };
+            return {
+                success: true,
+                appointmentId: appointment.id,
+                skipForm: true,
+            };
         }
 
-        return { success: true, appointmentId: appointment.id, skipForm: false };
+        return {
+            success: true,
+            appointmentId: appointment.id,
+            skipForm: false,
+        };
     } catch (error) {
         if (error instanceof Error && error.message === "SLOT_TAKEN") {
             return {

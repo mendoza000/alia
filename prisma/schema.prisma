@@ -118,20 +118,22 @@ model Schedule {
 }
 
 model Appointment {
-  id             String            @id @default(cuid())
-  userId         String
-  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  psychologistId String
-  psychologist   Psychologist      @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
-  dateTime       DateTime
-  endTime        DateTime
-  status         AppointmentStatus @default(PENDING_FORM)
-  expiresAt      DateTime?
-  googleEventId  String?
-  notes          String?           @db.Text
-  patientCountry String?
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  id              String            @id @default(cuid())
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  psychologistId  String
+  psychologist    Psychologist      @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
+  dateTime        DateTime
+  endTime         DateTime
+  status          AppointmentStatus @default(PENDING_FORM)
+  expiresAt       DateTime?
+  googleEventId   String?
+  notes           String?           @db.Text
+  patientCountry  String?
+  termsVersion    String?
+  termsAcceptedAt DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
   intakeForm IntakeForm?
   payment    Payment?

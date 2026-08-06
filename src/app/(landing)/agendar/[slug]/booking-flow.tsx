@@ -32,6 +32,7 @@ import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { EmailSignInForm } from "@/components/auth/email-sign-in-form";
 import { useSession, signOut } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
     Select,
     SelectContent,
@@ -40,6 +41,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { BookingStepper } from "@/components/booking/booking-stepper";
+import { CURRENT_TERMS_VERSION } from "@/lib/legal/terms";
 import { createAppointment } from "./actions";
 
 function getInitials(name: string) {
@@ -82,6 +84,7 @@ export function BookingFlow({
         preselectedTime,
     );
     const [isCreating, startCreating] = useTransition();
+    const [termsAccepted, setTermsAccepted] = useState(false);
     // Starts at CARACAS_TZ so server and client render the same markup on
     // first paint — Intl.DateTimeFormat().resolvedOptions().timeZone reads
     // the server's own timezone during SSR, not the browser's, which would
@@ -117,13 +120,14 @@ export function BookingFlow({
     }, []);
 
     const handleCreateAppointment = useCallback(() => {
-        if (!selectedDate || !selectedTime) return;
+        if (!selectedDate || !selectedTime || !termsAccepted) return;
 
         startCreating(async () => {
             const result = await createAppointment({
                 psychologistId: psychologist.id,
                 dateTime: `${selectedDate}T${selectedTime}`,
                 timezone: confirmedTimezone ?? CARACAS_TZ,
+                termsVersion: CURRENT_TERMS_VERSION,
             });
 
             if (!result.success) {
@@ -149,6 +153,7 @@ export function BookingFlow({
     }, [
         selectedDate,
         selectedTime,
+        termsAccepted,
         psychologist.id,
         psychologist.slug,
         globalRate,
@@ -251,6 +256,8 @@ export function BookingFlow({
                             patientTimezone={confirmedTimezone!}
                             session={session!}
                             isCreating={isCreating}
+                            termsAccepted={termsAccepted}
+                            onTermsAcceptedChange={setTermsAccepted}
                             onChangeSlot={handleChangeSlot}
                             onConfirm={handleCreateAppointment}
                         />
@@ -346,8 +353,8 @@ function AuthStep({
                 </div>
 
                 <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
-                    <div className="h-px flex-1 bg-border" />
-                    o continúa con correo
+                    <div className="h-px flex-1 bg-border" />o continúa con
+                    correo
                     <div className="h-px flex-1 bg-border" />
                 </div>
 
@@ -464,6 +471,8 @@ function SummaryStep({
     patientTimezone,
     session,
     isCreating,
+    termsAccepted,
+    onTermsAcceptedChange,
     onChangeSlot,
     onConfirm,
 }: {
@@ -481,6 +490,8 @@ function SummaryStep({
         };
     };
     isCreating: boolean;
+    termsAccepted: boolean;
+    onTermsAcceptedChange: (accepted: boolean) => void;
     onChangeSlot: () => void;
     onConfirm: () => void;
 }) {
@@ -586,11 +597,38 @@ function SummaryStep({
                     </button>
                 </div>
 
+                {/* Terms acceptance */}
+                <div className="mt-5 flex items-start gap-2 border-t border-border pt-5">
+                    <Checkbox
+                        id="terms-accepted"
+                        checked={termsAccepted}
+                        onCheckedChange={checked =>
+                            onTermsAcceptedChange(checked === true)
+                        }
+                    />
+                    <label
+                        htmlFor="terms-accepted"
+                        className="text-sm text-muted-foreground"
+                    >
+                        Acepto los{" "}
+                        <Link
+                            href="/terminos"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-medium underline"
+                        >
+                            Términos y Condiciones
+                        </Link>{" "}
+                        (versión {CURRENT_TERMS_VERSION}) de ALIA.
+                    </label>
+                </div>
+
                 {/* Actions */}
                 <div className="mt-6 space-y-2">
                     <Button
                         onClick={onConfirm}
                         isLoading={isCreating}
+                        disabled={!termsAccepted}
                         className="w-full bg-accent text-accent-foreground hover:bg-accent/80"
                         size="lg"
                     >
