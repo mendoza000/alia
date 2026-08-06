@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { ConsentModeScript } from "@/components/analytics/consent-mode-script";
+import { getConsentFromCookies } from "@/lib/consent/server";
 import { siteConfig } from "@/lib/seo";
 import "./globals.css";
 
@@ -26,14 +28,17 @@ export const metadata: Metadata = {
     },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
     children,
 }: Readonly<{
     children: React.ReactNode;
 }>) {
+    const initialConsent = await getConsentFromCookies();
+
     return (
         <html lang="es" className={robechaDaniera.variable}>
             <body className="antialiased">
+                <ConsentModeScript initialConsent={initialConsent} />
                 {children}
             </body>
         </html>
