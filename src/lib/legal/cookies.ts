@@ -1,0 +1,1 @@
+export const CURRENT_COOKIES_POLICY_VERSION = "1.0";
