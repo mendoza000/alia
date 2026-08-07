@@ -164,7 +164,9 @@ export function BookingFlow({
 
     const callbackURL = `/agendar/${psychologist.slug}${
         selectedDate && selectedTime
-            ? `?date=${selectedDate}&time=${selectedTime}${
+            ? `?date=${encodeURIComponent(selectedDate)}&time=${encodeURIComponent(
+                  selectedTime
+              )}${
                   confirmedTimezone
                       ? `&tz=${encodeURIComponent(confirmedTimezone)}`
                       : ""
