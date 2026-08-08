@@ -25,7 +25,10 @@ export default async function LandingLayout({
             <Header />
             <main className="flex-1">{children}</main>
             <Footer settings={settings} />
-            <WhatsAppButton whatsappNumber={settings.whatsappNumber} />
+            <WhatsAppButton
+                whatsappNumber={settings.whatsappNumber}
+                initialConsent={initialConsent}
+            />
             <Toaster position="top-right" richColors />
             <CookieConsentBanner initialConsent={initialConsent} />
         </div>

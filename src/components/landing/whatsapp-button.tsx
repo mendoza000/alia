@@ -2,16 +2,23 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import { CONSENT_UPDATED_EVENT } from "@/lib/consent/consent-store";
+import type { ConsentRecord } from "@/lib/consent/types";
 
 const BUBBLE_SHOW_DELAY_MS = 800;
 const BUBBLE_VISIBLE_MS = 6000;
 
 export function WhatsAppButton({
     whatsappNumber,
+    initialConsent,
 }: {
     whatsappNumber: string | null;
+    initialConsent: ConsentRecord | null;
 }) {
     const [showBubble, setShowBubble] = useState(false);
+    const [hiddenByBanner, setHiddenByBanner] = useState(
+        initialConsent === null,
+    );
 
     useEffect(() => {
         if (!whatsappNumber) return;
@@ -29,10 +36,26 @@ export function WhatsAppButton({
         };
     }, [whatsappNumber]);
 
+    useEffect(() => {
+        function onConsentUpdated() {
+            setHiddenByBanner(false);
+        }
+
+        window.addEventListener(CONSENT_UPDATED_EVENT, onConsentUpdated);
+        return () =>
+            window.removeEventListener(CONSENT_UPDATED_EVENT, onConsentUpdated);
+    }, []);
+
     if (!whatsappNumber) return null;
 
     return (
-        <div className="fixed right-5 bottom-5 z-50 flex flex-col items-end gap-2 sm:right-6 sm:bottom-6">
+        <div
+            className={`fixed right-5 bottom-5 z-30 flex flex-col items-end gap-2 sm:right-6 sm:bottom-6 ${
+                hiddenByBanner ? "invisible" : ""
+            }`}
+            aria-hidden={hiddenByBanner}
+        >
+
             <AnimatePresence>
                 {showBubble && (
                     <motion.div
