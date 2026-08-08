@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import {
-  intakeFormSchema,
+  intakeFormAdminUpdateSchema,
   type IntakeFormData,
 } from "@/lib/validators/intake-form";
 
@@ -11,7 +11,7 @@ export async function updateIntakeForm(
   appointmentId: string,
   data: IntakeFormData,
 ) {
-  const validated = await intakeFormSchema.validate(data, {
+  const validated = await intakeFormAdminUpdateSchema.validate(data, {
     abortEarly: false,
   });
 

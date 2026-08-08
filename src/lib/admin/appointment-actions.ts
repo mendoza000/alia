@@ -27,7 +27,7 @@ export async function completeAppointment(appointmentId: string): Promise<Action
 
   await prisma.appointment.update({
     where: { id: appointmentId },
-    data: { status: "COMPLETED" },
+    data: { status: "COMPLETED", finalizedAt: new Date() },
   });
 
   revalidatePath("/admin/citas", "layout");
@@ -47,7 +47,7 @@ export async function markNoShow(appointmentId: string): Promise<ActionResult> {
 
   await prisma.appointment.update({
     where: { id: appointmentId },
-    data: { status: "NO_SHOW" },
+    data: { status: "NO_SHOW", finalizedAt: new Date() },
   });
 
   revalidatePath("/admin/citas", "layout");

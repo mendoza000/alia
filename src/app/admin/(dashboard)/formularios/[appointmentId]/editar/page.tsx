@@ -23,6 +23,7 @@ export default async function EditarFormularioPage({ params }: Props) {
   if (!appointment?.intakeForm) notFound();
 
   const formData = appointment.intakeForm.data as unknown as IntakeFormData;
+  const isRedacted = appointment.intakeForm.clinicalDataRedactedAt !== null;
 
   return (
     <div className="max-w-3xl">
@@ -36,7 +37,16 @@ export default async function EditarFormularioPage({ params }: Props) {
       <h1 className="mb-6 font-heading text-2xl font-semibold">
         Editar formulario de {appointment.user.name}
       </h1>
-      <EditIntakeForm appointmentId={appointmentId} data={formData} />
+      {isRedacted ? (
+        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Los datos clínicos sensibles de este formulario (medicación,
+          atención previa y demás campos de salud) fueron eliminados
+          automáticamente por la política de retención de datos y ya no
+          pueden editarse.
+        </div>
+      ) : (
+        <EditIntakeForm appointmentId={appointmentId} data={formData} />
+      )}
     </div>
   );
 }

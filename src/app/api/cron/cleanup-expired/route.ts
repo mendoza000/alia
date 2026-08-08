@@ -12,7 +12,7 @@ export async function GET(request: Request) {
             status: "PENDING_FORM",
             expiresAt: { lt: new Date() },
         },
-        data: { status: "CANCELLED" },
+        data: { status: "CANCELLED", finalizedAt: new Date() },
     });
 
     return NextResponse.json({

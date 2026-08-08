@@ -132,6 +132,7 @@ model Appointment {
   patientCountry  String?
   termsVersion    String?
   termsAcceptedAt DateTime?
+  finalizedAt     DateTime?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
@@ -141,6 +142,7 @@ model Appointment {
   @@index([userId])
   @@index([psychologistId])
   @@index([dateTime])
+  @@index([status, finalizedAt])
   @@map("appointment")
 }
 
@@ -153,14 +155,17 @@ enum AppointmentStatus {
 }
 
 model IntakeForm {
-  id            String      @id @default(cuid())
-  appointmentId String      @unique
-  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-  userId        String
-  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  data          Json
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id                             String      @id @default(cuid())
+  appointmentId                  String      @unique
+  appointment                    Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  userId                         String
+  user                           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  data                           Json
+  clinicalDataConsentVersion     String?
+  clinicalDataConsentAcceptedAt  DateTime?
+  clinicalDataRedactedAt         DateTime?
+  createdAt                      DateTime    @default(now())
+  updatedAt                      DateTime    @updatedAt
 
   @@index([userId])
   @@map("intake_form")

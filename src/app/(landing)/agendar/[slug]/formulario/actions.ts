@@ -9,6 +9,7 @@ import {
     type IntakeFormData,
 } from "@/lib/validators/intake-form";
 import { confirmAndNotifyAppointment } from "@/lib/appointments/confirm-and-notify";
+import { CURRENT_CLINICAL_CONSENT_VERSION } from "@/lib/legal/clinical-consent";
 
 type SubmitResult = { success: true } | { success: false; error: string };
 
@@ -76,6 +77,8 @@ export async function submitIntakeForm(input: {
                 appointmentId: input.appointmentId,
                 userId: session.user.id,
                 data: validatedData as Prisma.InputJsonValue,
+                clinicalDataConsentVersion: CURRENT_CLINICAL_CONSENT_VERSION,
+                clinicalDataConsentAcceptedAt: new Date(),
             },
         }),
         prisma.appointment.update({

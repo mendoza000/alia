@@ -15,6 +15,7 @@ type IntakeFormDetailProps = {
   appointmentDate: Date;
   submittedAt: Date;
   data: IntakeFormData;
+  clinicalDataRedactedAt: Date | null;
 };
 
 function Section({
@@ -60,6 +61,7 @@ export function IntakeFormDetail({
   appointmentDate,
   submittedAt,
   data,
+  clinicalDataRedactedAt,
 }: IntakeFormDetailProps) {
   return (
     <div className="space-y-6">
@@ -122,6 +124,16 @@ export function IntakeFormDetail({
       </div>
 
       <Separator />
+
+      {clinicalDataRedactedAt && (
+        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Los datos clínicos sensibles (medicación, atención previa y demás
+          campos de salud) de este formulario fueron eliminados
+          automáticamente el{" "}
+          {format(clinicalDataRedactedAt, "d MMM yyyy, HH:mm", { locale: es })}{" "}
+          por la política de retención de datos.
+        </div>
+      )}
 
       {/* Form data */}
       <div className="space-y-8">

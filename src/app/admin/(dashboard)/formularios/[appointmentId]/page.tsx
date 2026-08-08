@@ -33,6 +33,7 @@ export default async function FormularioDetailPage({ params }: Props) {
         appointmentDate={appointment.dateTime}
         submittedAt={appointment.intakeForm.createdAt}
         data={formData}
+        clinicalDataRedactedAt={appointment.intakeForm.clinicalDataRedactedAt}
       />
     </div>
   );

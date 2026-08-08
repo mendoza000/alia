@@ -6,7 +6,7 @@ import { useForm, FormProvider } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { toast } from "sonner";
 import {
-  intakeFormSchema,
+  intakeFormAdminUpdateSchema,
   type IntakeFormData,
 } from "@/lib/validators/intake-form";
 import {
@@ -32,7 +32,7 @@ export function EditIntakeForm({
 
   const methods = useForm<IntakeFormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: yupResolver(intakeFormSchema) as any,
+    resolver: yupResolver(intakeFormAdminUpdateSchema) as any,
     defaultValues: data,
   });
 

@@ -12,7 +12,7 @@ export async function GET(request: Request) {
             status: "CONFIRMED",
             endTime: { lt: new Date() },
         },
-        data: { status: "COMPLETED" },
+        data: { status: "COMPLETED", finalizedAt: new Date() },
     });
 
     return NextResponse.json({

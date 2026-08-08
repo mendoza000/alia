@@ -25,7 +25,7 @@ export async function cancelAppointmentCore(
 
   await prisma.appointment.update({
     where: { id: appointmentId },
-    data: { status: "CANCELLED" },
+    data: { status: "CANCELLED", finalizedAt: new Date() },
   });
 
   if (

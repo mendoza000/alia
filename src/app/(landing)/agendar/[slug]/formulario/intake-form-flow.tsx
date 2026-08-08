@@ -7,6 +7,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { AnimatePresence, motion } from "motion/react";
 import { toast } from "sonner";
 import { ease } from "@/lib/motion";
+import { CLINICAL_CONSENT_TEXT } from "@/lib/legal/clinical-consent";
 import {
     intakeFormSchema,
     type IntakeFormData,
@@ -50,6 +51,7 @@ const SECTIONS = [
             "previousTherapyDetails",
             "currentMedication",
             "currentMedicationDetails",
+            "clinicalDataConsent",
         ],
     },
     { title: "Historial médico", fields: ["medicalHistory"] },
@@ -138,6 +140,7 @@ export function IntakeFormFlow({
             previousTherapyDetails: str(priorData?.previousTherapyDetails),
             currentMedication: str(priorData?.currentMedication),
             currentMedicationDetails: str(priorData?.currentMedicationDetails),
+            clinicalDataConsent: false,
             medicalHistory: str(priorData?.medicalHistory),
             livingWith: str(priorData?.livingWith),
             emergencyContact: str(priorData?.emergencyContact),
@@ -460,6 +463,10 @@ function MentalHealthSection({
                     />
                 </motion.div>
             )}
+            <FormCheckbox
+                name="clinicalDataConsent"
+                label={CLINICAL_CONSENT_TEXT}
+            />
         </div>
     );
 }

@@ -44,6 +44,13 @@ export const intakeFormSchema = yup.object({
             schema.required("Indica qué medicación tomas actualmente"),
         otherwise: schema => schema.default(""),
     }),
+    clinicalDataConsent: yup
+        .boolean()
+        .oneOf(
+            [true],
+            "Debes autorizar el tratamiento de tus datos clínicos para continuar",
+        )
+        .required(),
 
     // Section 4: Historial médico
     medicalHistory: yup.string().default(""),
@@ -68,6 +75,15 @@ export const intakeFormSchema = yup.object({
         .required(),
 });
 
+// Used only when an admin edits an existing intake form. `clinicalDataConsent`
+// is relaxed here (no forced `true`) because forms submitted before this
+// field existed don't have it — the real compliance record lives in
+// IntakeForm.clinicalDataConsentVersion/clinicalDataConsentAcceptedAt, not
+// this JSON boolean.
+export const intakeFormAdminUpdateSchema = intakeFormSchema.shape({
+    clinicalDataConsent: yup.boolean().default(false),
+});
+
 export type IntakeFormData = {
     fullName: string;
     email: string;
@@ -83,6 +99,7 @@ export type IntakeFormData = {
     previousTherapyDetails: string;
     currentMedication: string;
     currentMedicationDetails: string;
+    clinicalDataConsent: boolean;
     medicalHistory: string;
     livingWith: string;
     emergencyContact: string;
