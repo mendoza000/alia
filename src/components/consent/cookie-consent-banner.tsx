@@ -79,7 +79,7 @@ export function CookieConsentBanner({
                             <p className="mt-1 text-sm text-muted-foreground">
                                 Usamos cookies necesarias para el funcionamiento
                                 del sitio y, con tu permiso, cookies de
-                                analítica y marketing. Podés revisar los
+                                analítica y marketing. Puedes revisar los
                                 detalles en nuestra{" "}
                                 <a
                                     href="/cookies"

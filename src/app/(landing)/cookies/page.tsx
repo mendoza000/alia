@@ -207,7 +207,7 @@ export default function CookiesPage() {
                 Al acceder por primera vez a aliabienestar.com, se despliega un
                 banner informativo que permite al Usuario aceptar, rechazar o
                 personalizar la instalación de cookies analíticas y de
-                publicidad. Podés cambiar tu decisión en cualquier momento desde
+                publicidad. Puedes cambiar tu decisión en cualquier momento desde
                 acá:
             </p>
             <ManageCookiesTrigger className="font-medium text-foreground" />
@@ -233,12 +233,12 @@ export default function CookiesPage() {
             <h3>C. Herramientas específicas de desactivación (opt-out)</h3>
             <ul>
                 <li>
-                    Google Analytics: podés inhabilitar el rastreo instalando el
+                    Google Analytics: puedes inhabilitar el rastreo instalando el
                     complemento de inhabilitación para navegadores de Google
                     Analytics.
                 </li>
                 <li>
-                    Publicidad de Google: podés gestionar la personalización de
+                    Publicidad de Google: puedes gestionar la personalización de
                     anuncios en{" "}
                     <a
                         href="https://adssettings.google.com"
