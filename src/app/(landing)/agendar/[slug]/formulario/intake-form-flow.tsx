@@ -538,8 +538,8 @@ function ConsentSection() {
                 name="informedConsent"
                 label={
                     <>
-                        Acepto que la información proporcionada es verídica y
-                        he leído y acepto el{" "}
+                        Acepto que la información proporcionada es verídica y he
+                        leído y acepto el{" "}
                         <a
                             href="/consentimiento-informado"
                             target="_blank"
@@ -554,7 +554,20 @@ function ConsentSection() {
             />
             <FormCheckbox
                 name="privacyPolicy"
-                label="He leído y acepto la Política de Privacidad."
+                label={
+                    <>
+                        He leído y acepto la{" "}
+                        <a
+                            href="/privacidad"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-medium underline"
+                        >
+                            Política de Privacidad
+                        </a>
+                        .
+                    </>
+                }
             />
         </div>
     );
