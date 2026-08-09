@@ -9,11 +9,11 @@ import { siteConfig } from "@/lib/seo";
 export const metadata: Metadata = {
     title: "Agenda tu sesión con un psicólogo",
     description:
-        "Encuentra psicólogos profesionales en Colombia. Agenda tu sesión en línea, completa tu formulario y paga de forma segura.",
+        "Encuentra psicólogos profesionales. Agenda tu sesión en línea y completa tu formulario de admisión.",
     openGraph: {
         title: "ALIA — Tu psicólogo Aliado",
         description:
-            "Encuentra psicólogos profesionales en Colombia. Agenda tu sesión en línea.",
+            "Encuentra psicólogos profesionales. Agenda tu sesión en línea.",
     },
 };
 
@@ -27,10 +27,6 @@ export default async function HomePage() {
                     name: siteConfig.name,
                     description: siteConfig.description,
                     url: siteConfig.url,
-                    address: {
-                        "@type": "PostalAddress",
-                        addressCountry: "CO",
-                    },
                     priceRange: "$$",
                 }}
             />
