@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 import { CURRENT_TERMS_VERSION } from "@/lib/legal/terms";
+import { CURRENT_CLINICAL_CONSENT_VERSION } from "@/lib/legal/clinical-consent";
 import { createAppointmentSchema } from "@/lib/validators/appointment";
 import {
     getBlockingAppointments,
@@ -246,6 +247,9 @@ export async function createAppointment(input: {
                         appointmentId: appointment.id,
                         userId: session.user.id,
                         data: carriedOverData as Prisma.InputJsonValue,
+                        clinicalDataConsentVersion:
+                            CURRENT_CLINICAL_CONSENT_VERSION,
+                        clinicalDataConsentAcceptedAt: new Date(),
                     },
                 }),
                 prisma.appointment.update({
