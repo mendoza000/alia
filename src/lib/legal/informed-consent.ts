@@ -1,0 +1,1 @@
+export const CURRENT_INFORMED_CONSENT_VERSION = "1.0";
