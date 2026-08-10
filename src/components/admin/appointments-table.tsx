@@ -23,6 +23,7 @@ import { sendPaymentLinkEmail } from "@/lib/admin/payment-actions";
 import { formatCurrencyAmount } from "@/lib/currency";
 import type { AppointmentRow } from "@/lib/admin/appointment-queries";
 import { AppointmentStatusBadge } from "@/components/admin/appointment-status-badge";
+import { PaymentStatusBadge } from "@/components/admin/payment-status-badge";
 import { GeneratePaymentLinkDialog } from "@/components/admin/generate-payment-link-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -152,6 +153,13 @@ function AppointmentRow({
         </div>
       </TableCell>
       <TableCell>
+        {appointment.payment ? (
+          <PaymentStatusBadge status={appointment.payment.status} />
+        ) : (
+          <span className="text-sm text-muted-foreground">—</span>
+        )}
+      </TableCell>
+      <TableCell>
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
@@ -250,6 +258,7 @@ export function AppointmentsTable({
             <TableHead>Fecha / Hora</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead>Monto</TableHead>
+            <TableHead>Pago</TableHead>
             <TableHead className="w-10" />
           </TableRow>
         </TableHeader>
