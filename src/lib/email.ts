@@ -363,7 +363,7 @@ export async function sendSessionsReportEmail({
     attachments: [
       {
         filename: `reporte-sesiones-${dateFrom}-a-${dateTo}.pdf`,
-        content: pdfBuffer,
+        content: pdfBuffer.toString("base64"),
       },
     ],
   });
