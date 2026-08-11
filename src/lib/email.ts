@@ -10,6 +10,7 @@ import { AppointmentReminderEmail } from "../../emails/appointment-reminder";
 import { AppointmentRescheduledPatientEmail } from "../../emails/appointment-rescheduled-patient";
 import { NewAppointmentNotificationEmail } from "../../emails/new-appointment-notification";
 import { PaymentRequestEmail } from "../../emails/payment-request";
+import { SessionsReportEmail } from "../../emails/sessions-report";
 import { PasswordResetEmail } from "../../emails/password-reset";
 import { VerifyEmail } from "../../emails/verify-email";
 import { prisma } from "@/lib/db";
@@ -320,5 +321,50 @@ export async function sendPaymentRequestEmail(
     to: user.email,
     subject: `Enlace de pago — sesión con ${psychologist.name}`,
     html,
+  });
+}
+
+export async function sendSessionsReportEmail({
+  to,
+  psychologistName,
+  dateFrom,
+  dateTo,
+  pdfBuffer,
+}: {
+  to: string;
+  psychologistName: string;
+  dateFrom: string;
+  dateTo: string;
+  pdfBuffer: Buffer;
+}): Promise<void> {
+  const formattedFrom = format(new Date(`${dateFrom}T00:00:00`), "d 'de' MMMM 'de' yyyy", {
+    locale: es,
+  });
+  const formattedTo = format(new Date(`${dateTo}T00:00:00`), "d 'de' MMMM 'de' yyyy", {
+    locale: es,
+  });
+
+  const html = await render(
+    SessionsReportEmail({
+      psychologistName,
+      formattedFrom,
+      formattedTo,
+      logoUrl: LOGO_DARK_URL,
+      logoLightUrl: LOGO_LIGHT_URL,
+      fontUrl: getFontUrl(),
+    }),
+  );
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Reporte de sesiones — ${formattedFrom} a ${formattedTo}`,
+    html,
+    attachments: [
+      {
+        filename: `reporte-sesiones-${dateFrom}-a-${dateTo}.pdf`,
+        content: pdfBuffer,
+      },
+    ],
   });
 }

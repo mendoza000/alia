@@ -9,6 +9,7 @@ import { getAllRates } from "@/lib/admin/payment-rate-queries";
 import { AppointmentsTable } from "@/components/admin/appointments-table";
 import { AppointmentsFilters } from "@/components/admin/appointments-filters";
 import { NewManualAppointmentDialog } from "@/components/admin/new-manual-appointment-dialog";
+import { GenerateReportDialog } from "@/components/admin/generate-report-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type Props = {
@@ -51,7 +52,10 @@ export default async function CitasPage({ searchParams }: Props) {
             Gestiona todas las sesiones de la plataforma
           </p>
         </div>
-        <NewManualAppointmentDialog psychologists={psychologistOptions} />
+        <div className="flex items-center gap-2">
+          <GenerateReportDialog psychologists={psychologistOptions} />
+          <NewManualAppointmentDialog psychologists={psychologistOptions} />
+        </div>
       </div>
 
       <Suspense fallback={<Skeleton className="h-9 w-96" />}>
