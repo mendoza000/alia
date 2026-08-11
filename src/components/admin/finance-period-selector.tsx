@@ -29,7 +29,7 @@ export function FinancePeriodSelector({ value }: { value: FinancePeriod }) {
   }
 
   return (
-    <Select value={value} onValueChange={handleChange}>
+    <Select items={PERIOD_OPTIONS} value={value} onValueChange={handleChange}>
       <SelectTrigger className="h-9 w-52">
         <SelectValue />
       </SelectTrigger>

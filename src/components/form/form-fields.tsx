@@ -121,6 +121,7 @@ export function FormSelect({
                 name={name}
                 render={({ field }) => (
                     <Select
+                        items={options}
                         value={field.value ?? ""}
                         onValueChange={field.onChange}
                     >

@@ -430,6 +430,7 @@ function TimezoneConfirmStep({
 
                 <div className="mt-5 flex justify-center">
                     <Select
+                        items={options}
                         value={selected}
                         onValueChange={value => {
                             if (value) {

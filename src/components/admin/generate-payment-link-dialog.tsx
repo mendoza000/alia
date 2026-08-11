@@ -97,6 +97,7 @@ export function GeneratePaymentLinkDialog({
         </DialogHeader>
 
         <Select
+          items={availableCurrencies.map((c) => ({ value: c, label: c }))}
           value={currency}
           onValueChange={(value) => value && setCurrency(value)}
         >

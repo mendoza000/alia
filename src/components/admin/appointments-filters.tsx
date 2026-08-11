@@ -44,6 +44,7 @@ export function AppointmentsFilters({ psychologists }: AppointmentsFiltersProps)
   return (
     <div className="flex flex-wrap gap-3">
       <Select
+        items={STATUS_OPTIONS}
         value={searchParams.get("status") ?? "all"}
         onValueChange={(v) => updateParam("status", v ?? "all")}
       >
@@ -60,6 +61,10 @@ export function AppointmentsFilters({ psychologists }: AppointmentsFiltersProps)
       </Select>
 
       <Select
+        items={[
+          { value: "all", label: "Todos los psicólogos" },
+          ...psychologists.map((p) => ({ value: p.id, label: p.name })),
+        ]}
         value={searchParams.get("psychologistId") ?? "all"}
         onValueChange={(v) => updateParam("psychologistId", v ?? "all")}
       >

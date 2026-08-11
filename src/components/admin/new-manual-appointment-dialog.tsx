@@ -151,6 +151,7 @@ export function NewManualAppointmentDialog({
               rules={{ required: true }}
               render={({ field }) => (
                 <Select
+                  items={psychologists.map(p => ({ value: p.id, label: p.name }))}
                   value={field.value}
                   onValueChange={value => {
                     field.onChange(value);
