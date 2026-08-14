@@ -10,6 +10,7 @@ import { es } from "date-fns/locale";
 import { createManualAppointment } from "@/lib/admin/manual-booking-actions";
 import { getMonthAvailability } from "@/app/(landing)/psicologos/[slug]/actions";
 import type { MonthAvailability } from "@/lib/availability";
+import { TIMEZONE_OPTIONS } from "@/lib/timezones";
 import { AvailabilityCalendar } from "@/components/availability/availability-calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +40,7 @@ type FormValues = {
   patientEmail: string;
   date: string;
   time: string;
+  timezone: string;
   notes: string;
 };
 
@@ -73,6 +75,7 @@ export function NewManualAppointmentDialog({
       patientEmail: "",
       date: "",
       time: "",
+      timezone: "America/Bogota",
       notes: "",
     },
   });
@@ -99,6 +102,7 @@ export function NewManualAppointmentDialog({
       patientEmail: values.patientEmail,
       date: values.date,
       time: values.time,
+      timezone: values.timezone,
       notes: values.notes || undefined,
     });
     setIsSubmitting(false);
@@ -202,6 +206,37 @@ export function NewManualAppointmentDialog({
                 <p className="text-xs text-destructive">Obligatorio</p>
               )}
             </div>
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label>Zona horaria del paciente</Label>
+            <Controller
+              control={control}
+              name="timezone"
+              rules={{ required: true }}
+              render={({ field }) => (
+                <Select
+                  items={TIMEZONE_OPTIONS}
+                  value={field.value}
+                  onValueChange={field.onChange}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecciona una zona horaria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIMEZONE_OPTIONS.map(tz => (
+                      <SelectItem key={tz.value} value={tz.value}>
+                        {tz.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            <p className="text-xs text-muted-foreground">
+              Se usa para mostrarle al paciente la hora de su cita en el
+              correo de confirmación.
+            </p>
           </div>
 
           <input type="hidden" {...register("date", { required: true })} />

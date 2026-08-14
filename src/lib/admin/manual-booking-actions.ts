@@ -28,6 +28,7 @@ type ManualBookingInput = {
   patientName: string;
   date: string; // "YYYY-MM-DD"
   time: string; // "HH:mm"
+  timezone: string;
   notes?: string;
 };
 
@@ -159,6 +160,7 @@ export async function createManualAppointment(
       data: {
         fullName: input.patientName,
         email: input.patientEmail,
+        timezone: input.timezone,
         consultationReason:
           input.notes || "Cita agendada manualmente por el equipo de ALIA.",
       },
