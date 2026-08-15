@@ -2,6 +2,7 @@ export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 export const GOOGLE_ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID;
 export const GOOGLE_ADS_BOOKING_LABEL =
     process.env.NEXT_PUBLIC_GOOGLE_ADS_BOOKING_LABEL;
+export const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID;
 
 declare global {
     interface Window {
