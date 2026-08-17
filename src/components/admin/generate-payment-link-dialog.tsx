@@ -9,16 +9,6 @@ import {
   sendPaymentLinkEmail,
 } from "@/lib/admin/payment-actions";
 import { formatCurrencyAmount, suggestCurrencyFromCountry } from "@/lib/currency";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CopyLinkButton } from "@/components/ui/copy-link-button";
@@ -62,7 +52,7 @@ export function GeneratePaymentLinkDialog({
   const [url, setUrl] = useState<string | null>(null);
   const [useCustomAmount, setUseCustomAmount] = useState(false);
   const [customAmount, setCustomAmount] = useState("");
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
@@ -73,7 +63,7 @@ export function GeneratePaymentLinkDialog({
 
   function handleGenerateClick() {
     if (useCustomAmount) {
-      setConfirmOpen(true);
+      setConfirming(true);
       return;
     }
     handleGenerate();
@@ -86,6 +76,7 @@ export function GeneratePaymentLinkDialog({
         currency,
         parsedCustomAmount,
       );
+      setConfirming(false);
       if (result.success) {
         setUrl(result.url ?? null);
         toast.success("Link generado");
@@ -118,129 +109,125 @@ export function GeneratePaymentLinkDialog({
   }
 
   return (
-    <>
-      <Dialog
-        open={open}
-        onOpenChange={(v) => {
-          onOpenChange(v);
-          if (!v) {
-            setUrl(null);
-            setUseCustomAmount(false);
-            setCustomAmount("");
-          }
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-bold text-xl">Generar link de pago</DialogTitle>
-            <DialogDescription>
-              Elige la moneda en la que se le va a cobrar a la persona.
-            </DialogDescription>
-          </DialogHeader>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        onOpenChange(v);
+        if (!v) {
+          setUrl(null);
+          setUseCustomAmount(false);
+          setCustomAmount("");
+          setConfirming(false);
+        }
+      }}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="font-bold text-xl">Generar link de pago</DialogTitle>
+          <DialogDescription>
+            {confirming
+              ? "Verifica el monto antes de generar el link."
+              : "Elige la moneda en la que se le va a cobrar a la persona."}
+          </DialogDescription>
+        </DialogHeader>
 
-          <Select
-            items={availableCurrencies.map((c) => ({ value: c, label: c }))}
-            value={currency}
-            onValueChange={(value) => value && setCurrency(value)}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Selecciona una moneda" />
-            </SelectTrigger>
-            <SelectContent>
-              {availableCurrencies.map((c) => (
-                <SelectItem key={c} value={c}>
-                  {c}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="custom-amount"
-                checked={useCustomAmount}
-                onCheckedChange={(checked) => setUseCustomAmount(checked === true)}
-                disabled={!!url}
-              />
-              <Label htmlFor="custom-amount" className="font-normal">
-                Establecer un monto personalizado
-              </Label>
-            </div>
-
-            {useCustomAmount && (
-              <Input
-                type="number"
-                min={1}
-                placeholder="Monto en la moneda seleccionada"
-                value={customAmount}
-                onChange={(e) => setCustomAmount(e.target.value)}
-                disabled={!!url}
-              />
-            )}
+        {confirming && parsedCustomAmount ? (
+          <div className="rounded-lg border border-border bg-muted/40 px-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              Vas a generar un link de pago en <strong>{currency}</strong> por{" "}
+              <strong>{formatCurrencyAmount(parsedCustomAmount, currency)}</strong>.
+            </p>
           </div>
-
-          {url && (
-            <div className="min-w-0 space-y-2">
-              <div className="min-w-0 rounded-lg border border-border bg-muted/40 px-3 py-2">
-                <p className="truncate text-sm text-muted-foreground">{url}</p>
-              </div>
-              <CopyLinkButton
-                text={url}
-                label="Copiar link de pago"
-                showLabel
-                variant="outline"
-                size="default"
-                className="w-full"
-              />
-            </div>
-          )}
-
-          <DialogFooter>
-            {!url ? (
-              <Button
-                onClick={handleGenerateClick}
-                isLoading={isPending}
-                disabled={isCustomAmountInvalid}
-              >
-                <CreditCard />
-                Generar
-              </Button>
-            ) : (
-              <Button onClick={handleSendEmail} isLoading={isPending}>
-                <Mail />
-                Enviar por correo
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Generar link con monto personalizado?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {parsedCustomAmount &&
-                `Estás a punto de generar un link de pago en ${currency} por ${formatCurrencyAmount(
-                  parsedCustomAmount,
-                  currency,
-                )}. Verifica que el monto sea correcto antes de continuar.`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                setConfirmOpen(false);
-                handleGenerate();
-              }}
+        ) : (
+          <>
+            <Select
+              items={availableCurrencies.map((c) => ({ value: c, label: c }))}
+              value={currency}
+              onValueChange={(value) => value && setCurrency(value)}
             >
-              Sí, generar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecciona una moneda" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableCurrencies.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="custom-amount"
+                  checked={useCustomAmount}
+                  onCheckedChange={(checked) => setUseCustomAmount(checked === true)}
+                  disabled={!!url}
+                />
+                <Label htmlFor="custom-amount" className="font-normal">
+                  Establecer un monto personalizado
+                </Label>
+              </div>
+
+              {useCustomAmount && (
+                <Input
+                  type="number"
+                  min={1}
+                  placeholder="Monto en la moneda seleccionada"
+                  value={customAmount}
+                  onChange={(e) => setCustomAmount(e.target.value)}
+                  disabled={!!url}
+                />
+              )}
+            </div>
+          </>
+        )}
+
+        {url && (
+          <div className="min-w-0 space-y-2">
+            <div className="min-w-0 rounded-lg border border-border bg-muted/40 px-3 py-2">
+              <p className="truncate text-sm text-muted-foreground">{url}</p>
+            </div>
+            <CopyLinkButton
+              text={url}
+              label="Copiar link de pago"
+              showLabel
+              variant="outline"
+              size="default"
+              className="w-full"
+            />
+          </div>
+        )}
+
+        <DialogFooter>
+          {confirming ? (
+            <>
+              <Button variant="outline" onClick={() => setConfirming(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleGenerate} isLoading={isPending}>
+                <CreditCard />
+                Sí, generar
+              </Button>
+            </>
+          ) : !url ? (
+            <Button
+              onClick={handleGenerateClick}
+              isLoading={isPending}
+              disabled={isCustomAmountInvalid}
+            >
+              <CreditCard />
+              Generar
+            </Button>
+          ) : (
+            <Button onClick={handleSendEmail} isLoading={isPending}>
+              <Mail />
+              Enviar por correo
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
