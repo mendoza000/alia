@@ -66,7 +66,7 @@ Package manager is **bun** (not npm/yarn).
 5. System sends confirmation email to patient + notification to psychologist
 6. 24h before: reminder email via cron
 7. After the session, an admin generates a Stripe payment link (currency chosen from the global `PaymentRate` table, suggested from the patient's detected country) from `/admin/citas` or `/admin/pagos`, and copies it or emails it to the patient
-8. Stripe webhook (`/api/webhooks/stripe`) marks the `Payment` as `approved` once checkout completes
+8. Stripe webhook (`/api/webhook`) marks the `Payment` as `approved` once checkout completes
 
 Appointment states: `pending_form` → `confirmed` / `cancelled` / `completed` / `no_show`
 
