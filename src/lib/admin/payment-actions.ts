@@ -14,6 +14,7 @@ function getBaseUrl() {
 async function resolveCheckoutUrl(
   appointmentId: string,
   currency: string,
+  customAmount?: number,
 ): Promise<{ success: true; url: string } | { success: false; error: string }> {
   const appointment = await prisma.appointment.findUnique({
     where: { id: appointmentId },
@@ -45,10 +46,17 @@ async function resolveCheckoutUrl(
     };
   }
 
+  if (customAmount !== undefined && (!Number.isFinite(customAmount) || customAmount <= 0)) {
+    return { success: false, error: "El monto personalizado debe ser mayor a 0" };
+  }
+
+  const amount = customAmount ?? rate.amount;
+
   const existing = appointment.payment;
   if (
     existing?.status === "PENDING" &&
     existing.currency === currency &&
+    existing.amount === amount &&
     existing.stripeCheckoutSessionId
   ) {
     const session = await stripe.checkout.sessions.retrieve(
@@ -61,7 +69,7 @@ async function resolveCheckoutUrl(
 
   const { sessionId, url } = await createPaymentCheckoutSession({
     appointmentId,
-    amount: rate.amount,
+    amount,
     currency,
     patientEmail: appointment.user.email,
     successUrl: `${getBaseUrl()}/mi-cuenta/citas?pago=exitoso`,
@@ -73,17 +81,17 @@ async function resolveCheckoutUrl(
     create: {
       appointmentId,
       currency,
-      amount: rate.amount,
-      finalAmount: rate.amount,
+      amount,
+      finalAmount: amount,
       status: "PENDING",
       stripeCheckoutSessionId: sessionId,
       stripeCheckoutUrl: url,
     },
     update: {
       currency,
-      amount: rate.amount,
+      amount,
       discountAmount: 0,
-      finalAmount: rate.amount,
+      finalAmount: amount,
       status: "PENDING",
       stripeCheckoutSessionId: sessionId,
       stripeCheckoutUrl: url,
@@ -97,9 +105,10 @@ async function resolveCheckoutUrl(
 export async function generatePaymentLink(
   appointmentId: string,
   currency: string,
+  customAmount?: number,
 ): Promise<ActionResult & { url?: string }> {
   try {
-    const result = await resolveCheckoutUrl(appointmentId, currency);
+    const result = await resolveCheckoutUrl(appointmentId, currency, customAmount);
     if (!result.success) return result;
 
     revalidatePath("/admin/citas", "layout");
@@ -114,9 +123,10 @@ export async function generatePaymentLink(
 export async function sendPaymentLinkEmail(
   appointmentId: string,
   currency: string,
+  customAmount?: number,
 ): Promise<ActionResult> {
   try {
-    const result = await resolveCheckoutUrl(appointmentId, currency);
+    const result = await resolveCheckoutUrl(appointmentId, currency, customAmount);
     if (!result.success) return result;
 
     const payment = await prisma.payment.findUnique({

@@ -10,6 +10,7 @@ import {
 } from "@/lib/admin/payment-actions";
 import { suggestCurrencyFromCountry } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CopyLinkButton } from "@/components/ui/copy-link-button";
 import {
   Dialog,
@@ -19,6 +20,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -47,12 +50,23 @@ export function GeneratePaymentLinkDialog({
     return availableCurrencies[0];
   });
   const [url, setUrl] = useState<string | null>(null);
+  const [useCustomAmount, setUseCustomAmount] = useState(false);
+  const [customAmount, setCustomAmount] = useState("");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
+  const parsedCustomAmount = useCustomAmount
+    ? Number(customAmount) || undefined
+    : undefined;
+  const isCustomAmountInvalid = useCustomAmount && !parsedCustomAmount;
+
   function handleGenerate() {
     startTransition(async () => {
-      const result = await generatePaymentLink(appointmentId, currency);
+      const result = await generatePaymentLink(
+        appointmentId,
+        currency,
+        parsedCustomAmount,
+      );
       if (result.success) {
         setUrl(result.url ?? null);
         toast.success("Link generado");
@@ -65,7 +79,11 @@ export function GeneratePaymentLinkDialog({
 
   function handleSendEmail() {
     startTransition(async () => {
-      const result = await sendPaymentLinkEmail(appointmentId, currency);
+      const result = await sendPaymentLinkEmail(
+        appointmentId,
+        currency,
+        parsedCustomAmount,
+      );
       if (result.success) {
         toast.success("Correo enviado");
         onOpenChange(false);
@@ -85,7 +103,11 @@ export function GeneratePaymentLinkDialog({
       open={open}
       onOpenChange={(v) => {
         onOpenChange(v);
-        if (!v) setUrl(null);
+        if (!v) {
+          setUrl(null);
+          setUseCustomAmount(false);
+          setCustomAmount("");
+        }
       }}
     >
       <DialogContent>
@@ -113,6 +135,31 @@ export function GeneratePaymentLinkDialog({
           </SelectContent>
         </Select>
 
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="custom-amount"
+              checked={useCustomAmount}
+              onCheckedChange={(checked) => setUseCustomAmount(checked === true)}
+              disabled={!!url}
+            />
+            <Label htmlFor="custom-amount" className="font-normal">
+              Establecer un monto personalizado
+            </Label>
+          </div>
+
+          {useCustomAmount && (
+            <Input
+              type="number"
+              min={1}
+              placeholder="Monto en la moneda seleccionada"
+              value={customAmount}
+              onChange={(e) => setCustomAmount(e.target.value)}
+              disabled={!!url}
+            />
+          )}
+        </div>
+
         {url && (
           <div className="min-w-0 space-y-2">
             <div className="min-w-0 rounded-lg border border-border bg-muted/40 px-3 py-2">
@@ -131,7 +178,11 @@ export function GeneratePaymentLinkDialog({
 
         <DialogFooter>
           {!url ? (
-            <Button onClick={handleGenerate} isLoading={isPending}>
+            <Button
+              onClick={handleGenerate}
+              isLoading={isPending}
+              disabled={isCustomAmountInvalid}
+            >
               <CreditCard />
               Generar
             </Button>
