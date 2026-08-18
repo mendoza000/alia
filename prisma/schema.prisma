@@ -182,6 +182,7 @@ model Payment {
   amount                  Int
   discountAmount          Int           @default(0)
   finalAmount             Int
+  exchangeRateToUsd       Float?
   status                  PaymentStatus @default(PENDING)
   method                  String?
   couponId                String?

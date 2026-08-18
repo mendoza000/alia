@@ -53,3 +53,19 @@ export function toUsd(
   if (!rate) return 0;
   return amount / rate;
 }
+
+/**
+ * Converts a payment's amount to USD using the exchange rate frozen at
+ * the moment it was approved (`exchangeRateToUsd`). Falls back to the
+ * live rate map only for payments approved before that field existed.
+ */
+export function paymentToUsd(
+  amount: number,
+  currency: string,
+  exchangeRateToUsd: number | null,
+  liveRates: Map<string, number>,
+): number {
+  const rate = exchangeRateToUsd ?? liveRates.get(currency.toUpperCase());
+  if (!rate) return 0;
+  return amount / rate;
+}

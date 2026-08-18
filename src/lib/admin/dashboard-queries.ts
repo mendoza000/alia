@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { getUsdRateMap, toUsd } from "@/lib/exchange-rates";
+import { getUsdRateMap, paymentToUsd } from "@/lib/exchange-rates";
 
 /** Venezuela UTC-4 offset in ms */
 const VENEZUELA_OFFSET_MS = 4 * 60 * 60 * 1000;
@@ -64,21 +64,19 @@ export async function getDashboardStats() {
 				createdAt: { gte: monthStart },
 			},
 		}),
-		prisma.payment.groupBy({
-			by: ["currency"],
-			_sum: { finalAmount: true },
+		prisma.payment.findMany({
 			where: {
 				status: "APPROVED",
 				paidAt: { gte: monthStart },
 			},
+			select: { finalAmount: true, currency: true, exchangeRateToUsd: true },
 		}),
-		prisma.payment.groupBy({
-			by: ["currency"],
-			_sum: { finalAmount: true },
+		prisma.payment.findMany({
 			where: {
 				status: "APPROVED",
 				paidAt: { gte: prevMonthStart, lte: prevMonthEnd },
 			},
+			select: { finalAmount: true, currency: true, exchangeRateToUsd: true },
 		}),
 		prisma.psychologist.count({
 			where: { isActive: true },
@@ -108,9 +106,11 @@ export async function getDashboardStats() {
 	}
 
 	const rates = await getUsdRateMap();
-	const sumToUsd = (groups: { currency: string; _sum: { finalAmount: number | null } }[]) =>
-		groups.reduce(
-			(total, g) => total + toUsd(g._sum.finalAmount ?? 0, g.currency, rates),
+	const sumToUsd = (
+		payments: { finalAmount: number; currency: string; exchangeRateToUsd: number | null }[],
+	) =>
+		payments.reduce(
+			(total, p) => total + paymentToUsd(p.finalAmount, p.currency, p.exchangeRateToUsd, rates),
 			0,
 		);
 
@@ -174,7 +174,7 @@ export async function getRevenueTrend() {
 				status: "APPROVED",
 				paidAt: { gte: sixMonthsAgo },
 			},
-			select: { finalAmount: true, currency: true, paidAt: true },
+			select: { finalAmount: true, currency: true, paidAt: true, exchangeRateToUsd: true },
 		}),
 		getUsdRateMap(),
 	]);
@@ -192,7 +192,10 @@ export async function getRevenueTrend() {
 		if (!p.paidAt) continue;
 		const key = `${p.paidAt.getFullYear()}-${String(p.paidAt.getMonth() + 1).padStart(2, "0")}`;
 		if (grouped.has(key)) {
-			grouped.set(key, (grouped.get(key) ?? 0) + toUsd(p.finalAmount, p.currency, rates));
+			grouped.set(
+				key,
+				(grouped.get(key) ?? 0) + paymentToUsd(p.finalAmount, p.currency, p.exchangeRateToUsd, rates),
+			);
 		}
 	}
 

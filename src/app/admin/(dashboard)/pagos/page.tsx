@@ -6,7 +6,7 @@ import { PaymentTable } from "@/components/admin/payment-table";
 import { PaymentsFilters } from "@/components/admin/payments-filters";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrencyBreakdown, formatUSD } from "@/lib/currency";
-import { getUsdRateMap, toUsd } from "@/lib/exchange-rates";
+import { getUsdRateMap, paymentToUsd } from "@/lib/exchange-rates";
 
 type Props = {
   searchParams: Promise<{
@@ -54,12 +54,12 @@ export default async function PagosPage({ searchParams }: Props) {
     currency,
     amount: t.discounts,
   }));
-  const totalRevenueUsd = revenueByCurrency.reduce(
-    (sum, t) => sum + toUsd(t.amount, t.currency, rates),
+  const totalRevenueUsd = approved.reduce(
+    (sum, p) => sum + paymentToUsd(p.finalAmount, p.currency, p.exchangeRateToUsd, rates),
     0,
   );
-  const totalDiscountsUsd = discountsByCurrency.reduce(
-    (sum, t) => sum + toUsd(t.amount, t.currency, rates),
+  const totalDiscountsUsd = approved.reduce(
+    (sum, p) => sum + paymentToUsd(p.discountAmount, p.currency, p.exchangeRateToUsd, rates),
     0,
   );
 
@@ -103,7 +103,7 @@ export default async function PagosPage({ searchParams }: Props) {
         </div>
       </div>
       <p className="text-xs text-muted-foreground">
-        Conversión aproximada a USD, tasa de referencia actualizada a diario. El desglose por moneda es el monto real cobrado.
+        Conversión a USD con la tasa de referencia del día en que se aprobó cada pago. El desglose por moneda es el monto real cobrado.
       </p>
 
       <Suspense fallback={<Skeleton className="h-9 w-96" />}>

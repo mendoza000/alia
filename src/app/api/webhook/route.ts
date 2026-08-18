@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { prisma } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
+import { getUsdRateMap } from "@/lib/exchange-rates";
 
 export async function POST(request: Request) {
   const body = await request.text();
@@ -55,6 +56,9 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     return;
   }
 
+  const rates = await getUsdRateMap();
+  const exchangeRateToUsd = rates.get(payment.currency.toUpperCase()) ?? null;
+
   await prisma.$transaction(async (tx) => {
     await tx.payment.update({
       where: { appointmentId },
@@ -62,6 +66,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         status: "APPROVED",
         method: "stripe",
         paidAt: new Date(),
+        exchangeRateToUsd,
         stripePaymentIntentId:
           typeof session.payment_intent === "string"
             ? session.payment_intent

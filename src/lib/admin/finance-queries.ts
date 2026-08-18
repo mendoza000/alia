@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { getUsdRateMap, toUsd } from "@/lib/exchange-rates";
+import { getUsdRateMap, paymentToUsd } from "@/lib/exchange-rates";
 
 export type FinancePeriod = "month" | "3months" | "6months" | "year";
 
@@ -57,7 +57,12 @@ export async function getFinanceByPsychologist(period: FinancePeriod = "month") 
           },
           select: {
             payment: {
-              select: { finalAmount: true, currency: true, status: true },
+              select: {
+                finalAmount: true,
+                currency: true,
+                status: true,
+                exchangeRateToUsd: true,
+              },
             },
           },
         },
@@ -73,8 +78,8 @@ export async function getFinanceByPsychologist(period: FinancePeriod = "month") 
         .filter((pay): pay is NonNullable<typeof pay> => pay?.status === "APPROVED");
 
       const totalRevenueByCurrency = groupByCurrency(approvedPayments);
-      const totalRevenueUsd = totalRevenueByCurrency.reduce(
-        (sum, g) => sum + toUsd(g.amount, g.currency, rates),
+      const totalRevenueUsd = approvedPayments.reduce(
+        (sum, p) => sum + paymentToUsd(p.finalAmount, p.currency, p.exchangeRateToUsd, rates),
         0,
       );
       const sessionCount = approvedPayments.length;
@@ -97,30 +102,30 @@ export type FinancePsychologist = Awaited<ReturnType<typeof getFinanceByPsycholo
 export async function getFinanceSummary(period: FinancePeriod = "month") {
   const since = getPeriodStart(period);
 
-  const [result, rates] = await Promise.all([
-    prisma.payment.groupBy({
-      by: ["currency"],
-      _sum: { finalAmount: true, discountAmount: true },
-      _count: { id: true },
+  const [payments, rates] = await Promise.all([
+    prisma.payment.findMany({
       where: {
         status: "APPROVED",
         paidAt: { gte: since },
+      },
+      select: {
+        currency: true,
+        finalAmount: true,
+        discountAmount: true,
+        exchangeRateToUsd: true,
       },
     }),
     getUsdRateMap(),
   ]);
 
-  const totalRevenueByCurrency: FinanceCurrencyTotal[] = result.map((g) => ({
-    currency: g.currency,
-    amount: g._sum.finalAmount ?? 0,
-  }));
-  const totalRevenueUsd = totalRevenueByCurrency.reduce(
-    (sum, g) => sum + toUsd(g.amount, g.currency, rates),
+  const totalRevenueByCurrency = groupByCurrency(payments);
+  const totalRevenueUsd = payments.reduce(
+    (sum, p) => sum + paymentToUsd(p.finalAmount, p.currency, p.exchangeRateToUsd, rates),
     0,
   );
-  const totalSessions = result.reduce((sum, g) => sum + g._count.id, 0);
-  const totalDiscountsUsd = result.reduce(
-    (sum, g) => sum + toUsd(g._sum.discountAmount ?? 0, g.currency, rates),
+  const totalSessions = payments.length;
+  const totalDiscountsUsd = payments.reduce(
+    (sum, p) => sum + paymentToUsd(p.discountAmount, p.currency, p.exchangeRateToUsd, rates),
     0,
   );
   const avgSessionUsd = totalSessions > 0 ? totalRevenueUsd / totalSessions : 0;
