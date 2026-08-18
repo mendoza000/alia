@@ -25,3 +25,16 @@ export function formatCurrencyAmount(amount: number, currency: string): string {
     maximumFractionDigits: 0,
   }).format(amount);
 }
+
+export const formatUSD = new Intl.NumberFormat("es-CO", {
+  style: "currency",
+  currency: "USD",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+export function formatCurrencyBreakdown(
+  totals: { currency: string; amount: number }[],
+): string {
+  return totals.map((t) => formatCurrencyAmount(t.amount, t.currency)).join(" · ");
+}

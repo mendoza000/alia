@@ -15,12 +15,12 @@ import { StatCard } from "@/components/admin/stat-card";
 import { UpcomingAppointments } from "@/components/admin/upcoming-appointments";
 import { auth } from "@/lib/auth";
 import {
-	formatCOP,
 	getAppointmentsTrend,
 	getDashboardStats,
 	getRevenueTrend,
 	getUpcomingAppointments,
 } from "@/lib/admin/dashboard-queries";
+import { formatUSD } from "@/lib/currency";
 
 function computeTrend(current: number, previous: number) {
 	if (previous === 0) return current > 0 ? 100 : 0;
@@ -73,14 +73,14 @@ export default async function AdminDashboardPage() {
 		},
 		{
 			title: "Ingresos del mes",
-			value: formatCOP.format(stats.revenueThisMonth),
+			value: formatUSD.format(stats.revenueThisMonthUsd),
 			icon: DollarSign,
 			bgColor: "bg-ring/25",
 			borderColor: "border-ring/40",
 			trend: {
 				value: computeTrend(
-					stats.revenueThisMonth,
-					stats.revenuePreviousMonth,
+					stats.revenueThisMonthUsd,
+					stats.revenuePreviousMonthUsd,
 				),
 				label: "vs. mes anterior",
 			},

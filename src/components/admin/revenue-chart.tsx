@@ -14,6 +14,7 @@ import {
 	ChartTooltip,
 	ChartTooltipContent,
 } from "@/components/ui/chart";
+import { formatUSD } from "@/lib/currency";
 
 const chartConfig = {
 	revenue: {
@@ -30,10 +31,10 @@ export function RevenueChart({ data }: RevenueChartProps) {
 	const hasData = data.some((d) => d.revenue > 0);
 	const total = data.reduce((sum, d) => sum + d.revenue, 0);
 
-	const formatCOP = (value: number) =>
+	const formatUSDCompact = (value: number) =>
 		new Intl.NumberFormat("es-CO", {
 			style: "currency",
-			currency: "COP",
+			currency: "USD",
 			maximumFractionDigits: 0,
 			notation: "compact",
 		}).format(value);
@@ -42,17 +43,13 @@ export function RevenueChart({ data }: RevenueChartProps) {
 		<Card className="border-0 shadow-none">
 			<CardHeader>
 				<CardDescription className="flex items-center gap-2">
-					<span>Ingresos mensuales</span>
+					<span>Ingresos mensuales (equivalente USD)</span>
 					<span className="rounded-full bg-secondary/60 px-2 py-0.5 text-[10px] font-medium text-foreground">
 						6 meses
 					</span>
 				</CardDescription>
 				<CardTitle className="font-heading text-2xl">
-					{new Intl.NumberFormat("es-CO", {
-						style: "currency",
-						currency: "COP",
-						maximumFractionDigits: 0,
-					}).format(total)}
+					{formatUSD.format(total)}
 				</CardTitle>
 			</CardHeader>
 			<CardContent>
@@ -76,18 +73,12 @@ export function RevenueChart({ data }: RevenueChartProps) {
 								tickLine={false}
 								axisLine={false}
 								tickMargin={8}
-								tickFormatter={formatCOP}
+								tickFormatter={formatUSDCompact}
 							/>
 							<ChartTooltip
 								content={
 									<ChartTooltipContent
-										formatter={(value) =>
-											new Intl.NumberFormat("es-CO", {
-												style: "currency",
-												currency: "COP",
-												maximumFractionDigits: 0,
-											}).format(value as number)
-										}
+										formatter={(value) => formatUSD.format(value as number)}
 									/>
 								}
 							/>

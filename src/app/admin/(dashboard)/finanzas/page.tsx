@@ -7,12 +7,7 @@ import {
 import { FinancePeriodSelector } from "@/components/admin/finance-period-selector";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-
-const formatCOP = new Intl.NumberFormat("es-CO", {
-  style: "currency",
-  currency: "COP",
-  maximumFractionDigits: 0,
-});
+import { formatCurrencyBreakdown, formatUSD } from "@/lib/currency";
 
 function getInitials(name: string) {
   return name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
@@ -36,7 +31,7 @@ export default async function FinanzasPage({ searchParams }: Props) {
     getFinanceByPsychologist(period),
   ]);
 
-  const grandTotal = summary.totalRevenue;
+  const grandTotal = summary.totalRevenueUsd;
 
   return (
     <div className="space-y-6">
@@ -56,7 +51,12 @@ export default async function FinanzasPage({ searchParams }: Props) {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wide">Total recaudado</p>
-          <p className="mt-1 text-2xl font-bold">{formatCOP.format(summary.totalRevenue)}</p>
+          <p className="mt-1 text-2xl font-bold">{formatUSD.format(summary.totalRevenueUsd)}</p>
+          {summary.totalRevenueByCurrency.length > 0 && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {formatCurrencyBreakdown(summary.totalRevenueByCurrency)}
+            </p>
+          )}
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wide">Sesiones realizadas</p>
@@ -64,9 +64,12 @@ export default async function FinanzasPage({ searchParams }: Props) {
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wide">Promedio por sesión</p>
-          <p className="mt-1 text-2xl font-bold">{formatCOP.format(summary.avgSession)}</p>
+          <p className="mt-1 text-2xl font-bold">{formatUSD.format(summary.avgSessionUsd)}</p>
         </div>
       </div>
+      <p className="text-xs text-muted-foreground">
+        Conversión aproximada a USD, tasa de referencia actualizada a diario. El desglose por moneda es el monto real cobrado.
+      </p>
 
       {/* Per-psychologist breakdown */}
       <div>
@@ -80,7 +83,7 @@ export default async function FinanzasPage({ searchParams }: Props) {
         ) : (
           <div className="space-y-3">
             {psychologists.map((p, i) => {
-              const pct = grandTotal > 0 ? Math.round((p.totalRevenue / grandTotal) * 100) : 0;
+              const pct = grandTotal > 0 ? Math.round((p.totalRevenueUsd / grandTotal) * 100) : 0;
               return (
                 <div
                   key={p.id}
@@ -98,10 +101,15 @@ export default async function FinanzasPage({ searchParams }: Props) {
                     <p className="text-xs text-muted-foreground">{p.specialty}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold">{formatCOP.format(p.totalRevenue)}</p>
+                    <p className="font-semibold">{formatUSD.format(p.totalRevenueUsd)}</p>
                     <p className="text-xs text-muted-foreground">
                       {p.sessionCount} {p.sessionCount === 1 ? "sesión" : "sesiones"} · {pct}%
                     </p>
+                    {p.totalRevenueByCurrency.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {formatCurrencyBreakdown(p.totalRevenueByCurrency)}
+                      </p>
+                    )}
                   </div>
                   {/* Progress bar */}
                   <div className="hidden sm:block w-24">

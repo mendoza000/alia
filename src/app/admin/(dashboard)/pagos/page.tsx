@@ -5,7 +5,8 @@ import { getAllPsychologists } from "@/lib/admin/psychologist-queries";
 import { PaymentTable } from "@/components/admin/payment-table";
 import { PaymentsFilters } from "@/components/admin/payments-filters";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatCurrencyAmount } from "@/lib/currency";
+import { formatCurrencyBreakdown, formatUSD } from "@/lib/currency";
+import { getUsdRateMap, toUsd } from "@/lib/exchange-rates";
 
 type Props = {
   searchParams: Promise<{
@@ -26,9 +27,10 @@ export default async function PagosPage({ searchParams }: Props) {
     dateTo: params.dateTo,
   };
 
-  const [payments, psychologists] = await Promise.all([
+  const [payments, psychologists, rates] = await Promise.all([
     getAllPayments(filters),
     getAllPsychologists(),
+    getUsdRateMap(),
   ]);
 
   const approved = payments.filter((p) => p.status === "APPROVED");
@@ -43,6 +45,23 @@ export default async function PagosPage({ searchParams }: Props) {
     return acc;
   }, {});
   const currencyTotals = Object.entries(totalsByCurrency);
+
+  const revenueByCurrency = currencyTotals.map(([currency, t]) => ({
+    currency,
+    amount: t.revenue,
+  }));
+  const discountsByCurrency = currencyTotals.map(([currency, t]) => ({
+    currency,
+    amount: t.discounts,
+  }));
+  const totalRevenueUsd = revenueByCurrency.reduce(
+    (sum, t) => sum + toUsd(t.amount, t.currency, rates),
+    0,
+  );
+  const totalDiscountsUsd = discountsByCurrency.reduce(
+    (sum, t) => sum + toUsd(t.amount, t.currency, rates),
+    0,
+  );
 
   const psychologistOptions = psychologists.map((p) => ({ id: p.id, name: p.name }));
 
@@ -59,27 +78,21 @@ export default async function PagosPage({ searchParams }: Props) {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wide">Total recaudado</p>
-          {currencyTotals.length === 0 ? (
-            <p className="mt-1 text-xl font-bold">—</p>
-          ) : (
-            currencyTotals.map(([currency, t]) => (
-              <p key={currency} className="mt-1 text-xl font-bold">
-                {formatCurrencyAmount(t.revenue, currency)}
-              </p>
-            ))
+          <p className="mt-1 text-xl font-bold">{formatUSD.format(totalRevenueUsd)}</p>
+          {revenueByCurrency.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              {formatCurrencyBreakdown(revenueByCurrency)}
+            </p>
           )}
           <p className="text-xs text-muted-foreground">{approved.length} pagos aprobados</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wide">Total descontado</p>
-          {currencyTotals.length === 0 ? (
-            <p className="mt-1 text-xl font-bold">—</p>
-          ) : (
-            currencyTotals.map(([currency, t]) => (
-              <p key={currency} className="mt-1 text-xl font-bold">
-                {formatCurrencyAmount(t.discounts, currency)}
-              </p>
-            ))
+          <p className="mt-1 text-xl font-bold">{formatUSD.format(totalDiscountsUsd)}</p>
+          {discountsByCurrency.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              {formatCurrencyBreakdown(discountsByCurrency)}
+            </p>
           )}
           <p className="text-xs text-muted-foreground">Con cupones aplicados</p>
         </div>
@@ -89,6 +102,9 @@ export default async function PagosPage({ searchParams }: Props) {
           <p className="text-xs text-muted-foreground">Todos los estados</p>
         </div>
       </div>
+      <p className="text-xs text-muted-foreground">
+        Conversión aproximada a USD, tasa de referencia actualizada a diario. El desglose por moneda es el monto real cobrado.
+      </p>
 
       <Suspense fallback={<Skeleton className="h-9 w-96" />}>
         <PaymentsFilters psychologists={psychologistOptions} />

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { getUsdRateMap, toUsd } from "@/lib/exchange-rates";
 
 /** Venezuela UTC-4 offset in ms */
 const VENEZUELA_OFFSET_MS = 4 * 60 * 60 * 1000;
@@ -63,14 +64,16 @@ export async function getDashboardStats() {
 				createdAt: { gte: monthStart },
 			},
 		}),
-		prisma.payment.aggregate({
+		prisma.payment.groupBy({
+			by: ["currency"],
 			_sum: { finalAmount: true },
 			where: {
 				status: "APPROVED",
 				paidAt: { gte: monthStart },
 			},
 		}),
-		prisma.payment.aggregate({
+		prisma.payment.groupBy({
+			by: ["currency"],
 			_sum: { finalAmount: true },
 			where: {
 				status: "APPROVED",
@@ -104,13 +107,20 @@ export async function getDashboardStats() {
 		}
 	}
 
+	const rates = await getUsdRateMap();
+	const sumToUsd = (groups: { currency: string; _sum: { finalAmount: number | null } }[]) =>
+		groups.reduce(
+			(total, g) => total + toUsd(g._sum.finalAmount ?? 0, g.currency, rates),
+			0,
+		);
+
 	return {
 		appointmentsToday,
 		appointmentsYesterday,
 		totalPatients,
 		newPatientsThisMonth,
-		revenueThisMonth: revenueResult._sum.finalAmount ?? 0,
-		revenuePreviousMonth: revenuePrevResult._sum.finalAmount ?? 0,
+		revenueThisMonthUsd: sumToUsd(revenueResult),
+		revenuePreviousMonthUsd: sumToUsd(revenuePrevResult),
 		activePsychologists,
 		topPsychologist,
 	};
@@ -158,13 +168,16 @@ export async function getRevenueTrend() {
 	sixMonthsAgo.setDate(1);
 	sixMonthsAgo.setHours(0, 0, 0, 0);
 
-	const payments = await prisma.payment.findMany({
-		where: {
-			status: "APPROVED",
-			paidAt: { gte: sixMonthsAgo },
-		},
-		select: { finalAmount: true, paidAt: true },
-	});
+	const [payments, rates] = await Promise.all([
+		prisma.payment.findMany({
+			where: {
+				status: "APPROVED",
+				paidAt: { gte: sixMonthsAgo },
+			},
+			select: { finalAmount: true, currency: true, paidAt: true },
+		}),
+		getUsdRateMap(),
+	]);
 
 	const grouped = new Map<string, number>();
 	// Initialize last 6 months
@@ -179,7 +192,7 @@ export async function getRevenueTrend() {
 		if (!p.paidAt) continue;
 		const key = `${p.paidAt.getFullYear()}-${String(p.paidAt.getMonth() + 1).padStart(2, "0")}`;
 		if (grouped.has(key)) {
-			grouped.set(key, (grouped.get(key) ?? 0) + p.finalAmount);
+			grouped.set(key, (grouped.get(key) ?? 0) + toUsd(p.finalAmount, p.currency, rates));
 		}
 	}
 
@@ -210,9 +223,3 @@ export async function getUpcomingAppointments() {
 		},
 	});
 }
-
-export const formatCOP = new Intl.NumberFormat("es-CO", {
-	style: "currency",
-	currency: "COP",
-	maximumFractionDigits: 0,
-});
