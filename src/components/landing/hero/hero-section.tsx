@@ -62,12 +62,14 @@ export function HeroSection() {
                     transition={{ duration: 0.5, ease, delay: 0.35 }}
                 >
                     <Button
+                        nativeButton={false}
                         className="h-11 rounded-xl bg-accent px-6 text-base text-accent-foreground hover:bg-accent/80 xl:h-12 xl:px-8 xl:text-sm"
                         render={<Link href="/agendar" />}
                     >
                         Agenda tu sesión
                     </Button>
                     <Button
+                        nativeButton={false}
                         variant="outline"
                         className="h-11 rounded-xl px-6 text-base xl:h-12 xl:px-8 xl:text-sm"
                         render={<Link href="#psicologos" />}
