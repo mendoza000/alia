@@ -211,6 +211,15 @@ model PaymentRate {
   @@map("payment_rate")
 }
 
+model ExchangeRate {
+  id        String   @id @default(cuid())
+  currency  String   @unique
+  rateToUsd Float
+  updatedAt DateTime @updatedAt
+
+  @@map("exchange_rate")
+}
+
 model SiteSettings {
   id             String   @id @default("singleton")
   whatsappNumber String?
