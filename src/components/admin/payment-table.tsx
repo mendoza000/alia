@@ -6,7 +6,7 @@ import { es } from "date-fns/locale";
 import { Mail } from "lucide-react";
 import { toast } from "sonner";
 import { sendPaymentLinkEmail } from "@/lib/admin/payment-actions";
-import { formatCurrencyAmount } from "@/lib/currency";
+import { formatCurrencyAmount, formatUSD } from "@/lib/currency";
 import type { PaymentRow } from "@/lib/admin/payment-queries";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { PaymentStatus } from "@/generated/prisma/enums";
+
+type PaymentRowWithUsd = PaymentRow & { finalAmountUsd: number };
 
 const statusConfig: Record<PaymentStatus, { label: string; className: string }> = {
   PENDING: {
@@ -40,7 +42,7 @@ const statusConfig: Record<PaymentStatus, { label: string; className: string }> 
   },
 };
 
-function PaymentTableRow({ payment: p }: { payment: PaymentRow }) {
+function PaymentTableRow({ payment: p }: { payment: PaymentRowWithUsd }) {
   const [isPending, startTransition] = useTransition();
   const config = statusConfig[p.status];
   const hasUsableLink = p.status === "PENDING" && p.stripeCheckoutUrl;
@@ -85,6 +87,9 @@ function PaymentTableRow({ payment: p }: { payment: PaymentRow }) {
       <TableCell className="text-sm font-medium">
         {formatCurrencyAmount(p.finalAmount, p.currency)}
       </TableCell>
+      <TableCell className="text-sm text-muted-foreground">
+        {formatUSD.format(p.finalAmountUsd)}
+      </TableCell>
       <TableCell>
         {p.coupon ? (
           <Badge variant="secondary" className="font-mono text-xs">
@@ -124,7 +129,7 @@ function PaymentTableRow({ payment: p }: { payment: PaymentRow }) {
   );
 }
 
-export function PaymentTable({ payments }: { payments: PaymentRow[] }) {
+export function PaymentTable({ payments }: { payments: PaymentRowWithUsd[] }) {
   if (payments.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-12">
@@ -144,6 +149,7 @@ export function PaymentTable({ payments }: { payments: PaymentRow[] }) {
             <TableHead>Subtotal</TableHead>
             <TableHead>Descuento</TableHead>
             <TableHead>Total</TableHead>
+            <TableHead>Total (USD)</TableHead>
             <TableHead>Cupón</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead>Fecha pago</TableHead>

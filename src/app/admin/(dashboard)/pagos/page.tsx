@@ -65,6 +65,11 @@ export default async function PagosPage({ searchParams }: Props) {
 
   const psychologistOptions = psychologists.map((p) => ({ id: p.id, name: p.name }));
 
+  const paymentsWithUsd = payments.map((p) => ({
+    ...p,
+    finalAmountUsd: paymentToUsd(p.finalAmount, p.currency, p.exchangeRateToUsd, rates),
+  }));
+
   return (
     <div className="space-y-6">
       <div>
@@ -110,7 +115,7 @@ export default async function PagosPage({ searchParams }: Props) {
         <PaymentsFilters psychologists={psychologistOptions} />
       </Suspense>
 
-      <PaymentTable payments={payments} />
+      <PaymentTable payments={paymentsWithUsd} />
     </div>
   );
 }
