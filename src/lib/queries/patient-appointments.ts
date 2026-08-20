@@ -13,6 +13,22 @@ export async function getPatientAppointments(userId: string) {
     });
 }
 
+export async function isFirstCompletedAppointment(
+    userId: string,
+    psychologistId: string,
+    beforeDateTime: Date,
+): Promise<boolean> {
+    const priorCompleted = await prisma.appointment.count({
+        where: {
+            userId,
+            psychologistId,
+            status: "COMPLETED",
+            dateTime: { lt: beforeDateTime },
+        },
+    });
+    return priorCompleted === 0;
+}
+
 export async function getActivePatientAppointment(userId: string) {
     const now = new Date();
 

@@ -4,7 +4,9 @@ import {
   getFinanceSummary,
   type FinancePeriod,
 } from "@/lib/admin/finance-queries";
+import { getPayoutSettings } from "@/lib/admin/payout-settings-queries";
 import { FinancePeriodSelector } from "@/components/admin/finance-period-selector";
+import { PayoutSettingsSheet } from "@/components/admin/payout-settings-sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrencyBreakdown, formatUSD } from "@/lib/currency";
@@ -26,9 +28,10 @@ export default async function FinanzasPage({ searchParams }: Props) {
       ? (params.period as FinancePeriod)
       : "month";
 
-  const [summary, psychologists] = await Promise.all([
+  const [summary, psychologists, payoutSettings] = await Promise.all([
     getFinanceSummary(period),
     getFinanceByPsychologist(period),
+    getPayoutSettings(),
   ]);
 
   const grandTotal = summary.totalRevenueUsd;
@@ -42,9 +45,12 @@ export default async function FinanzasPage({ searchParams }: Props) {
             Ingresos y sesiones por psicólogo
           </p>
         </div>
-        <Suspense fallback={<Skeleton className="h-9 w-52" />}>
-          <FinancePeriodSelector value={period} />
-        </Suspense>
+        <div className="flex items-center gap-3">
+          <PayoutSettingsSheet defaultValues={payoutSettings} />
+          <Suspense fallback={<Skeleton className="h-9 w-52" />}>
+            <FinancePeriodSelector value={period} />
+          </Suspense>
+        </div>
       </div>
 
       {/* Summary */}
@@ -110,6 +116,9 @@ export default async function FinanzasPage({ searchParams }: Props) {
                         {formatCurrencyBreakdown(p.totalRevenueByCurrency)}
                       </p>
                     )}
+                    <p className="mt-1 text-xs font-medium text-accent-foreground">
+                      Debido: {formatUSD.format(p.totalOwedUsd)}
+                    </p>
                   </div>
                   {/* Progress bar */}
                   <div className="hidden sm:block w-24">

@@ -188,6 +188,9 @@ model Payment {
   couponId                String?
   coupon                  Coupon?       @relation(fields: [couponId], references: [id])
   paidAt                  DateTime?
+  isFirstAppointment      Boolean?
+  payoutRatePercent       Float?
+  payoutAmountUsd         Float?
   createdAt               DateTime      @default(now())
   updatedAt               DateTime      @updatedAt
 
@@ -229,6 +232,15 @@ model SiteSettings {
   updatedAt      DateTime @updatedAt
 
   @@map("site_settings")
+}
+
+model PayoutSettings {
+  id                         String   @id @default("singleton")
+  newClientRatePercent       Float    @default(27)
+  recurringClientRatePercent Float    @default(54)
+  updatedAt                  DateTime @updatedAt
+
+  @@map("payout_settings")
 }
 
 model Coupon {

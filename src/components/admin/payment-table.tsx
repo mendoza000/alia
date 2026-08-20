@@ -90,6 +90,18 @@ function PaymentTableRow({ payment: p }: { payment: PaymentRowWithUsd }) {
       <TableCell className="text-sm text-muted-foreground">
         {formatUSD.format(p.finalAmountUsd)}
       </TableCell>
+      <TableCell className="text-sm">
+        {p.payoutAmountUsd != null ? (
+          <div>
+            <p className="font-medium">{formatUSD.format(p.payoutAmountUsd)}</p>
+            <p className="text-xs text-muted-foreground">
+              {p.isFirstAppointment ? "Primera cita" : "Recurrente"}
+            </p>
+          </div>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
+      </TableCell>
       <TableCell>
         {p.coupon ? (
           <Badge variant="secondary" className="font-mono text-xs">
@@ -150,6 +162,7 @@ export function PaymentTable({ payments }: { payments: PaymentRowWithUsd[] }) {
             <TableHead>Descuento</TableHead>
             <TableHead>Total</TableHead>
             <TableHead>Total (USD)</TableHead>
+            <TableHead>Debido al psicólogo</TableHead>
             <TableHead>Cupón</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead>Fecha pago</TableHead>

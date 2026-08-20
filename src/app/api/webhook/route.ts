@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { prisma } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
-import { getUsdRateMap } from "@/lib/exchange-rates";
+import { getUsdRateMap, paymentToUsd } from "@/lib/exchange-rates";
+import { getPayoutSettings } from "@/lib/admin/payout-settings-queries";
+import { isFirstCompletedAppointment } from "@/lib/queries/patient-appointments";
 
 export async function POST(request: Request) {
   const body = await request.text();
@@ -45,6 +47,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   const payment = await prisma.payment.findUnique({
     where: { appointmentId },
+    include: { appointment: true },
   });
   if (!payment) return;
 
@@ -59,6 +62,25 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const rates = await getUsdRateMap();
   const exchangeRateToUsd = rates.get(payment.currency.toUpperCase()) ?? null;
 
+  const [isFirstAppointment, payoutSettings] = await Promise.all([
+    isFirstCompletedAppointment(
+      payment.appointment.userId,
+      payment.appointment.psychologistId,
+      payment.appointment.dateTime,
+    ),
+    getPayoutSettings(),
+  ]);
+  const payoutRatePercent = isFirstAppointment
+    ? payoutSettings.newClientRatePercent
+    : payoutSettings.recurringClientRatePercent;
+  const finalAmountUsd = paymentToUsd(
+    payment.finalAmount,
+    payment.currency,
+    exchangeRateToUsd,
+    rates,
+  );
+  const payoutAmountUsd = finalAmountUsd * (payoutRatePercent / 100);
+
   await prisma.$transaction(async (tx) => {
     await tx.payment.update({
       where: { appointmentId },
@@ -67,6 +89,9 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         method: "stripe",
         paidAt: new Date(),
         exchangeRateToUsd,
+        isFirstAppointment,
+        payoutRatePercent,
+        payoutAmountUsd,
         stripePaymentIntentId:
           typeof session.payment_intent === "string"
             ? session.payment_intent

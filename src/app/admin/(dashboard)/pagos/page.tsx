@@ -62,6 +62,10 @@ export default async function PagosPage({ searchParams }: Props) {
     (sum, p) => sum + paymentToUsd(p.discountAmount, p.currency, p.exchangeRateToUsd, rates),
     0,
   );
+  const totalOwedUsd = approved.reduce(
+    (sum, p) => sum + (p.payoutAmountUsd ?? 0),
+    0,
+  );
 
   const psychologistOptions = psychologists.map((p) => ({ id: p.id, name: p.name }));
 
@@ -80,7 +84,7 @@ export default async function PagosPage({ searchParams }: Props) {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wide">Total recaudado</p>
           <p className="mt-1 text-xl font-bold">{formatUSD.format(totalRevenueUsd)}</p>
@@ -100,6 +104,11 @@ export default async function PagosPage({ searchParams }: Props) {
             </p>
           )}
           <p className="text-xs text-muted-foreground">Con cupones aplicados</p>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4">
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Debido a psicólogos</p>
+          <p className="mt-1 text-xl font-bold">{formatUSD.format(totalOwedUsd)}</p>
+          <p className="text-xs text-muted-foreground">Según % de cita nueva/recurrente</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wide">Total transacciones</p>

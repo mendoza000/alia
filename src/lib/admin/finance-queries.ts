@@ -62,6 +62,7 @@ export async function getFinanceByPsychologist(period: FinancePeriod = "month") 
                 currency: true,
                 status: true,
                 exchangeRateToUsd: true,
+                payoutAmountUsd: true,
               },
             },
           },
@@ -82,6 +83,10 @@ export async function getFinanceByPsychologist(period: FinancePeriod = "month") 
         (sum, p) => sum + paymentToUsd(p.finalAmount, p.currency, p.exchangeRateToUsd, rates),
         0,
       );
+      const totalOwedUsd = approvedPayments.reduce(
+        (sum, p) => sum + (p.payoutAmountUsd ?? 0),
+        0,
+      );
       const sessionCount = approvedPayments.length;
 
       return {
@@ -91,6 +96,7 @@ export async function getFinanceByPsychologist(period: FinancePeriod = "month") 
         specialty: p.specialty,
         totalRevenueByCurrency,
         totalRevenueUsd,
+        totalOwedUsd,
         sessionCount,
       };
     })
