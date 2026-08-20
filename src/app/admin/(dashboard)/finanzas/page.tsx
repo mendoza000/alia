@@ -2,10 +2,11 @@ import { Suspense } from "react";
 import {
   getFinanceByPsychologist,
   getFinanceSummary,
+  resolveFinanceRange,
   type FinancePeriod,
 } from "@/lib/admin/finance-queries";
 import { getPayoutSettings } from "@/lib/admin/payout-settings-queries";
-import { FinancePeriodSelector } from "@/components/admin/finance-period-selector";
+import { FinanceFilters } from "@/components/admin/finance-filters";
 import { PayoutSettingsSheet } from "@/components/admin/payout-settings-sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,10 +16,10 @@ function getInitials(name: string) {
   return name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 }
 
-const VALID_PERIODS: FinancePeriod[] = ["month", "3months", "6months", "year"];
+const VALID_PERIODS: FinancePeriod[] = ["month", "3months", "6months", "year", "all"];
 
 type Props = {
-  searchParams: Promise<{ period?: string }>;
+  searchParams: Promise<{ period?: string; dateFrom?: string; dateTo?: string }>;
 };
 
 export default async function FinanzasPage({ searchParams }: Props) {
@@ -27,10 +28,11 @@ export default async function FinanzasPage({ searchParams }: Props) {
     VALID_PERIODS.includes(params.period as FinancePeriod)
       ? (params.period as FinancePeriod)
       : "month";
+  const range = resolveFinanceRange(period, params.dateFrom, params.dateTo);
 
   const [summary, psychologists, payoutSettings] = await Promise.all([
-    getFinanceSummary(period),
-    getFinanceByPsychologist(period),
+    getFinanceSummary(range),
+    getFinanceByPsychologist(range),
     getPayoutSettings(),
   ]);
 
@@ -47,8 +49,8 @@ export default async function FinanzasPage({ searchParams }: Props) {
         </div>
         <div className="flex items-center gap-3">
           <PayoutSettingsSheet defaultValues={payoutSettings} />
-          <Suspense fallback={<Skeleton className="h-9 w-52" />}>
-            <FinancePeriodSelector value={period} />
+          <Suspense fallback={<Skeleton className="h-9 w-96" />}>
+            <FinanceFilters value={period} />
           </Suspense>
         </div>
       </div>

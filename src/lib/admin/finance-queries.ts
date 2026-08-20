@@ -1,9 +1,11 @@
 import { prisma } from "@/lib/db";
 import { getUsdRateMap, paymentToUsd } from "@/lib/exchange-rates";
 
-export type FinancePeriod = "month" | "3months" | "6months" | "year";
+export type FinancePeriod = "month" | "3months" | "6months" | "year" | "all";
 
-function getPeriodStart(period: FinancePeriod): Date {
+export type FinanceDateRange = { since: Date | null; until: Date | null };
+
+function getPeriodStart(period: FinancePeriod): Date | null {
   const now = new Date();
   switch (period) {
     case "month":
@@ -24,7 +26,19 @@ function getPeriodStart(period: FinancePeriod): Date {
     }
     case "year":
       return new Date(now.getFullYear(), 0, 1);
+    case "all":
+      return null;
   }
+}
+
+export function resolveFinanceRange(
+  period: FinancePeriod,
+  dateFrom?: string,
+  dateTo?: string,
+): FinanceDateRange {
+  const since = dateFrom ? new Date(dateFrom) : getPeriodStart(period);
+  const until = dateTo ? new Date(`${dateTo}T23:59:59`) : null;
+  return { since, until };
 }
 
 export type FinanceCurrencyTotal = { currency: string; amount: number };
@@ -39,9 +53,7 @@ function groupByCurrency(
   return Array.from(totals.entries()).map(([currency, amount]) => ({ currency, amount }));
 }
 
-export async function getFinanceByPsychologist(period: FinancePeriod = "month") {
-  const since = getPeriodStart(period);
-
+export async function getFinanceByPsychologist(range: FinanceDateRange) {
   const [psychologists, rates] = await Promise.all([
     prisma.psychologist.findMany({
       where: { isActive: true },
@@ -53,7 +65,10 @@ export async function getFinanceByPsychologist(period: FinancePeriod = "month") 
         appointments: {
           where: {
             status: { in: ["CONFIRMED", "COMPLETED"] },
-            dateTime: { gte: since },
+            dateTime: {
+              ...(range.since ? { gte: range.since } : {}),
+              ...(range.until ? { lte: range.until } : {}),
+            },
           },
           select: {
             payment: {
@@ -105,14 +120,15 @@ export async function getFinanceByPsychologist(period: FinancePeriod = "month") 
 
 export type FinancePsychologist = Awaited<ReturnType<typeof getFinanceByPsychologist>>[number];
 
-export async function getFinanceSummary(period: FinancePeriod = "month") {
-  const since = getPeriodStart(period);
-
+export async function getFinanceSummary(range: FinanceDateRange) {
   const [payments, rates] = await Promise.all([
     prisma.payment.findMany({
       where: {
         status: "APPROVED",
-        paidAt: { gte: since },
+        paidAt: {
+          ...(range.since ? { gte: range.since } : {}),
+          ...(range.until ? { lte: range.until } : {}),
+        },
       },
       select: {
         currency: true,
