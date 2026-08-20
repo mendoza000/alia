@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { prisma } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
-import { getUsdRateMap, paymentToUsd } from "@/lib/exchange-rates";
+import { getLiveUsdRateMap, paymentToUsd } from "@/lib/exchange-rates";
 import { getPayoutSettings } from "@/lib/admin/payout-settings-queries";
 import { isFirstCompletedAppointment } from "@/lib/queries/patient-appointments";
 
@@ -59,7 +59,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     return;
   }
 
-  const rates = await getUsdRateMap();
+  const rates = await getLiveUsdRateMap();
   const exchangeRateToUsd = rates.get(payment.currency.toUpperCase()) ?? null;
 
   const [isFirstAppointment, payoutSettings] = await Promise.all([

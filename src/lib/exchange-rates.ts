@@ -44,6 +44,24 @@ export async function getUsdRateMap(): Promise<Map<string, number>> {
   return map;
 }
 
+/**
+ * Fetches the exchange rate straight from the provider instead of the
+ * daily-cached table, so the rate frozen on a payment at approval time
+ * is as fresh as possible. Falls back to the cached table if the
+ * provider is unreachable, so a transient API outage never blocks a
+ * payment approval.
+ */
+export async function getLiveUsdRateMap(): Promise<Map<string, number>> {
+  try {
+    const rates = await fetchLatestUsdRates();
+    const map = new Map(Object.entries(rates));
+    map.set("USD", 1);
+    return map;
+  } catch {
+    return getUsdRateMap();
+  }
+}
+
 export function toUsd(
   amount: number,
   currency: string,
