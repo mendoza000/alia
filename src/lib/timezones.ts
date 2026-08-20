@@ -4,7 +4,11 @@ import { toCaracasDate } from "@/lib/availability";
 
 export const TIMEZONE_OPTIONS = [
     { value: "America/Bogota", label: "Colombia" },
-    { value: "America/Mexico_City", label: "México" },
+    { value: "America/Mexico_City", label: "México (Centro)" },
+    { value: "America/Cancun", label: "México (Sureste)" },
+    { value: "America/Hermosillo", label: "México (Sonora)" },
+    { value: "America/Mazatlan", label: "México (Pacífico)" },
+    { value: "America/Tijuana", label: "México (Noroeste)" },
     { value: "America/New_York", label: "Estados Unidos (Este)" },
     { value: "America/Chicago", label: "Estados Unidos (Centro)" },
     { value: "America/Denver", label: "Estados Unidos (Montaña)" },

@@ -10,7 +10,7 @@ import { es } from "date-fns/locale";
 import { createManualAppointment } from "@/lib/admin/manual-booking-actions";
 import { getMonthAvailability } from "@/app/(landing)/psicologos/[slug]/actions";
 import type { MonthAvailability } from "@/lib/availability";
-import { TIMEZONE_OPTIONS } from "@/lib/timezones";
+import { TIMEZONE_OPTIONS, formatInTimezone } from "@/lib/timezones";
 import { AvailabilityCalendar } from "@/components/availability/availability-calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,6 +82,14 @@ export function NewManualAppointmentDialog({
 
   const selectedDate = watch("date");
   const selectedTime = watch("time");
+  const selectedTimezone = watch("timezone");
+  const patientLocalTime =
+    selectedDate && selectedTime && selectedTimezone
+      ? formatInTimezone(selectedDate, selectedTime, selectedTimezone)
+      : null;
+  const timezoneLabel = TIMEZONE_OPTIONS.find(
+    tz => tz.value === selectedTimezone,
+  )?.label;
 
   async function loadAvailability(psychologistId: string) {
     setAvailability(null);
@@ -278,6 +286,11 @@ export function NewManualAppointmentDialog({
                   { locale: es },
                 )}{" "}
                 — {selectedTime}
+              </p>
+            )}
+            {patientLocalTime && (
+              <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm font-medium">
+                Para el paciente ({timezoneLabel}): {patientLocalTime}
               </p>
             )}
             {(errors.date || errors.time) && (
