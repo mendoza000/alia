@@ -71,8 +71,11 @@ export default async function FinanzasPage({ searchParams }: Props) {
           <p className="mt-1 text-2xl font-bold">{summary.totalSessions}</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground uppercase tracking-wide">Promedio por sesión</p>
-          <p className="mt-1 text-2xl font-bold">{formatUSD.format(summary.avgSessionUsd)}</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Neto para la empresa</p>
+          <p className="mt-1 text-2xl font-bold">{formatUSD.format(summary.netRevenueUsd)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Recaudado menos comisiones pagadas a psicólogos
+          </p>
         </div>
       </div>
       <p className="text-xs text-muted-foreground">

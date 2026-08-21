@@ -135,6 +135,7 @@ export async function getFinanceSummary(range: FinanceDateRange) {
         finalAmount: true,
         discountAmount: true,
         exchangeRateToUsd: true,
+        payoutAmountUsd: true,
       },
     }),
     getUsdRateMap(),
@@ -150,7 +151,15 @@ export async function getFinanceSummary(range: FinanceDateRange) {
     (sum, p) => sum + paymentToUsd(p.discountAmount, p.currency, p.exchangeRateToUsd, rates),
     0,
   );
-  const avgSessionUsd = totalSessions > 0 ? totalRevenueUsd / totalSessions : 0;
+  const totalOwedUsd = payments.reduce((sum, p) => sum + (p.payoutAmountUsd ?? 0), 0);
+  const netRevenueUsd = totalRevenueUsd - totalOwedUsd;
 
-  return { totalRevenueByCurrency, totalRevenueUsd, totalSessions, totalDiscountsUsd, avgSessionUsd };
+  return {
+    totalRevenueByCurrency,
+    totalRevenueUsd,
+    totalSessions,
+    totalDiscountsUsd,
+    totalOwedUsd,
+    netRevenueUsd,
+  };
 }
