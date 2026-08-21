@@ -9,6 +9,9 @@ import {
   sendPaymentLinkEmail,
 } from "@/lib/admin/payment-actions";
 import { formatCurrencyAmount, suggestCurrencyFromCountry } from "@/lib/currency";
+import { PAYOUT_TYPES, PAYOUT_TYPE_LABELS, getPayoutTypeRate } from "@/lib/payout-type";
+import type { PayoutSettings } from "@/lib/admin/payout-settings-queries";
+import type { PayoutType } from "@/generated/prisma/enums";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CopyLinkButton } from "@/components/ui/copy-link-button";
@@ -34,12 +37,14 @@ export function GeneratePaymentLinkDialog({
   appointmentId,
   patientCountry,
   availableCurrencies,
+  commissionRates,
   open,
   onOpenChange,
 }: {
   appointmentId: string;
   patientCountry: string | null;
   availableCurrencies: string[];
+  commissionRates: PayoutSettings;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -49,6 +54,7 @@ export function GeneratePaymentLinkDialog({
     if (availableCurrencies.includes("USD")) return "USD";
     return availableCurrencies[0];
   });
+  const [payoutType, setPayoutType] = useState<PayoutType | undefined>(undefined);
   const [url, setUrl] = useState<string | null>(null);
   const [useCustomAmount, setUseCustomAmount] = useState(false);
   const [customAmount, setCustomAmount] = useState("");
@@ -70,10 +76,12 @@ export function GeneratePaymentLinkDialog({
   }
 
   function handleGenerate() {
+    if (!payoutType) return;
     startTransition(async () => {
       const result = await generatePaymentLink(
         appointmentId,
         currency,
+        payoutType,
         parsedCustomAmount,
       );
       setConfirming(false);
@@ -88,10 +96,12 @@ export function GeneratePaymentLinkDialog({
   }
 
   function handleSendEmail() {
+    if (!payoutType) return;
     startTransition(async () => {
       const result = await sendPaymentLinkEmail(
         appointmentId,
         currency,
+        payoutType,
         parsedCustomAmount,
       );
       if (result.success) {
@@ -118,6 +128,7 @@ export function GeneratePaymentLinkDialog({
           setUseCustomAmount(false);
           setCustomAmount("");
           setConfirming(false);
+          setPayoutType(undefined);
         }
       }}
     >
@@ -127,7 +138,7 @@ export function GeneratePaymentLinkDialog({
           <DialogDescription>
             {confirming
               ? "Verifica el monto antes de generar el link."
-              : "Elige la moneda en la que se le va a cobrar a la persona."}
+              : "Elige la moneda y la comisión que aplica para esta sesión."}
           </DialogDescription>
         </DialogHeader>
 
@@ -152,6 +163,26 @@ export function GeneratePaymentLinkDialog({
                 {availableCurrencies.map((c) => (
                   <SelectItem key={c} value={c}>
                     {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              items={PAYOUT_TYPES.map((t) => ({
+                value: t,
+                label: `${PAYOUT_TYPE_LABELS[t]} (${getPayoutTypeRate(commissionRates, t)}%)`,
+              }))}
+              value={payoutType}
+              onValueChange={(value) => setPayoutType(value as PayoutType | undefined)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecciona qué comisión aplicar" />
+              </SelectTrigger>
+              <SelectContent>
+                {PAYOUT_TYPES.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {PAYOUT_TYPE_LABELS[t]} ({getPayoutTypeRate(commissionRates, t)}%)
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -215,7 +246,7 @@ export function GeneratePaymentLinkDialog({
             <Button
               onClick={handleGenerateClick}
               isLoading={isPending}
-              disabled={isCustomAmountInvalid}
+              disabled={isCustomAmountInvalid || !payoutType}
             >
               <CreditCard />
               Generar

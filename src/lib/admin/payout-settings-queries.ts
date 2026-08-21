@@ -10,6 +10,8 @@ export async function getPayoutSettings() {
     return {
         newClientRatePercent: settings?.newClientRatePercent ?? 27,
         recurringClientRatePercent: settings?.recurringClientRatePercent ?? 54,
+        loyalRatePercent: settings?.loyalRatePercent ?? 54,
+        loyalNewRatePercent: settings?.loyalNewRatePercent ?? 27,
     };
 }
 

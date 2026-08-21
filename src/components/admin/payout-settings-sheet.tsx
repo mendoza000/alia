@@ -43,8 +43,8 @@ export function PayoutSettingsSheet({
           </SheetTitle>
           <SheetDescription>
             Define qué porcentaje del monto cobrado se le paga a cada
-            psicólogo, según sea la primera cita del paciente o una
-            recurrente. Los pagos ya aprobados no cambian.
+            psicólogo según el tipo de comisión elegido al generar el link
+            de pago. Los pagos ya aprobados no cambian automáticamente.
           </SheetDescription>
         </SheetHeader>
         <div className="flex-1 overflow-y-auto px-4">

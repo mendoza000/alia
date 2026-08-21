@@ -22,6 +22,7 @@ import {
 import { sendPaymentLinkEmail } from "@/lib/admin/payment-actions";
 import { formatCurrencyAmount } from "@/lib/currency";
 import type { AppointmentRow } from "@/lib/admin/appointment-queries";
+import type { PayoutSettings } from "@/lib/admin/payout-settings-queries";
 import { AppointmentStatusBadge } from "@/components/admin/appointment-status-badge";
 import { PaymentStatusBadge } from "@/components/admin/payment-status-badge";
 import { GeneratePaymentLinkDialog } from "@/components/admin/generate-payment-link-dialog";
@@ -232,9 +233,11 @@ function AppointmentRow({
 export function AppointmentsTable({
   appointments,
   availableCurrencies,
+  commissionRates,
 }: {
   appointments: AppointmentRow[];
   availableCurrencies: string[];
+  commissionRates: PayoutSettings;
 }) {
   const [activeAppointment, setActiveAppointment] = useState<AppointmentRow | null>(
     null,
@@ -279,6 +282,7 @@ export function AppointmentsTable({
           appointmentId={activeAppointment.id}
           patientCountry={activeAppointment.patientCountry}
           availableCurrencies={availableCurrencies}
+          commissionRates={commissionRates}
           open={!!activeAppointment}
           onOpenChange={(v) => !v && setActiveAppointment(null)}
         />

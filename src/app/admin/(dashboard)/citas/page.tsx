@@ -6,6 +6,7 @@ import {
 } from "@/lib/admin/appointment-queries";
 import { getAllPsychologists } from "@/lib/admin/psychologist-queries";
 import { getAllRates } from "@/lib/admin/payment-rate-queries";
+import { getPayoutSettings } from "@/lib/admin/payout-settings-queries";
 import { AppointmentsTable } from "@/components/admin/appointments-table";
 import { AppointmentsFilters } from "@/components/admin/appointments-filters";
 import { NewManualAppointmentDialog } from "@/components/admin/new-manual-appointment-dialog";
@@ -31,10 +32,11 @@ export default async function CitasPage({ searchParams }: Props) {
     dateTo: params.dateTo,
   };
 
-  const [appointments, psychologists, rates] = await Promise.all([
+  const [appointments, psychologists, rates, commissionRates] = await Promise.all([
     getAllAppointments(filters),
     getAllPsychologists(),
     getAllRates(),
+    getPayoutSettings(),
   ]);
 
   const psychologistOptions = psychologists.map((p) => ({
@@ -65,6 +67,7 @@ export default async function CitasPage({ searchParams }: Props) {
       <AppointmentsTable
         appointments={appointments}
         availableCurrencies={availableCurrencies}
+        commissionRates={commissionRates}
       />
     </div>
   );

@@ -62,17 +62,26 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const rates = await getLiveUsdRateMap();
   const exchangeRateToUsd = rates.get(payment.currency.toUpperCase()) ?? null;
 
-  const [isFirstAppointment, payoutSettings] = await Promise.all([
-    isFirstCompletedAppointment(
-      payment.appointment.userId,
-      payment.appointment.psychologistId,
-      payment.appointment.dateTime,
-    ),
-    getPayoutSettings(),
-  ]);
-  const payoutRatePercent = isFirstAppointment
-    ? payoutSettings.newClientRatePercent
-    : payoutSettings.recurringClientRatePercent;
+  // La comisión ya se elige manualmente al generar el link (payment.payoutType /
+  // payment.payoutRatePercent quedan congelados en ese momento). El fallback abajo
+  // solo cubre links generados antes de este cambio, que quedaron sin esos campos.
+  let payoutRatePercent = payment.payoutRatePercent;
+  let isFirstAppointment: boolean | null = payment.isFirstAppointment;
+  if (payoutRatePercent == null) {
+    const [autoIsFirstAppointment, payoutSettings] = await Promise.all([
+      isFirstCompletedAppointment(
+        payment.appointment.userId,
+        payment.appointment.psychologistId,
+        payment.appointment.dateTime,
+      ),
+      getPayoutSettings(),
+    ]);
+    isFirstAppointment = autoIsFirstAppointment;
+    payoutRatePercent = autoIsFirstAppointment
+      ? payoutSettings.newClientRatePercent
+      : payoutSettings.recurringClientRatePercent;
+  }
+
   const finalAmountUsd = paymentToUsd(
     payment.finalAmount,
     payment.currency,

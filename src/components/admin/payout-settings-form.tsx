@@ -50,19 +50,35 @@ export function PayoutSettingsForm({
     <FormProvider {...methods}>
       <form id={formId} onSubmit={handleSubmit(onSubmit)} className="grid gap-5">
         <FormInput
-          name="newClientRatePercent"
-          label="% cita nueva (primera vez)"
+          name="recurringClientRatePercent"
+          label="Comisión recurrente"
           type="number"
           step="0.1"
-          description="Porcentaje del monto cobrado que se le paga al psicólogo en la primera cita de un paciente"
+          description="Porcentaje del monto cobrado que se le paga al psicólogo por un paciente recurrente"
         />
 
         <FormInput
-          name="recurringClientRatePercent"
-          label="% cita recurrente"
+          name="newClientRatePercent"
+          label="Comisión nuevo"
           type="number"
           step="0.1"
-          description="Porcentaje del monto cobrado que se le paga al psicólogo desde la segunda cita en adelante"
+          description="Porcentaje del monto cobrado que se le paga al psicólogo por un paciente nuevo"
+        />
+
+        <FormInput
+          name="loyalRatePercent"
+          label="Comisión leal"
+          type="number"
+          step="0.1"
+          description="Porcentaje del monto cobrado que se le paga al psicólogo por un paciente leal"
+        />
+
+        <FormInput
+          name="loyalNewRatePercent"
+          label="Comisión leal nuevo"
+          type="number"
+          step="0.1"
+          description="Porcentaje del monto cobrado que se le paga al psicólogo por un paciente leal nuevo"
         />
 
         {renderActions && (

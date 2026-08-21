@@ -189,6 +189,7 @@ model Payment {
   coupon                  Coupon?       @relation(fields: [couponId], references: [id])
   paidAt                  DateTime?
   isFirstAppointment      Boolean?
+  payoutType              PayoutType?
   payoutRatePercent       Float?
   payoutAmountUsd         Float?
   createdAt               DateTime      @default(now())
@@ -203,6 +204,13 @@ enum PaymentStatus {
   APPROVED
   REJECTED
   VOIDED
+}
+
+enum PayoutType {
+  RECURRING
+  NEW
+  LOYAL
+  LOYAL_NEW
 }
 
 model PaymentRate {
@@ -238,6 +246,8 @@ model PayoutSettings {
   id                         String   @id @default("singleton")
   newClientRatePercent       Float    @default(27)
   recurringClientRatePercent Float    @default(54)
+  loyalRatePercent           Float    @default(54)
+  loyalNewRatePercent        Float    @default(27)
   updatedAt                  DateTime @updatedAt
 
   @@map("payout_settings")

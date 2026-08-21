@@ -23,10 +23,14 @@ export async function updatePayoutSettings(
                 id: SETTINGS_ID,
                 newClientRatePercent: validated.newClientRatePercent,
                 recurringClientRatePercent: validated.recurringClientRatePercent,
+                loyalRatePercent: validated.loyalRatePercent,
+                loyalNewRatePercent: validated.loyalNewRatePercent,
             },
             update: {
                 newClientRatePercent: validated.newClientRatePercent,
                 recurringClientRatePercent: validated.recurringClientRatePercent,
+                loyalRatePercent: validated.loyalRatePercent,
+                loyalNewRatePercent: validated.loyalNewRatePercent,
             },
         });
 

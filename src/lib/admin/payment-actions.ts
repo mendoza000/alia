@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { createPaymentCheckoutSession, stripe } from "@/lib/stripe";
 import { sendPaymentRequestEmail } from "@/lib/email";
+import { getPayoutSettings } from "@/lib/admin/payout-settings-queries";
+import { getPayoutTypeRate } from "@/lib/payout-type";
+import { getUsdRateMap, paymentToUsd } from "@/lib/exchange-rates";
+import type { PayoutType } from "@/generated/prisma/enums";
 
 type ActionResult = { success: true } | { success: false; error: string };
 
@@ -14,6 +18,7 @@ function getBaseUrl() {
 async function resolveCheckoutUrl(
   appointmentId: string,
   currency: string,
+  payoutType: PayoutType,
   customAmount?: number,
 ): Promise<{ success: true; url: string } | { success: false; error: string }> {
   const appointment = await prisma.appointment.findUnique({
@@ -51,6 +56,8 @@ async function resolveCheckoutUrl(
   }
 
   const amount = customAmount ?? rate.amount;
+  const payoutSettings = await getPayoutSettings();
+  const payoutRatePercent = getPayoutTypeRate(payoutSettings, payoutType);
 
   const existing = appointment.payment;
   if (
@@ -63,6 +70,12 @@ async function resolveCheckoutUrl(
       existing.stripeCheckoutSessionId,
     );
     if (session.status === "open" && existing.stripeCheckoutUrl) {
+      if (existing.payoutType !== payoutType || existing.payoutRatePercent !== payoutRatePercent) {
+        await prisma.payment.update({
+          where: { appointmentId },
+          data: { payoutType, payoutRatePercent },
+        });
+      }
       return { success: true, url: existing.stripeCheckoutUrl };
     }
   }
@@ -86,6 +99,8 @@ async function resolveCheckoutUrl(
       status: "PENDING",
       stripeCheckoutSessionId: sessionId,
       stripeCheckoutUrl: url,
+      payoutType,
+      payoutRatePercent,
     },
     update: {
       currency,
@@ -96,6 +111,8 @@ async function resolveCheckoutUrl(
       stripeCheckoutSessionId: sessionId,
       stripeCheckoutUrl: url,
       couponId: null,
+      payoutType,
+      payoutRatePercent,
     },
   });
 
@@ -105,10 +122,11 @@ async function resolveCheckoutUrl(
 export async function generatePaymentLink(
   appointmentId: string,
   currency: string,
+  payoutType: PayoutType,
   customAmount?: number,
 ): Promise<ActionResult & { url?: string }> {
   try {
-    const result = await resolveCheckoutUrl(appointmentId, currency, customAmount);
+    const result = await resolveCheckoutUrl(appointmentId, currency, payoutType, customAmount);
     if (!result.success) return result;
 
     revalidatePath("/admin/citas", "layout");
@@ -123,10 +141,23 @@ export async function generatePaymentLink(
 export async function sendPaymentLinkEmail(
   appointmentId: string,
   currency: string,
+  payoutType?: PayoutType,
   customAmount?: number,
 ): Promise<ActionResult> {
   try {
-    const result = await resolveCheckoutUrl(appointmentId, currency, customAmount);
+    let effectivePayoutType = payoutType;
+    if (!effectivePayoutType) {
+      const existing = await prisma.payment.findUnique({
+        where: { appointmentId },
+        select: { payoutType: true },
+      });
+      if (!existing?.payoutType) {
+        return { success: false, error: "Debes elegir la comisión antes de generar el link" };
+      }
+      effectivePayoutType = existing.payoutType;
+    }
+
+    const result = await resolveCheckoutUrl(appointmentId, currency, effectivePayoutType, customAmount);
     if (!result.success) return result;
 
     const payment = await prisma.payment.findUnique({
@@ -148,5 +179,42 @@ export async function sendPaymentLinkEmail(
   } catch (err) {
     if (err instanceof Error) return { success: false, error: err.message };
     return { success: false, error: "No se pudo enviar el correo" };
+  }
+}
+
+export async function updatePaymentCommission(
+  paymentId: string,
+  payoutType: PayoutType,
+): Promise<ActionResult> {
+  try {
+    const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
+    if (!payment) return { success: false, error: "Pago no encontrado" };
+
+    const payoutSettings = await getPayoutSettings();
+    const payoutRatePercent = getPayoutTypeRate(payoutSettings, payoutType);
+
+    let payoutAmountUsd = payment.payoutAmountUsd;
+    if (payment.status === "APPROVED" && payment.exchangeRateToUsd != null) {
+      const rates = await getUsdRateMap();
+      const finalAmountUsd = paymentToUsd(
+        payment.finalAmount,
+        payment.currency,
+        payment.exchangeRateToUsd,
+        rates,
+      );
+      payoutAmountUsd = finalAmountUsd * (payoutRatePercent / 100);
+    }
+
+    await prisma.payment.update({
+      where: { id: paymentId },
+      data: { payoutType, payoutRatePercent, payoutAmountUsd },
+    });
+
+    revalidatePath("/admin/pagos", "layout");
+    revalidatePath("/admin/citas", "layout");
+    return { success: true };
+  } catch (err) {
+    if (err instanceof Error) return { success: false, error: err.message };
+    return { success: false, error: "No se pudo actualizar la comisión" };
   }
 }
