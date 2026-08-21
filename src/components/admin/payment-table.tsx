@@ -5,12 +5,21 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Mail } from "lucide-react";
 import { toast } from "sonner";
-import { sendPaymentLinkEmail } from "@/lib/admin/payment-actions";
+import { sendPaymentLinkEmail, updatePaymentCommission } from "@/lib/admin/payment-actions";
 import { formatCurrencyAmount, formatUSD } from "@/lib/currency";
+import { PAYOUT_TYPES, PAYOUT_TYPE_LABELS, getPayoutTypeRate } from "@/lib/payout-type";
+import type { PayoutSettings } from "@/lib/admin/payout-settings-queries";
 import type { PaymentRow } from "@/lib/admin/payment-queries";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CopyLinkButton } from "@/components/ui/copy-link-button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -19,7 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { PaymentStatus } from "@/generated/prisma/enums";
+import type { PaymentStatus, PayoutType } from "@/generated/prisma/enums";
 
 type PaymentRowWithUsd = PaymentRow & { finalAmountUsd: number };
 
@@ -42,16 +51,40 @@ const statusConfig: Record<PaymentStatus, { label: string; className: string }> 
   },
 };
 
-function PaymentTableRow({ payment: p }: { payment: PaymentRowWithUsd }) {
+function PaymentTableRow({
+  payment: p,
+  commissionRates,
+}: {
+  payment: PaymentRowWithUsd;
+  commissionRates: PayoutSettings;
+}) {
   const [isPending, startTransition] = useTransition();
+  const [isSavingCommission, startCommissionTransition] = useTransition();
   const config = statusConfig[p.status];
   const hasUsableLink = p.status === "PENDING" && p.stripeCheckoutUrl;
+
+  const psychologistShareUsd =
+    p.payoutAmountUsd ??
+    (p.payoutRatePercent != null ? p.finalAmountUsd * (p.payoutRatePercent / 100) : null);
+  const companyShareUsd =
+    psychologistShareUsd != null ? p.finalAmountUsd - psychologistShareUsd : null;
 
   function handleResend() {
     startTransition(async () => {
       const result = await sendPaymentLinkEmail(p.appointmentId, p.currency);
       if (result.success) {
         toast.success("Correo enviado");
+      } else {
+        toast.error(result.error);
+      }
+    });
+  }
+
+  function handleCommissionChange(payoutType: PayoutType) {
+    startCommissionTransition(async () => {
+      const result = await updatePaymentCommission(p.id, payoutType);
+      if (result.success) {
+        toast.success("Comisión actualizada");
       } else {
         toast.error(result.error);
       }
@@ -91,16 +124,34 @@ function PaymentTableRow({ payment: p }: { payment: PaymentRowWithUsd }) {
         {formatUSD.format(p.finalAmountUsd)}
       </TableCell>
       <TableCell className="text-sm">
-        {p.payoutAmountUsd != null ? (
-          <div>
-            <p className="font-medium">{formatUSD.format(p.payoutAmountUsd)}</p>
-            <p className="text-xs text-muted-foreground">
-              {p.isFirstAppointment ? "Primera cita" : "Recurrente"}
-            </p>
-          </div>
-        ) : (
-          <span className="text-muted-foreground">—</span>
-        )}
+        <div className="space-y-1">
+          <p className="font-medium">
+            {psychologistShareUsd != null ? formatUSD.format(psychologistShareUsd) : "—"}
+          </p>
+          <Select
+            items={PAYOUT_TYPES.map((t) => ({
+              value: t,
+              label: `${PAYOUT_TYPE_LABELS[t]} (${getPayoutTypeRate(commissionRates, t)}%)`,
+            }))}
+            value={p.payoutType ?? undefined}
+            onValueChange={(value) => value && handleCommissionChange(value as PayoutType)}
+            disabled={isSavingCommission}
+          >
+            <SelectTrigger className="h-7 w-full text-xs">
+              <SelectValue placeholder="Sin comisión" />
+            </SelectTrigger>
+            <SelectContent>
+              {PAYOUT_TYPES.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {PAYOUT_TYPE_LABELS[t]} ({getPayoutTypeRate(commissionRates, t)}%)
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </TableCell>
+      <TableCell className="text-sm">
+        {companyShareUsd != null ? formatUSD.format(companyShareUsd) : "—"}
       </TableCell>
       <TableCell>
         {p.coupon ? (
@@ -141,7 +192,13 @@ function PaymentTableRow({ payment: p }: { payment: PaymentRowWithUsd }) {
   );
 }
 
-export function PaymentTable({ payments }: { payments: PaymentRowWithUsd[] }) {
+export function PaymentTable({
+  payments,
+  commissionRates,
+}: {
+  payments: PaymentRowWithUsd[];
+  commissionRates: PayoutSettings;
+}) {
   if (payments.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-12">
@@ -163,6 +220,7 @@ export function PaymentTable({ payments }: { payments: PaymentRowWithUsd[] }) {
             <TableHead>Total</TableHead>
             <TableHead>Total (USD)</TableHead>
             <TableHead>Debido al psicólogo</TableHead>
+            <TableHead>Para la empresa</TableHead>
             <TableHead>Cupón</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead>Fecha pago</TableHead>
@@ -171,7 +229,7 @@ export function PaymentTable({ payments }: { payments: PaymentRowWithUsd[] }) {
         </TableHeader>
         <TableBody>
           {payments.map((p) => (
-            <PaymentTableRow key={p.id} payment={p} />
+            <PaymentTableRow key={p.id} payment={p} commissionRates={commissionRates} />
           ))}
         </TableBody>
       </Table>

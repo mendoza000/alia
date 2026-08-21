@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import type { PaymentStatus } from "@/generated/prisma/enums";
 import { getAllPayments, type PaymentFilters } from "@/lib/admin/payment-queries";
 import { getAllPsychologists } from "@/lib/admin/psychologist-queries";
+import { getPayoutSettings } from "@/lib/admin/payout-settings-queries";
 import { PaymentTable } from "@/components/admin/payment-table";
 import { PaymentsFilters } from "@/components/admin/payments-filters";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,10 +28,11 @@ export default async function PagosPage({ searchParams }: Props) {
     dateTo: params.dateTo,
   };
 
-  const [payments, psychologists, rates] = await Promise.all([
+  const [payments, psychologists, rates, commissionRates] = await Promise.all([
     getAllPayments(filters),
     getAllPsychologists(),
     getUsdRateMap(),
+    getPayoutSettings(),
   ]);
 
   const approved = payments.filter((p) => p.status === "APPROVED");
@@ -108,7 +110,7 @@ export default async function PagosPage({ searchParams }: Props) {
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wide">Debido a psicólogos</p>
           <p className="mt-1 text-xl font-bold">{formatUSD.format(totalOwedUsd)}</p>
-          <p className="text-xs text-muted-foreground">Según % de cita nueva/recurrente</p>
+          <p className="text-xs text-muted-foreground">Según la comisión elegida por pago</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wide">Total transacciones</p>
@@ -124,7 +126,7 @@ export default async function PagosPage({ searchParams }: Props) {
         <PaymentsFilters psychologists={psychologistOptions} />
       </Suspense>
 
-      <PaymentTable payments={paymentsWithUsd} />
+      <PaymentTable payments={paymentsWithUsd} commissionRates={commissionRates} />
     </div>
   );
 }
