@@ -179,7 +179,7 @@ function AppointmentRow({
               </DropdownMenuItem>
             )}
             {(canComplete || canNoShow || canCancel || canGenerateLink) &&
-              appointment.intakeForm && <DropdownMenuSeparator />}
+              appointment.user.intakeForm && <DropdownMenuSeparator />}
             {canGenerateLink && (
               <>
                 <DropdownMenuItem onClick={handleGenerateLinkClick}>
