@@ -51,7 +51,12 @@ function RestablecerContrasenaContent() {
         });
 
         if (result.error) {
-            setError("El enlace no es válido o ya expiró");
+            console.error("Password reset failed:", result.error);
+            setError(
+                result.error.status === 403
+                    ? "No se pudo restablecer la contraseña por un error de configuración. Contacta soporte."
+                    : "El enlace no es válido o ya expiró",
+            );
             return;
         }
 

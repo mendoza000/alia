@@ -48,7 +48,12 @@ export default function AdminLoginPage() {
         });
 
         if (result.error) {
-            setError("Credenciales incorrectas");
+            console.error("Admin sign-in failed:", result.error);
+            setError(
+                result.error.status === 403
+                    ? "No se pudo iniciar sesión por un error de configuración. Contacta soporte."
+                    : "Credenciales incorrectas",
+            );
             return;
         }
 

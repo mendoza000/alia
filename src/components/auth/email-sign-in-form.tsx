@@ -45,7 +45,12 @@ export function EmailSignInForm({ callbackURL }: { callbackURL?: string }) {
         });
 
         if (result.error) {
-            setError("Correo o contraseña incorrectos");
+            console.error("Email sign-in failed:", result.error);
+            setError(
+                result.error.status === 403
+                    ? "No se pudo iniciar sesión por un error de configuración. Contacta soporte."
+                    : "Correo o contraseña incorrectos",
+            );
             return;
         }
 
