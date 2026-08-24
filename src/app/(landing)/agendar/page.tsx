@@ -8,6 +8,15 @@ import { BookingStepper } from "@/components/booking/booking-stepper";
 import { ActiveAppointmentNotice } from "@/components/booking/active-appointment-notice";
 import { PsychologistGrid } from "./psychologist-grid";
 
+function shuffle<T>(items: T[]): T[] {
+    const shuffled = [...items];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+}
+
 export const metadata: Metadata = {
     title: "Agendar sesión",
     description:
@@ -56,7 +65,7 @@ export default async function AgendarPage() {
 
             {psychologists.length > 0 ? (
                 <PsychologistGrid
-                    psychologists={psychologists}
+                    psychologists={shuffle(psychologists)}
                     globalRate={globalRate}
                 />
             ) : (
