@@ -3,9 +3,7 @@
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import type { Prisma } from "@/generated/prisma/client";
 import { CURRENT_TERMS_VERSION } from "@/lib/legal/terms";
-import { CURRENT_CLINICAL_CONSENT_VERSION } from "@/lib/legal/clinical-consent";
 import { createAppointmentSchema } from "@/lib/validators/appointment";
 import {
     getBlockingAppointments,
@@ -228,35 +226,22 @@ export async function createAppointment(input: {
             });
         });
 
-        // Check if patient has a prior intake form to skip the form step
-        const existingForm = await prisma.intakeForm.findFirst({
+        // Check if the patient already has an intake form to skip the form step —
+        // it's shared across all of their appointments, no need to create another one
+        const existingForm = await prisma.intakeForm.findUnique({
             where: { userId: session.user.id },
-            orderBy: { createdAt: "desc" },
-            select: { data: true },
+            select: { userId: true },
         });
 
         if (existingForm) {
-            const carriedOverData = {
-                ...(existingForm.data as Record<string, unknown>),
-                timezone: data.timezone,
-            };
-
-            await prisma.$transaction([
-                prisma.intakeForm.create({
-                    data: {
-                        appointmentId: appointment.id,
-                        userId: session.user.id,
-                        data: carriedOverData as Prisma.InputJsonValue,
-                        clinicalDataConsentVersion:
-                            CURRENT_CLINICAL_CONSENT_VERSION,
-                        clinicalDataConsentAcceptedAt: new Date(),
-                    },
-                }),
-                prisma.appointment.update({
-                    where: { id: appointment.id },
-                    data: { status: "CONFIRMED", expiresAt: null },
-                }),
-            ]);
+            await prisma.appointment.update({
+                where: { id: appointment.id },
+                data: {
+                    status: "CONFIRMED",
+                    expiresAt: null,
+                    timezone: data.timezone,
+                },
+            });
 
             await confirmAndNotifyAppointment(appointment.id);
 

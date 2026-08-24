@@ -27,7 +27,7 @@ model User {
   sessions     Session[]
   accounts     Account[]
   appointments Appointment[]
-  intakeForms  IntakeForm[]
+  intakeForm   IntakeForm?
 
   @@map("user")
 }
@@ -133,11 +133,12 @@ model Appointment {
   termsVersion    String?
   termsAcceptedAt DateTime?
   finalizedAt     DateTime?
+  timezone        String?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
-  intakeForm IntakeForm?
-  payment    Payment?
+  intakeFormOrigin IntakeForm? @relation("IntakeFormOrigin")
+  payment          Payment?
 
   @@index([userId])
   @@index([psychologistId])
@@ -155,19 +156,18 @@ enum AppointmentStatus {
 }
 
 model IntakeForm {
-  id                             String      @id @default(cuid())
-  appointmentId                  String      @unique
-  appointment                    Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-  userId                         String
-  user                           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                             String       @id @default(cuid())
+  appointmentId                  String?      @unique
+  appointment                    Appointment? @relation("IntakeFormOrigin", fields: [appointmentId], references: [id], onDelete: SetNull)
+  userId                         String       @unique
+  user                           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   data                           Json
   clinicalDataConsentVersion     String?
   clinicalDataConsentAcceptedAt  DateTime?
   clinicalDataRedactedAt         DateTime?
-  createdAt                      DateTime    @default(now())
-  updatedAt                      DateTime    @updatedAt
+  createdAt                      DateTime     @default(now())
+  updatedAt                      DateTime     @updatedAt
 
-  @@index([userId])
   @@map("intake_form")
 }
 

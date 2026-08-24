@@ -14,11 +14,18 @@ export async function GET() {
   const intakeForms = await prisma.intakeForm.findMany({
     orderBy: { createdAt: "desc" },
     include: {
-      user: { select: { name: true, email: true } },
-      appointment: {
+      user: {
         select: {
-          dateTime: true,
-          psychologist: { select: { name: true } },
+          name: true,
+          email: true,
+          appointments: {
+            orderBy: { dateTime: "desc" },
+            take: 1,
+            select: {
+              dateTime: true,
+              psychologist: { select: { name: true } },
+            },
+          },
         },
       },
     },
@@ -49,11 +56,12 @@ export async function GET() {
 
   const rows = intakeForms.map((f) => {
     const data = f.data as unknown as IntakeFormData;
+    const appointment = f.user.appointments[0];
     return [
       escape(f.user.name),
       escape(f.user.email),
-      escape(f.appointment.psychologist.name),
-      escape(format(f.appointment.dateTime, "yyyy-MM-dd HH:mm")),
+      escape(appointment?.psychologist.name),
+      escape(appointment ? format(appointment.dateTime, "yyyy-MM-dd HH:mm") : ""),
       escape(format(f.createdAt, "yyyy-MM-dd HH:mm")),
       escape(data.phone),
       escape(data.dateOfBirth),

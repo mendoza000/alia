@@ -43,7 +43,6 @@ export default async function ConfirmationPage({
             psychologist: {
                 select: { name: true, sessionDuration: true },
             },
-            intakeForm: { select: { data: true } },
         },
     });
 
@@ -60,9 +59,7 @@ export default async function ConfirmationPage({
     const country = headersList.get("x-vercel-ip-country");
     const rate = await getPublicDisplayRate(country);
 
-    const patientTimezone =
-        (appointment.intakeForm?.data as { timezone?: string } | null)
-            ?.timezone ?? "America/Bogota";
+    const patientTimezone = appointment.timezone ?? "America/Bogota";
     const dateTimeInPatientTz = new TZDate(
         appointment.dateTime,
         patientTimezone,

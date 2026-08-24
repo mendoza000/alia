@@ -142,6 +142,7 @@ export async function createManualAppointment(
           endTime: slotEnd,
           status: "CONFIRMED",
           notes: input.notes || null,
+          timezone: input.timezone,
         },
       });
     });
@@ -153,19 +154,26 @@ export async function createManualAppointment(
     throw error;
   }
 
-  await prisma.intakeForm.create({
-    data: {
-      appointmentId,
-      userId: patientId,
-      data: {
-        fullName: input.patientName,
-        email: input.patientEmail,
-        timezone: input.timezone,
-        consultationReason:
-          input.notes || "Cita agendada manualmente por el equipo de ALIA.",
-      },
-    },
+  const existingForm = await prisma.intakeForm.findUnique({
+    where: { userId: patientId },
+    select: { userId: true },
   });
+
+  if (!existingForm) {
+    await prisma.intakeForm.create({
+      data: {
+        appointmentId,
+        userId: patientId,
+        data: {
+          fullName: input.patientName,
+          email: input.patientEmail,
+          timezone: input.timezone,
+          consultationReason:
+            input.notes || "Cita agendada manualmente por el equipo de ALIA.",
+        },
+      },
+    });
+  }
 
   await confirmAndNotifyAppointment(appointmentId);
 

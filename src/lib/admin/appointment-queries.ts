@@ -30,7 +30,15 @@ export async function getAllAppointments(filters: AppointmentFilters = {}) {
     where,
     orderBy: { dateTime: "desc" },
     include: {
-      user: { select: { id: true, name: true, email: true, image: true } },
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+          intakeForm: { select: { id: true } },
+        },
+      },
       psychologist: { select: { id: true, name: true, photoUrl: true } },
       payment: {
         select: {
@@ -42,7 +50,6 @@ export async function getAllAppointments(filters: AppointmentFilters = {}) {
           stripeCheckoutUrl: true,
         },
       },
-      intakeForm: { select: { id: true } },
     },
   });
 }
@@ -53,10 +60,17 @@ export async function getAppointmentById(id: string) {
   return prisma.appointment.findUnique({
     where: { id },
     include: {
-      user: { select: { id: true, name: true, email: true, image: true } },
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+          intakeForm: true,
+        },
+      },
       psychologist: { select: { id: true, name: true, photoUrl: true, specialty: true } },
       payment: true,
-      intakeForm: true,
     },
   });
 }

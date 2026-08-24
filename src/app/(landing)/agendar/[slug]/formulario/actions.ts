@@ -3,7 +3,7 @@
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import type { Prisma } from "@/generated/prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 import {
     intakeFormSchema,
     type IntakeFormData,
@@ -70,22 +70,43 @@ export async function submitIntakeForm(input: {
         };
     }
 
-    // 4. Create IntakeForm + update appointment status in transaction
-    await prisma.$transaction([
-        prisma.intakeForm.create({
-            data: {
-                appointmentId: input.appointmentId,
-                userId: session.user.id,
-                data: validatedData as Prisma.InputJsonValue,
-                clinicalDataConsentVersion: CURRENT_CLINICAL_CONSENT_VERSION,
-                clinicalDataConsentAcceptedAt: new Date(),
-            },
-        }),
-        prisma.appointment.update({
+    // 4. Create the patient's single IntakeForm + confirm the appointment in a transaction
+    const timezone =
+        typeof validatedData.timezone === "string"
+            ? validatedData.timezone
+            : undefined;
+
+    try {
+        await prisma.$transaction([
+            prisma.intakeForm.create({
+                data: {
+                    appointmentId: input.appointmentId,
+                    userId: session.user.id,
+                    data: validatedData as Prisma.InputJsonValue,
+                    clinicalDataConsentVersion: CURRENT_CLINICAL_CONSENT_VERSION,
+                    clinicalDataConsentAcceptedAt: new Date(),
+                },
+            }),
+            prisma.appointment.update({
+                where: { id: input.appointmentId },
+                data: { status: "CONFIRMED", expiresAt: null, timezone },
+            }),
+        ]);
+    } catch (error) {
+        // Two tabs submitting at once could both pass the PENDING_FORM check above;
+        // the userId unique constraint is the real guard, so treat that race as success.
+        const isDuplicateForm =
+            error instanceof Prisma.PrismaClientKnownRequestError &&
+            error.code === "P2002" &&
+            (error.meta?.target as string[] | undefined)?.includes("userId");
+
+        if (!isDuplicateForm) throw error;
+
+        await prisma.appointment.update({
             where: { id: input.appointmentId },
-            data: { status: "CONFIRMED", expiresAt: null },
-        }),
-    ]);
+            data: { status: "CONFIRMED", expiresAt: null, timezone },
+        });
+    }
 
     await confirmAndNotifyAppointment(input.appointmentId);
 

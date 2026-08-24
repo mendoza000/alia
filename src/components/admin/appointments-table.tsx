@@ -170,7 +170,7 @@ function AppointmentRow({
             }
           />
           <DropdownMenuContent align="end">
-            {appointment.intakeForm && (
+            {appointment.user.intakeForm && (
               <DropdownMenuItem
                 render={<Link href={`/admin/formularios/${appointment.id}`} />}
               >

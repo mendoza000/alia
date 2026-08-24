@@ -22,17 +22,16 @@ export async function GET(
   const appointment = await prisma.appointment.findUnique({
     where: { id: appointmentId },
     include: {
-      intakeForm: true,
-      user: { select: { name: true, email: true } },
+      user: { select: { name: true, email: true, intakeForm: true } },
       psychologist: { select: { name: true } },
     },
   });
 
-  if (!appointment?.intakeForm) {
+  if (!appointment?.user.intakeForm) {
     return new NextResponse("Formulario no encontrado", { status: 404 });
   }
 
-  const formData = intakeFormSchema.cast(appointment.intakeForm.data, {
+  const formData = intakeFormSchema.cast(appointment.user.intakeForm.data, {
     assert: false,
     stripUnknown: true,
   }) as IntakeFormData;
@@ -43,7 +42,7 @@ export async function GET(
     patientEmail: appointment.user.email,
     psychologistName: appointment.psychologist.name,
     appointmentDate: appointment.dateTime,
-    submittedAt: appointment.intakeForm.createdAt,
+    submittedAt: appointment.user.intakeForm.createdAt,
     data: formData,
   }) as JSX.Element as Parameters<typeof renderToBuffer>[0];
 

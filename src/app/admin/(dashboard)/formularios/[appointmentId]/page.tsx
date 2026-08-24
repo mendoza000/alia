@@ -13,15 +13,15 @@ export default async function FormularioDetailPage({ params }: Props) {
   const appointment = await prisma.appointment.findUnique({
     where: { id: appointmentId },
     include: {
-      intakeForm: true,
-      user: { select: { name: true, email: true } },
+      user: { select: { name: true, email: true, intakeForm: true } },
       psychologist: { select: { name: true } },
     },
   });
 
-  if (!appointment?.intakeForm) notFound();
+  if (!appointment?.user.intakeForm) notFound();
 
-  const formData = appointment.intakeForm.data as unknown as IntakeFormData;
+  const intakeForm = appointment.user.intakeForm;
+  const formData = intakeForm.data as unknown as IntakeFormData;
 
   return (
     <div className="max-w-3xl">
@@ -31,9 +31,9 @@ export default async function FormularioDetailPage({ params }: Props) {
         patientEmail={appointment.user.email}
         psychologistName={appointment.psychologist.name}
         appointmentDate={appointment.dateTime}
-        submittedAt={appointment.intakeForm.createdAt}
+        submittedAt={intakeForm.createdAt}
         data={formData}
-        clinicalDataRedactedAt={appointment.intakeForm.clinicalDataRedactedAt}
+        clinicalDataRedactedAt={intakeForm.clinicalDataRedactedAt}
       />
     </div>
   );

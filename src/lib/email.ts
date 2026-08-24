@@ -52,13 +52,15 @@ async function getAppointmentData(appointmentId: string) {
         select: { name: true, email: true, sessionDuration: true },
       },
       user: { select: { name: true, email: true } },
-      intakeForm: { select: { data: true } },
+      timezone: true,
     },
   });
 }
 
-function formatPatientLocalTime(dateTime: Date, data: unknown): string | null {
-  const timezone = (data as { timezone?: string } | null)?.timezone;
+function formatPatientLocalTime(
+  dateTime: Date,
+  timezone: string | null,
+): string | null {
   if (!timezone || timezone === CARACAS_TZ) return null;
   return format(new TZDate(dateTime, timezone), "EEEE d 'de' MMMM 'a las' h:mm a", {
     locale: es,
@@ -82,13 +84,13 @@ export async function sendAppointmentConfirmation(
   const appointment = await getAppointmentData(appointmentId);
   if (!appointment) return;
 
-  const { psychologist, user, dateTime, intakeForm } = appointment;
+  const { psychologist, user, dateTime, timezone } = appointment;
   const html = await render(
     AppointmentConfirmationEmail({
       patientName: user.name ?? user.email,
       psychologistName: psychologist.name,
       formattedDate: formatAppointmentDate(dateTime),
-      patientLocalTime: formatPatientLocalTime(dateTime, intakeForm?.data),
+      patientLocalTime: formatPatientLocalTime(dateTime, timezone),
       duration: psychologist.sessionDuration,
       appointmentsUrl: `${getBaseUrl()}/mi-cuenta/citas`,
       calendarUrl: buildCalendarUrl(appointmentId),

@@ -17,12 +17,19 @@ export default async function FormulariosPage() {
   const intakeForms = await prisma.intakeForm.findMany({
     orderBy: { createdAt: "desc" },
     include: {
-      user: { select: { name: true, email: true } },
-      appointment: {
+      user: {
         select: {
-          id: true,
-          dateTime: true,
-          psychologist: { select: { name: true } },
+          name: true,
+          email: true,
+          appointments: {
+            orderBy: { dateTime: "desc" },
+            take: 1,
+            select: {
+              id: true,
+              dateTime: true,
+              psychologist: { select: { name: true } },
+            },
+          },
         },
       },
     },
@@ -61,43 +68,52 @@ export default async function FormulariosPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {intakeForms.map((f) => (
-                <TableRow key={f.id}>
-                  <TableCell>
-                    <p className="text-sm font-medium">{f.user.name}</p>
-                    <p className="text-xs text-muted-foreground">{f.user.email}</p>
-                  </TableCell>
-                  <TableCell className="text-sm">{f.appointment.psychologist.name}</TableCell>
-                  <TableCell className="text-sm capitalize">
-                    {format(new Date(f.appointment.dateTime), "d MMM yyyy, HH:mm", {
-                      locale: es,
-                    })}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {format(new Date(f.createdAt), "d MMM yyyy, HH:mm", { locale: es })}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Link href={`/admin/formularios/${f.appointment.id}`}>
-                        <Button variant="ghost" size="icon-sm" title="Ver formulario">
-                          <FileTextIcon className="size-4" />
-                        </Button>
-                      </Link>
-                      <a
-                        href={`/api/admin/formularios/${f.appointment.id}/pdf`}
-                        target="_blank"
-                        title="Exportar PDF"
-                      >
-                        <Button variant="ghost" size="icon-sm">
-                          <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M12 15V3m0 12-4-4m4 4 4-4M2 17l.621 2.485A2 2 0 0 0 4.561 21h14.878a2 2 0 0 0 1.94-1.515L22 17" />
-                          </svg>
-                        </Button>
-                      </a>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {intakeForms.map((f) => {
+                const appointment = f.user.appointments[0];
+                return (
+                  <TableRow key={f.id}>
+                    <TableCell>
+                      <p className="text-sm font-medium">{f.user.name}</p>
+                      <p className="text-xs text-muted-foreground">{f.user.email}</p>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {appointment?.psychologist.name ?? "—"}
+                    </TableCell>
+                    <TableCell className="text-sm capitalize">
+                      {appointment
+                        ? format(new Date(appointment.dateTime), "d MMM yyyy, HH:mm", {
+                            locale: es,
+                          })
+                        : "—"}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {format(new Date(f.createdAt), "d MMM yyyy, HH:mm", { locale: es })}
+                    </TableCell>
+                    <TableCell>
+                      {appointment && (
+                        <div className="flex items-center gap-1">
+                          <Link href={`/admin/formularios/${appointment.id}`}>
+                            <Button variant="ghost" size="icon-sm" title="Ver formulario">
+                              <FileTextIcon className="size-4" />
+                            </Button>
+                          </Link>
+                          <a
+                            href={`/api/admin/formularios/${appointment.id}/pdf`}
+                            target="_blank"
+                            title="Exportar PDF"
+                          >
+                            <Button variant="ghost" size="icon-sm">
+                              <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M12 15V3m0 12-4-4m4 4 4-4M2 17l.621 2.485A2 2 0 0 0 4.561 21h14.878a2 2 0 0 0 1.94-1.515L22 17" />
+                              </svg>
+                            </Button>
+                          </a>
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>

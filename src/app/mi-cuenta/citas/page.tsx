@@ -124,9 +124,7 @@ function AppointmentCard({
         variant: "outline" as const,
     };
 
-    const patientTimezone =
-        (appointment.intakeForm?.data as { timezone?: string } | null)
-            ?.timezone ?? "America/Bogota";
+    const patientTimezone = appointment.timezone ?? "America/Bogota";
     const dateTimeInPatientTz = new TZDate(
         appointment.dateTime,
         patientTimezone,

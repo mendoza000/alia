@@ -15,8 +15,13 @@ export async function updateIntakeForm(
     abortEarly: false,
   });
 
+  const appointment = await prisma.appointment.findUniqueOrThrow({
+    where: { id: appointmentId },
+    select: { userId: true },
+  });
+
   await prisma.intakeForm.update({
-    where: { appointmentId },
+    where: { userId: appointment.userId },
     data: { data: validated },
   });
 
@@ -25,8 +30,15 @@ export async function updateIntakeForm(
 }
 
 export async function deleteIntakeForm(appointmentId: string) {
+  const appointment = await prisma.appointment.findUniqueOrThrow({
+    where: { id: appointmentId },
+    select: { userId: true },
+  });
+
+  // Only the appointment this was deleted from goes back to PENDING_FORM —
+  // the patient's other appointments (past or future) are left untouched.
   await prisma.$transaction([
-    prisma.intakeForm.delete({ where: { appointmentId } }),
+    prisma.intakeForm.delete({ where: { userId: appointment.userId } }),
     prisma.appointment.update({
       where: { id: appointmentId },
       data: {

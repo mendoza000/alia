@@ -15,15 +15,14 @@ export default async function EditarFormularioPage({ params }: Props) {
   const appointment = await prisma.appointment.findUnique({
     where: { id: appointmentId },
     include: {
-      intakeForm: true,
-      user: { select: { name: true } },
+      user: { select: { name: true, intakeForm: true } },
     },
   });
 
-  if (!appointment?.intakeForm) notFound();
+  if (!appointment?.user.intakeForm) notFound();
 
-  const formData = appointment.intakeForm.data as unknown as IntakeFormData;
-  const isRedacted = appointment.intakeForm.clinicalDataRedactedAt !== null;
+  const formData = appointment.user.intakeForm.data as unknown as IntakeFormData;
+  const isRedacted = appointment.user.intakeForm.clinicalDataRedactedAt !== null;
 
   return (
     <div className="max-w-3xl">

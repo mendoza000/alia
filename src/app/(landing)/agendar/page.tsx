@@ -29,13 +29,7 @@ export default async function AgendarPage() {
                     <ActiveAppointmentNotice
                         psychologistName={activeAppointment.psychologist.name}
                         dateTime={activeAppointment.dateTime}
-                        patientTimezone={
-                            (
-                                activeAppointment.intakeForm?.data as {
-                                    timezone?: string;
-                                } | null
-                            )?.timezone
-                        }
+                        patientTimezone={activeAppointment.timezone ?? undefined}
                     />
                 </section>
             );
