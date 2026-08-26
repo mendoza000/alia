@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { TZDate } from "@date-fns/tz";
+import { CARACAS_TZ } from "@/lib/availability";
+import { matchTimezoneOption } from "@/lib/timezones";
 import type { IntakeFormData } from "@/lib/validators/intake-form";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -13,6 +16,7 @@ type IntakeFormDetailProps = {
   patientEmail: string;
   psychologistName: string;
   appointmentDate: Date;
+  patientTimezone: string | null;
   submittedAt: Date;
   data: IntakeFormData;
   clinicalDataRedactedAt: Date | null;
@@ -59,10 +63,14 @@ export function IntakeFormDetail({
   patientEmail,
   psychologistName,
   appointmentDate,
+  patientTimezone,
   submittedAt,
   data,
   clinicalDataRedactedAt,
 }: IntakeFormDetailProps) {
+  const patientTz = patientTimezone ?? "America/Bogota";
+  const patientTzLabel = matchTimezoneOption(patientTz).label;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -112,7 +120,13 @@ export function IntakeFormDetail({
         <div>
           <p className="text-xs text-muted-foreground uppercase tracking-wide">Fecha de sesión</p>
           <p className="font-medium capitalize">
-            {format(appointmentDate, "d 'de' MMMM 'de' yyyy, HH:mm", { locale: es })}
+            {format(new TZDate(appointmentDate, CARACAS_TZ), "d 'de' MMMM 'de' yyyy", { locale: es })}
+          </p>
+          <p className="mt-0.5 text-sm">
+            Psicólogo: {format(new TZDate(appointmentDate, CARACAS_TZ), "HH:mm")} (Caracas)
+          </p>
+          <p className="text-sm">
+            Paciente: {format(new TZDate(appointmentDate, patientTz), "HH:mm")} ({patientTzLabel})
           </p>
         </div>
         <div>

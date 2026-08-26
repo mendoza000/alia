@@ -3,6 +3,9 @@
 import { useState, useTransition } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { TZDate } from "@date-fns/tz";
+import { CARACAS_TZ } from "@/lib/availability";
+import { matchTimezoneOption } from "@/lib/timezones";
 import {
   CheckCircle2,
   CreditCard,
@@ -132,10 +135,17 @@ function AppointmentRow({
       <TableCell className="text-sm">{appointment.psychologist.name}</TableCell>
       <TableCell className="text-sm">
         <p className="font-medium capitalize">
-          {format(new Date(appointment.dateTime), "d MMM yyyy", { locale: es })}
+          {format(new TZDate(appointment.dateTime, CARACAS_TZ), "d MMM yyyy", { locale: es })}
         </p>
         <p className="text-xs text-muted-foreground">
-          {format(new Date(appointment.dateTime), "HH:mm")}
+          Psicólogo: {format(new TZDate(appointment.dateTime, CARACAS_TZ), "HH:mm")}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Paciente: {format(
+            new TZDate(appointment.dateTime, appointment.timezone ?? "America/Bogota"),
+            "HH:mm",
+          )}{" "}
+          ({matchTimezoneOption(appointment.timezone ?? "America/Bogota").label})
         </p>
       </TableCell>
       <TableCell>

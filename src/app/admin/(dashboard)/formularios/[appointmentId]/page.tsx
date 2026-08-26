@@ -31,6 +31,7 @@ export default async function FormularioDetailPage({ params }: Props) {
         patientEmail={appointment.user.email}
         psychologistName={appointment.psychologist.name}
         appointmentDate={appointment.dateTime}
+        patientTimezone={appointment.timezone}
         submittedAt={intakeForm.createdAt}
         data={formData}
         clinicalDataRedactedAt={intakeForm.clinicalDataRedactedAt}

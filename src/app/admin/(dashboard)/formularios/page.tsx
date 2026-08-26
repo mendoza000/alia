@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { TZDate } from "@date-fns/tz";
 import { prisma } from "@/lib/db";
+import { CARACAS_TZ } from "@/lib/availability";
 import { FileTextIcon } from "lucide-react";
 import {
   Table,
@@ -81,13 +83,17 @@ export default async function FormulariosPage() {
                     </TableCell>
                     <TableCell className="text-sm capitalize">
                       {appointment
-                        ? format(new Date(appointment.dateTime), "d MMM yyyy, HH:mm", {
-                            locale: es,
-                          })
+                        ? format(
+                            new TZDate(appointment.dateTime, CARACAS_TZ),
+                            "d MMM yyyy, HH:mm",
+                            { locale: es },
+                          )
                         : "—"}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {format(new Date(f.createdAt), "d MMM yyyy, HH:mm", { locale: es })}
+                      {format(new TZDate(f.createdAt, CARACAS_TZ), "d MMM yyyy, HH:mm", {
+                        locale: es,
+                      })}
                     </TableCell>
                     <TableCell>
                       {appointment && (
