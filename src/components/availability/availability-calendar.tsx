@@ -57,6 +57,8 @@ export function AvailabilityCalendar({
     );
     const [availability, setAvailability] =
         useState<MonthAvailability>(initialAvailability);
+    const [selectedMonthAvailability, setSelectedMonthAvailability] =
+        useState<MonthAvailability>(initialAvailability);
 
     function handleMonthChange(month: Date) {
         const year = month.getFullYear();
@@ -76,6 +78,27 @@ export function AvailabilityCalendar({
         });
     }
 
+    function handleSelect(date: Date | undefined) {
+        setSelectedDate(date);
+        if (!date) return;
+
+        const year = date.getFullYear();
+        const m = date.getMonth() + 1;
+        const key = `${year}-${m}`;
+
+        const cached = cacheRef.current.get(key);
+        if (cached) {
+            setSelectedMonthAvailability(cached);
+            return;
+        }
+
+        startTransition(async () => {
+            const data = await getMonthAvailability(psychologistId, year, m);
+            cacheRef.current.set(key, data);
+            setSelectedMonthAvailability(data);
+        });
+    }
+
     const availableDates: Date[] = [];
     const fullyBookedDates: Date[] = [];
     const noScheduleDates: Date[] = [];
@@ -88,7 +111,8 @@ export function AvailabilityCalendar({
     }
 
     const selectedSlots: TimeSlot[] = selectedDate
-        ? (availability[format(selectedDate, "yyyy-MM-dd")]?.slots ?? [])
+        ? (selectedMonthAvailability[format(selectedDate, "yyyy-MM-dd")]
+              ?.slots ?? [])
         : [];
 
     return (
@@ -112,7 +136,7 @@ export function AvailabilityCalendar({
                         mode="single"
                         required
                         selected={selectedDate}
-                        onSelect={setSelectedDate}
+                        onSelect={handleSelect}
                         onMonthChange={handleMonthChange}
                         locale={es}
                         defaultMonth={new Date(initialYear, initialMonth - 1)}
