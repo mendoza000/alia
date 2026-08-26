@@ -114,6 +114,13 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         data: { currentUses: { increment: 1 } },
       });
     }
+
+    if (payment.appointment.status === "CONFIRMED") {
+      await tx.appointment.update({
+        where: { id: appointmentId },
+        data: { status: "COMPLETED", finalizedAt: new Date() },
+      });
+    }
   });
 }
 

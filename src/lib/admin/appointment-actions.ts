@@ -34,6 +34,24 @@ export async function completeAppointment(appointmentId: string): Promise<Action
   return { success: true };
 }
 
+export async function deleteAppointment(appointmentId: string): Promise<ActionResult> {
+  const appointment = await prisma.appointment.findUnique({
+    where: { id: appointmentId },
+    select: { status: true },
+  });
+
+  if (!appointment) return { success: false, error: "Sesión no encontrada" };
+  if (appointment.status !== "CANCELLED") {
+    return { success: false, error: "Solo se pueden eliminar sesiones canceladas" };
+  }
+
+  await prisma.appointment.delete({ where: { id: appointmentId } });
+
+  revalidatePath("/admin/citas", "layout");
+  revalidatePath("/admin/pagos", "layout");
+  return { success: true };
+}
+
 export async function markNoShow(appointmentId: string): Promise<ActionResult> {
   const appointment = await prisma.appointment.findUnique({
     where: { id: appointmentId },

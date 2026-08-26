@@ -12,6 +12,7 @@ import {
   FileText,
   Mail,
   MoreHorizontal,
+  Trash2,
   UserX,
   XCircle,
 } from "lucide-react";
@@ -22,6 +23,7 @@ import {
   completeAppointment,
   markNoShow,
 } from "@/lib/admin/appointment-actions";
+import { DeleteAppointmentDialog } from "@/components/admin/delete-appointment-dialog";
 import { sendPaymentLinkEmail } from "@/lib/admin/payment-actions";
 import { formatCurrencyAmount } from "@/lib/currency";
 import type { AppointmentRow } from "@/lib/admin/appointment-queries";
@@ -62,16 +64,19 @@ function AppointmentRow({
   appointment,
   hasAvailableCurrencies,
   onGenerateLink,
+  onDeleteClick,
 }: {
   appointment: AppointmentRow;
   hasAvailableCurrencies: boolean;
   onGenerateLink: (appointment: AppointmentRow) => void;
+  onDeleteClick: (appointment: AppointmentRow) => void;
 }) {
   const [, startTransition] = useTransition();
 
   const canComplete = appointment.status === "CONFIRMED";
   const canNoShow = appointment.status === "CONFIRMED";
   const canCancel = !["CANCELLED", "COMPLETED", "NO_SHOW"].includes(appointment.status);
+  const canDelete = appointment.status === "CANCELLED";
   const canGenerateLink = ["CONFIRMED", "COMPLETED", "NO_SHOW"].includes(
     appointment.status,
   );
@@ -188,7 +193,7 @@ function AppointmentRow({
                 Ver formulario
               </DropdownMenuItem>
             )}
-            {(canComplete || canNoShow || canCancel || canGenerateLink) &&
+            {(canComplete || canNoShow || canCancel || canDelete || canGenerateLink) &&
               appointment.user.intakeForm && <DropdownMenuSeparator />}
             {canGenerateLink && (
               <>
@@ -233,6 +238,15 @@ function AppointmentRow({
                 </DropdownMenuItem>
               </>
             )}
+            {canDelete && (
+              <DropdownMenuItem
+                variant="destructive"
+                onClick={() => onDeleteClick(appointment)}
+              >
+                <Trash2 />
+                Eliminar sesión
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>
@@ -250,6 +264,9 @@ export function AppointmentsTable({
   commissionRates: PayoutSettings;
 }) {
   const [activeAppointment, setActiveAppointment] = useState<AppointmentRow | null>(
+    null,
+  );
+  const [deletingAppointment, setDeletingAppointment] = useState<AppointmentRow | null>(
     null,
   );
 
@@ -282,6 +299,7 @@ export function AppointmentsTable({
               appointment={a}
               hasAvailableCurrencies={availableCurrencies.length > 0}
               onGenerateLink={setActiveAppointment}
+              onDeleteClick={setDeletingAppointment}
             />
           ))}
         </TableBody>
@@ -295,6 +313,15 @@ export function AppointmentsTable({
           commissionRates={commissionRates}
           open={!!activeAppointment}
           onOpenChange={(v) => !v && setActiveAppointment(null)}
+        />
+      )}
+
+      {deletingAppointment && (
+        <DeleteAppointmentDialog
+          appointmentId={deletingAppointment.id}
+          patientName={deletingAppointment.user.name}
+          open={!!deletingAppointment}
+          onOpenChange={(v) => !v && setDeletingAppointment(null)}
         />
       )}
     </div>
