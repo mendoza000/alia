@@ -20,6 +20,7 @@ import {
     appointmentsToBusyPeriods,
     toCaracasDate,
     DAILY_CONFIRMED_APPOINTMENT_CAP,
+    MIN_BOOKING_LEAD_MINUTES,
 } from "@/lib/availability";
 import { getDay, addMinutes } from "date-fns";
 
@@ -148,7 +149,12 @@ export async function createAppointment(input: {
         allBusy,
         dateStr,
     );
-    const available = filterPastSlots(afterBusy, dateStr, new Date());
+    const available = filterPastSlots(
+        afterBusy,
+        dateStr,
+        new Date(),
+        MIN_BOOKING_LEAD_MINUTES,
+    );
 
     if (available.length === 0) {
         return {

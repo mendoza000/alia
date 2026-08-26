@@ -7,6 +7,7 @@ import {
     format,
     isBefore,
     startOfDay,
+    addMinutes,
 } from "date-fns";
 import { TZDate } from "@date-fns/tz";
 
@@ -76,14 +77,10 @@ export function filterPastSlots(
     slots: TimeSlot[],
     dateStr: string,
     now: Date,
+    leadMinutes = 0,
 ): TimeSlot[] {
-    const nowInCaracas = new TZDate(now, CARACAS_TZ);
-    const todayStr = format(nowInCaracas, "yyyy-MM-dd");
-
-    if (dateStr !== todayStr) return slots;
-
-    const nowMinutes = nowInCaracas.getHours() * 60 + nowInCaracas.getMinutes();
-    return slots.filter(slot => timeToMinutes(slot.start) > nowMinutes);
+    const cutoff = addMinutes(new TZDate(now, CARACAS_TZ), leadMinutes);
+    return slots.filter(slot => toCaracasDate(dateStr, slot.start) >= cutoff);
 }
 
 // TZDate's string constructor parses the naive string using the runtime's
@@ -113,6 +110,11 @@ export function subtractBusyPeriods(
 }
 
 export const DAILY_CONFIRMED_APPOINTMENT_CAP = 5;
+
+// Psychologists need lead time to notice a new booking and prepare —
+// public booking flows require slots to start at least this far from now.
+// Admin manual bookings are exempt (the admin creates them in real time).
+export const MIN_BOOKING_LEAD_MINUTES = 120;
 
 export function computeMonthAvailability(
     schedules: Schedule[],
@@ -170,7 +172,12 @@ export function computeMonthAvailability(
 
         const allSlots = generateTimeSlots(daySchedules, sessionDuration);
         const afterBusy = subtractBusyPeriods(allSlots, busyPeriods, dateStr);
-        const availableSlots = filterPastSlots(afterBusy, dateStr, now);
+        const availableSlots = filterPastSlots(
+            afterBusy,
+            dateStr,
+            now,
+            MIN_BOOKING_LEAD_MINUTES,
+        );
 
         result[dateStr] = {
             date: dateStr,

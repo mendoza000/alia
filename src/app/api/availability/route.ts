@@ -10,6 +10,7 @@ import {
     filterPastSlots,
     appointmentsToBusyPeriods,
     toCaracasDate,
+    MIN_BOOKING_LEAD_MINUTES,
 } from "@/lib/availability";
 import { getDay, startOfDay, endOfDay } from "date-fns";
 
@@ -73,7 +74,12 @@ export async function GET(request: NextRequest) {
         ...appointmentsToBusyPeriods(appointments),
     ];
     const afterBusy = subtractBusyPeriods(allSlots, allBusy, params.date);
-    const availableSlots = filterPastSlots(afterBusy, params.date, new Date());
+    const availableSlots = filterPastSlots(
+        afterBusy,
+        params.date,
+        new Date(),
+        MIN_BOOKING_LEAD_MINUTES,
+    );
 
     return NextResponse.json({ date: params.date, slots: availableSlots });
 }

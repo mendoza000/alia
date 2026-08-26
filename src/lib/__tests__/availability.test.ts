@@ -239,6 +239,34 @@ describe("filterPastSlots", () => {
         const result = filterPastSlots(slots, "2026-07-06", now);
         expect(result).toEqual([]);
     });
+
+    it("applies a minimum lead time, keeping a slot exactly at the cutoff", () => {
+        const slots = [
+            { start: "13:00", end: "14:00" },
+            { start: "14:00", end: "15:00" },
+        ];
+        // now = 12:00 Caracas, lead = 120min -> cutoff is exactly 14:00
+        const now = new Date(
+            new TZDate(2026, 6, 6, 12, 0, 0, "America/Caracas").getTime(),
+        );
+        const result = filterPastSlots(slots, "2026-07-06", now, 120);
+        expect(result).toHaveLength(1);
+        expect(result[0].start).toBe("14:00");
+    });
+
+    it("excludes a slot that falls just short of the minimum lead time", () => {
+        const slots = [
+            { start: "14:00", end: "15:00" },
+            { start: "15:00", end: "16:00" },
+        ];
+        // now = 12:01 Caracas, lead = 120min -> cutoff is 14:01, so 14:00 is out
+        const now = new Date(
+            new TZDate(2026, 6, 6, 12, 1, 0, "America/Caracas").getTime(),
+        );
+        const result = filterPastSlots(slots, "2026-07-06", now, 120);
+        expect(result).toHaveLength(1);
+        expect(result[0].start).toBe("15:00");
+    });
 });
 
 describe("appointmentsToBusyPeriods", () => {
