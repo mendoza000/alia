@@ -19,6 +19,7 @@ import {
 import { FormDatePicker } from "@/components/form/form-date-picker";
 import { Button } from "@/components/ui/button";
 import { updateIntakeForm } from "@/lib/admin/intake-form-actions";
+import { COUNTRY_OPTIONS } from "@/lib/countries";
 
 export function EditIntakeForm({
   appointmentId,
@@ -93,6 +94,12 @@ export function EditIntakeForm({
             />
             <FormInput name="occupation" label="Ocupación" />
             <FormInput name="religion" label="Religión" />
+            <FormSelect
+              name="country"
+              label="País"
+              placeholder="Selecciona..."
+              options={COUNTRY_OPTIONS}
+            />
           </div>
         </div>
 

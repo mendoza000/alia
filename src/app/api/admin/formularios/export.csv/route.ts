@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { format } from "date-fns";
 import type { IntakeFormData } from "@/lib/validators/intake-form";
+import { getCountryLabel } from "@/lib/countries";
 
 export async function GET() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -42,6 +43,7 @@ export async function GET() {
     "Género",
     "Estado civil",
     "Ocupación",
+    "País",
     "Motivo de la sesión",
     "Tratamiento previo",
     "Medicación",
@@ -68,6 +70,7 @@ export async function GET() {
       escape(data.gender),
       escape(data.maritalStatus),
       escape(data.occupation),
+      escape(getCountryLabel(data.country)),
       escape(data.consultationReason),
       escape(data.previousTherapy),
       escape(data.currentMedication),

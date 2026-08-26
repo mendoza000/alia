@@ -23,6 +23,7 @@ import {
 import { FormDatePicker } from "@/components/form/form-date-picker";
 import { Button } from "@/components/ui/button";
 import { TIMEZONE_OPTIONS } from "@/lib/timezones";
+import { COUNTRY_OPTIONS } from "@/lib/countries";
 import { submitIntakeForm } from "./actions";
 
 function str(v: unknown): string {
@@ -41,6 +42,7 @@ const SECTIONS = [
             "maritalStatus",
             "occupation",
             "religion",
+            "country",
         ],
     },
     { title: "Motivo de la sesión", fields: ["consultationReason"] },
@@ -77,6 +79,7 @@ type IntakeFormFlowProps = {
     priorData: Record<string, unknown> | null;
     expiresAt: string | null;
     confirmedTimezone: string | null;
+    detectedCountry: string | null;
 };
 
 export function IntakeFormFlow({
@@ -87,6 +90,7 @@ export function IntakeFormFlow({
     priorData,
     expiresAt,
     confirmedTimezone,
+    detectedCountry,
 }: IntakeFormFlowProps) {
     const router = useRouter();
     const [currentSection, setCurrentSection] = useState(0);
@@ -131,6 +135,7 @@ export function IntakeFormFlow({
             maritalStatus: str(priorData?.maritalStatus),
             occupation: str(priorData?.occupation),
             religion: str(priorData?.religion),
+            country: str(priorData?.country) || detectedCountry || "CO",
             timezone:
                 confirmedTimezone ||
                 str(priorData?.timezone) ||
@@ -380,6 +385,12 @@ function PersonalDataSection() {
                 />
                 <FormInput name="occupation" label="Ocupación" />
                 <FormInput name="religion" label="Religión" />
+                <FormSelect
+                    name="country"
+                    label="País"
+                    placeholder="Selecciona..."
+                    options={COUNTRY_OPTIONS}
+                />
                 <FormSelect
                     name="timezone"
                     label="¿Desde dónde te conectas?"

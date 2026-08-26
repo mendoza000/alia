@@ -2,6 +2,7 @@ import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import type { IntakeFormData } from "@/lib/validators/intake-form";
+import { getCountryLabel } from "@/lib/countries";
 
 const styles = StyleSheet.create({
     page: {
@@ -203,6 +204,10 @@ export function IntakeFormPDF({
                         />
                         <Field label="Ocupación" value={data.occupation} />
                         <Field label="Religión" value={data.religion} />
+                        <Field
+                            label="País"
+                            value={getCountryLabel(data.country)}
+                        />
                     </View>
                 </View>
 

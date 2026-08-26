@@ -65,6 +65,7 @@ export default async function IntakeFormPage({ params, searchParams }: Props) {
             priorData={priorData}
             expiresAt={appointment.expiresAt?.toISOString() ?? null}
             confirmedTimezone={timezone ?? null}
+            detectedCountry={appointment.patientCountry}
         />
     );
 }

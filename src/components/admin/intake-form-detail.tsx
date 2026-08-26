@@ -4,6 +4,7 @@ import { es } from "date-fns/locale";
 import { TZDate } from "@date-fns/tz";
 import { CARACAS_TZ } from "@/lib/availability";
 import { matchTimezoneOption } from "@/lib/timezones";
+import { getCountryLabel } from "@/lib/countries";
 import type { IntakeFormData } from "@/lib/validators/intake-form";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -161,6 +162,7 @@ export function IntakeFormDetail({
             <Field label="Estado civil" value={data.maritalStatus} />
             <Field label="Ocupación" value={data.occupation} />
             <Field label="Religión" value={data.religion} />
+            <Field label="País" value={getCountryLabel(data.country)} />
           </div>
         </Section>
 

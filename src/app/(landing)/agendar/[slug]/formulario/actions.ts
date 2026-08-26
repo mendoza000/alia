@@ -75,6 +75,10 @@ export async function submitIntakeForm(input: {
         typeof validatedData.timezone === "string"
             ? validatedData.timezone
             : undefined;
+    const patientCountry =
+        typeof validatedData.country === "string"
+            ? validatedData.country
+            : undefined;
 
     try {
         await prisma.$transaction([
@@ -89,7 +93,7 @@ export async function submitIntakeForm(input: {
             }),
             prisma.appointment.update({
                 where: { id: input.appointmentId },
-                data: { status: "CONFIRMED", expiresAt: null, timezone },
+                data: { status: "CONFIRMED", expiresAt: null, timezone, patientCountry },
             }),
         ]);
     } catch (error) {
@@ -104,7 +108,7 @@ export async function submitIntakeForm(input: {
 
         await prisma.appointment.update({
             where: { id: input.appointmentId },
-            data: { status: "CONFIRMED", expiresAt: null, timezone },
+            data: { status: "CONFIRMED", expiresAt: null, timezone, patientCountry },
         });
     }
 
