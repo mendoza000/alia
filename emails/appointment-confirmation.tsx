@@ -17,7 +17,6 @@ interface AppointmentConfirmationEmailProps {
   patientName: string;
   psychologistName: string;
   formattedDate: string;
-  patientLocalTime?: string | null;
   duration: number;
   appointmentsUrl: string;
   calendarUrl: string;
@@ -30,7 +29,6 @@ export function AppointmentConfirmationEmail({
   patientName,
   psychologistName,
   formattedDate,
-  patientLocalTime,
   duration,
   appointmentsUrl,
   calendarUrl,
@@ -78,14 +76,8 @@ export function AppointmentConfirmationEmail({
               <Text style={cardLabel}>Psicólogo</Text>
               <Text style={cardValue}>{psychologistName}</Text>
               <Hr style={divider} />
-              <Text style={cardLabel}>Fecha y hora (Venezuela)</Text>
+              <Text style={cardLabel}>Fecha y hora</Text>
               <Text style={cardValue}>{formattedDate}</Text>
-              {patientLocalTime && (
-                <>
-                  <Text style={cardLabel}>Hora en tu zona horaria</Text>
-                  <Text style={cardValue}>{patientLocalTime}</Text>
-                </>
-              )}
               <Hr style={divider} />
               <Text style={cardLabel}>Duración</Text>
               <Text style={cardValue}>{duration} minutos</Text>

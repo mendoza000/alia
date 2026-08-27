@@ -15,6 +15,7 @@ import { PasswordResetEmail } from "../../emails/password-reset";
 import { VerifyEmail } from "../../emails/verify-email";
 import { prisma } from "@/lib/db";
 import { CARACAS_TZ } from "@/lib/availability";
+import { matchTimezoneOption } from "@/lib/timezones";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = process.env.EMAIL_FROM ?? "ALIA <onboarding@resend.dev>";
@@ -57,14 +58,20 @@ async function getAppointmentData(appointmentId: string) {
   });
 }
 
-function formatPatientLocalTime(
+// Patients must never see the psychologist's (Caracas) time — only their own
+// local time, labeled with their timezone so it's unambiguous.
+function formatPatientAppointmentDate(
   dateTime: Date,
   timezone: string | null,
-): string | null {
-  if (!timezone || timezone === CARACAS_TZ) return null;
-  return format(new TZDate(dateTime, timezone), "EEEE d 'de' MMMM 'a las' h:mm a", {
-    locale: es,
-  });
+): string {
+  const tz = timezone ?? CARACAS_TZ;
+  const label = matchTimezoneOption(tz).label;
+  const formatted = format(
+    new TZDate(dateTime, tz),
+    "EEEE d 'de' MMMM 'a las' h:mm a",
+    { locale: es },
+  );
+  return `${formatted} (Hora ${label})`;
 }
 
 async function getPaymentEmailData(appointmentId: string) {
@@ -72,6 +79,7 @@ async function getPaymentEmailData(appointmentId: string) {
     where: { id: appointmentId },
     select: {
       dateTime: true,
+      timezone: true,
       psychologist: { select: { name: true } },
       user: { select: { name: true, email: true } },
     },
@@ -89,8 +97,7 @@ export async function sendAppointmentConfirmation(
     AppointmentConfirmationEmail({
       patientName: user.name ?? user.email,
       psychologistName: psychologist.name,
-      formattedDate: formatAppointmentDate(dateTime),
-      patientLocalTime: formatPatientLocalTime(dateTime, timezone),
+      formattedDate: formatPatientAppointmentDate(dateTime, timezone),
       duration: psychologist.sessionDuration,
       appointmentsUrl: `${getBaseUrl()}/mi-cuenta/citas`,
       calendarUrl: buildCalendarUrl(appointmentId),
@@ -143,12 +150,12 @@ export async function sendAppointmentReminder(
   const appointment = await getAppointmentData(appointmentId);
   if (!appointment) return;
 
-  const { psychologist, user, dateTime } = appointment;
+  const { psychologist, user, dateTime, timezone } = appointment;
   const html = await render(
     AppointmentReminderEmail({
       patientName: user.name ?? user.email,
       psychologistName: psychologist.name,
-      formattedDate: formatAppointmentDate(dateTime),
+      formattedDate: formatPatientAppointmentDate(dateTime, timezone),
       duration: psychologist.sessionDuration,
       appointmentsUrl: `${getBaseUrl()}/mi-cuenta/citas`,
       calendarUrl: buildCalendarUrl(appointmentId),
@@ -198,12 +205,12 @@ export async function sendAppointmentCancelledPatient(
   const appointment = await getAppointmentData(appointmentId);
   if (!appointment) return;
 
-  const { psychologist, user, dateTime } = appointment;
+  const { psychologist, user, dateTime, timezone } = appointment;
   const html = await render(
     AppointmentCancelledPatientEmail({
       patientName: user.name ?? user.email,
       psychologistName: psychologist.name,
-      formattedDate: formatAppointmentDate(dateTime),
+      formattedDate: formatPatientAppointmentDate(dateTime, timezone),
       scheduleUrl: `${getBaseUrl()}/agendar`,
       logoUrl: LOGO_DARK_URL,
       logoLightUrl: LOGO_LIGHT_URL,
@@ -225,12 +232,12 @@ export async function sendAppointmentRescheduled(
   const appointment = await getAppointmentData(appointmentId);
   if (!appointment) return;
 
-  const { psychologist, user, dateTime } = appointment;
+  const { psychologist, user, dateTime, timezone } = appointment;
   const html = await render(
     AppointmentRescheduledPatientEmail({
       patientName: user.name ?? user.email,
       psychologistName: psychologist.name,
-      formattedDate: formatAppointmentDate(dateTime),
+      formattedDate: formatPatientAppointmentDate(dateTime, timezone),
       duration: psychologist.sessionDuration,
       appointmentsUrl: `${getBaseUrl()}/mi-cuenta/citas`,
       calendarUrl: buildCalendarUrl(appointmentId),
@@ -303,12 +310,12 @@ export async function sendPaymentRequestEmail(
   const appointment = await getPaymentEmailData(appointmentId);
   if (!appointment) return;
 
-  const { psychologist, user, dateTime } = appointment;
+  const { psychologist, user, dateTime, timezone } = appointment;
   const html = await render(
     PaymentRequestEmail({
       patientName: user.name ?? user.email,
       psychologistName: psychologist.name,
-      formattedDate: formatAppointmentDate(dateTime),
+      formattedDate: formatPatientAppointmentDate(dateTime, timezone),
       finalAmount,
       currency,
       paymentUrl,
