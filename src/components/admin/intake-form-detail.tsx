@@ -69,7 +69,7 @@ export function IntakeFormDetail({
   data,
   clinicalDataRedactedAt,
 }: IntakeFormDetailProps) {
-  const patientTz = patientTimezone ?? "America/Bogota";
+  const patientTz = patientTimezone ?? CARACAS_TZ;
   const patientTzLabel = matchTimezoneOption(patientTz).label;
 
   return (

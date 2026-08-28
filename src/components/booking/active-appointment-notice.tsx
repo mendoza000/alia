@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { TZDate } from "@date-fns/tz";
 import { CalendarClockIcon } from "lucide-react";
+import { CARACAS_TZ } from "@/lib/availability";
 
 type ActiveAppointmentNoticeProps = {
     psychologistName: string;
@@ -17,7 +18,7 @@ export function ActiveAppointmentNotice({
 }: ActiveAppointmentNoticeProps) {
     const dateTimeInPatientTz = new TZDate(
         dateTime,
-        patientTimezone ?? "America/Bogota",
+        patientTimezone ?? CARACAS_TZ,
     );
     const formattedDate = format(
         dateTimeInPatientTz,

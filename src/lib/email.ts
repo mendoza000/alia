@@ -11,6 +11,7 @@ import { AppointmentConfirmationEmail } from "../../emails/appointment-confirmat
 import { AppointmentReminderEmail } from "../../emails/appointment-reminder";
 import { AppointmentRescheduledPatientEmail } from "../../emails/appointment-rescheduled-patient";
 import { AppointmentRescheduledPsychologistEmail } from "../../emails/appointment-rescheduled-psychologist";
+import { IntakeFormReminderEmail } from "../../emails/intake-form-reminder";
 import { NewAppointmentNotificationEmail } from "../../emails/new-appointment-notification";
 import { PaymentRequestEmail } from "../../emails/payment-request";
 import { SessionsReportEmail } from "../../emails/sessions-report";
@@ -25,7 +26,7 @@ import { intakeFormSchema, type IntakeFormData } from "@/lib/validators/intake-f
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = process.env.EMAIL_FROM ?? "ALIA <onboarding@resend.dev>";
 
-function getBaseUrl() {
+export function getBaseUrl() {
   return process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
 }
 
@@ -54,8 +55,9 @@ async function getAppointmentData(appointmentId: string) {
     select: {
       dateTime: true,
       endTime: true,
+      expiresAt: true,
       psychologist: {
-        select: { name: true, email: true, sessionDuration: true },
+        select: { name: true, email: true, sessionDuration: true, slug: true },
       },
       user: { select: { name: true, email: true } },
       timezone: true,
@@ -116,6 +118,36 @@ export async function sendAppointmentConfirmation(
     from: FROM,
     to: user.email,
     subject: `Tu sesión con ${psychologist.name} está confirmada`,
+    html,
+  });
+}
+
+export async function sendIntakeFormReminder(
+  appointmentId: string,
+): Promise<void> {
+  const appointment = await getAppointmentData(appointmentId);
+  if (!appointment) return;
+
+  const { psychologist, user, dateTime, timezone, expiresAt } = appointment;
+  const html = await render(
+    IntakeFormReminderEmail({
+      patientName: user.name ?? user.email,
+      psychologistName: psychologist.name,
+      formattedDate: formatPatientAppointmentDate(dateTime, timezone),
+      formattedDeadline: expiresAt
+        ? formatPatientAppointmentDate(expiresAt, timezone)
+        : "en breve",
+      formUrl: `${getBaseUrl()}/agendar/${psychologist.slug}/formulario?appointmentId=${appointmentId}`,
+      logoUrl: LOGO_DARK_URL,
+      logoLightUrl: LOGO_LIGHT_URL,
+      fontUrl: getFontUrl(),
+    }),
+  );
+
+  await resend.emails.send({
+    from: FROM,
+    to: user.email,
+    subject: `Falta un paso para confirmar tu sesión con ${psychologist.name}`,
     html,
   });
 }

@@ -154,15 +154,25 @@ function AppointmentRow({
         </p>
         <p className="text-xs text-muted-foreground">
           Paciente: {format(
-            new TZDate(appointment.dateTime, appointment.timezone ?? "America/Bogota"),
+            new TZDate(appointment.dateTime, appointment.timezone ?? CARACAS_TZ),
             "HH:mm",
           )}{" "}
-          ({matchTimezoneOption(appointment.timezone ?? "America/Bogota").label})
+          ({matchTimezoneOption(appointment.timezone ?? CARACAS_TZ).label})
         </p>
       </TableCell>
       <TableCell>
         <div className="flex flex-wrap items-center gap-1.5">
           <AppointmentStatusBadge status={appointment.status} />
+          {appointment.status === "CONFIRMED" && !appointment.googleEventId && (
+            <Badge
+              variant="outline"
+              className="gap-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+              title="Esta cita está confirmada pero no tiene evento de Google Calendar — probablemente tampoco se enviaron las notificaciones."
+            >
+              <AlertTriangle className="size-3" />
+              Sin calendario
+            </Badge>
+          )}
           {appointment.isException && (
             <Badge
               variant="outline"

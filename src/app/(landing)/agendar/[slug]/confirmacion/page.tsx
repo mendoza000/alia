@@ -6,6 +6,7 @@ import { es } from "date-fns/locale";
 import { TZDate } from "@date-fns/tz";
 import { CalendarPlusIcon, CheckCircle2Icon } from "lucide-react";
 import { auth } from "@/lib/auth";
+import { CARACAS_TZ } from "@/lib/availability";
 import { prisma } from "@/lib/db";
 import { getPublicDisplayRate } from "@/lib/admin/payment-rate-queries";
 import { BookingStepper } from "@/components/booking/booking-stepper";
@@ -59,7 +60,7 @@ export default async function ConfirmationPage({
     const country = headersList.get("x-vercel-ip-country");
     const rate = await getPublicDisplayRate(country);
 
-    const patientTimezone = appointment.timezone ?? "America/Bogota";
+    const patientTimezone = appointment.timezone ?? CARACAS_TZ;
     const dateTimeInPatientTz = new TZDate(
         appointment.dateTime,
         patientTimezone,

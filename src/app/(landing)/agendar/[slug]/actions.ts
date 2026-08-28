@@ -21,7 +21,9 @@ import {
     toCaracasDate,
     DAILY_CONFIRMED_APPOINTMENT_CAP,
     MIN_BOOKING_LEAD_MINUTES,
+    PENDING_FORM_EXPIRY_MINUTES,
 } from "@/lib/availability";
+import { scheduleIntakeFormFollowUps } from "@/lib/appointments/schedule-follow-ups";
 import { getDay, addMinutes } from "date-fns";
 
 type CreateAppointmentResult =
@@ -224,7 +226,9 @@ export async function createAppointment(input: {
                     dateTime: slotStart,
                     endTime: slotEnd,
                     status: "PENDING_FORM",
-                    expiresAt: new Date(now.getTime() + 15 * 60 * 1000),
+                    expiresAt: new Date(
+                        now.getTime() + PENDING_FORM_EXPIRY_MINUTES * 60 * 1000,
+                    ),
                     patientCountry,
                     termsVersion: data.termsVersion,
                     termsAcceptedAt: now,
@@ -257,6 +261,8 @@ export async function createAppointment(input: {
                 skipForm: true,
             };
         }
+
+        await scheduleIntakeFormFollowUps(appointment.id);
 
         return {
             success: true,

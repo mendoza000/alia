@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { TZDate } from "@date-fns/tz";
 import { auth } from "@/lib/auth";
+import { CARACAS_TZ } from "@/lib/availability";
 import { getPatientAppointments } from "@/lib/queries/patient-appointments";
 import { Badge } from "@/components/ui/badge";
 import { CancelAppointmentButton } from "@/components/patient/cancel-appointment-button";
@@ -124,7 +125,7 @@ function AppointmentCard({
         variant: "outline" as const,
     };
 
-    const patientTimezone = appointment.timezone ?? "America/Bogota";
+    const patientTimezone = appointment.timezone ?? CARACAS_TZ;
     const dateTimeInPatientTz = new TZDate(
         appointment.dateTime,
         patientTimezone,
@@ -148,6 +149,14 @@ function AppointmentCard({
                 </p>
             </div>
             <div className="flex items-center gap-2">
+                {appointment.status === "PENDING_FORM" && (
+                    <Link
+                        href={`/agendar/${appointment.psychologist.slug}/formulario?appointmentId=${appointment.id}`}
+                        className="text-sm font-medium text-accent hover:underline"
+                    >
+                        Completar formulario
+                    </Link>
+                )}
                 <Badge variant={config.variant}>{config.label}</Badge>
                 {cancellable && (
                     <CancelAppointmentButton appointmentId={appointment.id} />

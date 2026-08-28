@@ -111,6 +111,12 @@ export function subtractBusyPeriods(
 
 export const DAILY_CONFIRMED_APPOINTMENT_CAP = 5;
 
+// How long a PENDING_FORM appointment holds the slot before it's abandoned.
+// A reminder email fires at INTAKE_FORM_REMINDER_MINUTES; if the form still
+// isn't submitted by PENDING_FORM_EXPIRY_MINUTES, the appointment auto-cancels.
+export const INTAKE_FORM_REMINDER_MINUTES = 20;
+export const PENDING_FORM_EXPIRY_MINUTES = 60;
+
 // Psychologists need lead time to notice a new booking and prepare —
 // public booking flows require slots to start at least this far from now.
 // Admin manual bookings are exempt (the admin creates them in real time).

@@ -21,6 +21,7 @@
     "@react-email/render": "^2.0.4",
     "@react-pdf/renderer": "^4.3.2",
     "@supabase/supabase-js": "^2.99.2",
+    "@upstash/qstash": "^2.11.3",
     "better-auth": "^1.5.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

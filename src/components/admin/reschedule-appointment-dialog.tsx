@@ -38,7 +38,7 @@ export function RescheduleAppointmentDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const router = useRouter();
-  const tz = patientTimezone ?? "America/Bogota";
+  const tz = patientTimezone ?? CARACAS_TZ;
   const [date, setDate] = useState(() =>
     format(new TZDate(currentDateTime, CARACAS_TZ), "yyyy-MM-dd"),
   );
