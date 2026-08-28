@@ -38,7 +38,7 @@ export function PsychologistCard({
         >
             <Link
                 href={`/psicologos/${psychologist.slug}`}
-                className="absolute inset-0 z-0"
+                className="absolute inset-0 z-10"
                 aria-label={psychologist.name}
             />
 
@@ -89,7 +89,7 @@ export function PsychologistCard({
 
                 <Link
                     href={`/agendar/${psychologist.slug}`}
-                    className="relative z-10 mt-4 inline-flex items-center justify-center rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-accent-foreground transition-all hover:scale-[1.02] hover:bg-accent/80"
+                    className="relative z-20 mt-4 inline-flex items-center justify-center rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-accent-foreground transition-all hover:scale-[1.02] hover:bg-accent/80"
                 >
                     Agendar sesión
                 </Link>
