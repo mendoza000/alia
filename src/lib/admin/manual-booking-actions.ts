@@ -82,18 +82,20 @@ export async function createManualAppointment(
     }
   }
 
-  const confirmedCountByDate = await getConfirmedCountsByDate(
-    psychologist.id,
-    toCaracasDate(input.date, "00:00"),
-    toCaracasDate(input.date, "23:59"),
-  );
-  if (
-    (confirmedCountByDate[input.date] ?? 0) >= DAILY_CONFIRMED_APPOINTMENT_CAP
-  ) {
-    return {
-      success: false,
-      error: "Este psicólogo ya alcanzó el máximo de sesiones para este día",
-    };
+  if (!bypassAvailability) {
+    const confirmedCountByDate = await getConfirmedCountsByDate(
+      psychologist.id,
+      toCaracasDate(input.date, "00:00"),
+      toCaracasDate(input.date, "23:59"),
+    );
+    if (
+      (confirmedCountByDate[input.date] ?? 0) >= DAILY_CONFIRMED_APPOINTMENT_CAP
+    ) {
+      return {
+        success: false,
+        error: "Este psicólogo ya alcanzó el máximo de sesiones para este día",
+      };
+    }
   }
 
   let user = await prisma.user.findUnique({
