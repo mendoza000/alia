@@ -30,7 +30,6 @@ const DATA = {
   currency:          "COP",
   patientEmail:      TO,
   appointmentsUrl:   `${BASE_URL}/mi-cuenta/citas`,
-  intakeFormUrl:     `${BASE_URL}/admin/formularios/test-id`,
   scheduleUrl:       `${BASE_URL}/agendar`,
   paymentUrl:        "https://checkout.stripe.com/test-session",
 };
@@ -70,7 +69,6 @@ async function main() {
       patientEmail:     DATA.patientEmail,
       formattedDate:    DATA.formattedDate,
       duration:         DATA.duration,
-      intakeFormUrl:    DATA.intakeFormUrl,
       logoUrl:          LOGO_DARK_URL,
       logoLightUrl:     LOGO_LIGHT_URL,
       fontUrl:          FONT_URL,

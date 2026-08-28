@@ -7,12 +7,14 @@ export async function getConfirmedCountsByDate(
     psychologistId: string,
     timeMin: Date,
     timeMax: Date,
+    excludeAppointmentId?: string,
 ): Promise<Record<string, number>> {
     const appointments = await prisma.appointment.findMany({
         where: {
             psychologistId,
             status: "CONFIRMED",
             dateTime: { gte: timeMin, lte: timeMax },
+            ...(excludeAppointmentId ? { id: { not: excludeAppointmentId } } : {}),
         },
         select: { dateTime: true },
     });
@@ -32,6 +34,7 @@ export async function getBlockingAppointments(
     psychologistId: string,
     timeMin: Date,
     timeMax: Date,
+    excludeAppointmentId?: string,
 ) {
     const now = new Date();
 
@@ -40,6 +43,7 @@ export async function getBlockingAppointments(
             psychologistId,
             dateTime: { lt: timeMax },
             endTime: { gt: timeMin },
+            ...(excludeAppointmentId ? { id: { not: excludeAppointmentId } } : {}),
             OR: [
                 { status: "CONFIRMED" },
                 {

@@ -8,6 +8,7 @@ import { CARACAS_TZ } from "@/lib/availability";
 import { matchTimezoneOption } from "@/lib/timezones";
 import {
   AlertTriangle,
+  CalendarClock,
   CheckCircle2,
   CreditCard,
   FileText,
@@ -25,6 +26,7 @@ import {
   markNoShow,
 } from "@/lib/admin/appointment-actions";
 import { DeleteAppointmentDialog } from "@/components/admin/delete-appointment-dialog";
+import { RescheduleAppointmentDialog } from "@/components/admin/reschedule-appointment-dialog";
 import { sendPaymentLinkEmail } from "@/lib/admin/payment-actions";
 import { formatCurrencyAmount } from "@/lib/currency";
 import type { AppointmentRow } from "@/lib/admin/appointment-queries";
@@ -67,11 +69,13 @@ function AppointmentRow({
   hasAvailableCurrencies,
   onGenerateLink,
   onDeleteClick,
+  onRescheduleClick,
 }: {
   appointment: AppointmentRow;
   hasAvailableCurrencies: boolean;
   onGenerateLink: (appointment: AppointmentRow) => void;
   onDeleteClick: (appointment: AppointmentRow) => void;
+  onRescheduleClick: (appointment: AppointmentRow) => void;
 }) {
   const [, startTransition] = useTransition();
 
@@ -79,6 +83,7 @@ function AppointmentRow({
   const canNoShow = appointment.status === "CONFIRMED";
   const canCancel = !["CANCELLED", "COMPLETED", "NO_SHOW"].includes(appointment.status);
   const canDelete = appointment.status === "CANCELLED";
+  const canReschedule = appointment.status === "CONFIRMED";
   const canGenerateLink = ["CONFIRMED", "COMPLETED", "NO_SHOW"].includes(
     appointment.status,
   );
@@ -239,6 +244,12 @@ function AppointmentRow({
                 No se presentó
               </DropdownMenuItem>
             )}
+            {canReschedule && (
+              <DropdownMenuItem onClick={() => onRescheduleClick(appointment)}>
+                <CalendarClock />
+                Reagendar
+              </DropdownMenuItem>
+            )}
             {canCancel && (
               <>
                 {(canComplete || canNoShow) && <DropdownMenuSeparator />}
@@ -282,6 +293,8 @@ export function AppointmentsTable({
   const [deletingAppointment, setDeletingAppointment] = useState<AppointmentRow | null>(
     null,
   );
+  const [reschedulingAppointment, setReschedulingAppointment] =
+    useState<AppointmentRow | null>(null);
 
   if (appointments.length === 0) {
     return (
@@ -313,10 +326,22 @@ export function AppointmentsTable({
               hasAvailableCurrencies={availableCurrencies.length > 0}
               onGenerateLink={setActiveAppointment}
               onDeleteClick={setDeletingAppointment}
+              onRescheduleClick={setReschedulingAppointment}
             />
           ))}
         </TableBody>
       </Table>
+
+      {reschedulingAppointment && (
+        <RescheduleAppointmentDialog
+          appointmentId={reschedulingAppointment.id}
+          psychologistName={reschedulingAppointment.psychologist.name}
+          currentDateTime={reschedulingAppointment.dateTime}
+          patientTimezone={reschedulingAppointment.timezone}
+          open={!!reschedulingAppointment}
+          onOpenChange={(v) => !v && setReschedulingAppointment(null)}
+        />
+      )}
 
       {activeAppointment && (
         <GeneratePaymentLinkDialog

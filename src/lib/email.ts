@@ -3,11 +3,14 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { TZDate } from "@date-fns/tz";
 import { Resend } from "resend";
+import { renderToBuffer } from "@react-pdf/renderer";
+import { createElement, type JSX } from "react";
 import { AppointmentCancelledEmail } from "../../emails/appointment-cancelled";
 import { AppointmentCancelledPatientEmail } from "../../emails/appointment-cancelled-patient";
 import { AppointmentConfirmationEmail } from "../../emails/appointment-confirmation";
 import { AppointmentReminderEmail } from "../../emails/appointment-reminder";
 import { AppointmentRescheduledPatientEmail } from "../../emails/appointment-rescheduled-patient";
+import { AppointmentRescheduledPsychologistEmail } from "../../emails/appointment-rescheduled-psychologist";
 import { NewAppointmentNotificationEmail } from "../../emails/new-appointment-notification";
 import { PaymentRequestEmail } from "../../emails/payment-request";
 import { SessionsReportEmail } from "../../emails/sessions-report";
@@ -16,6 +19,8 @@ import { VerifyEmail } from "../../emails/verify-email";
 import { prisma } from "@/lib/db";
 import { CARACAS_TZ } from "@/lib/availability";
 import { matchTimezoneOption } from "@/lib/timezones";
+import { IntakeFormPDF } from "@/components/admin/intake-form-pdf";
+import { intakeFormSchema, type IntakeFormData } from "@/lib/validators/intake-form";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = process.env.EMAIL_FROM ?? "ALIA <onboarding@resend.dev>";
@@ -115,6 +120,53 @@ export async function sendAppointmentConfirmation(
   });
 }
 
+async function buildIntakeFormAttachment(appointmentId: string): Promise<
+  { filename: string; content: string } | undefined
+> {
+  const appointment = await prisma.appointment.findUnique({
+    where: { id: appointmentId },
+    select: {
+      dateTime: true,
+      psychologist: { select: { name: true } },
+      user: {
+        select: {
+          name: true,
+          email: true,
+          intakeForm: { select: { data: true, createdAt: true } },
+        },
+      },
+    },
+  });
+  if (!appointment?.user.intakeForm) return undefined;
+
+  try {
+    const formData = intakeFormSchema.cast(appointment.user.intakeForm.data, {
+      assert: false,
+      stripUnknown: true,
+    }) as IntakeFormData;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const element = createElement(IntakeFormPDF, {
+      patientName: appointment.user.name,
+      patientEmail: appointment.user.email,
+      psychologistName: appointment.psychologist.name,
+      appointmentDate: appointment.dateTime,
+      submittedAt: appointment.user.intakeForm.createdAt,
+      data: formData,
+    }) as JSX.Element as Parameters<typeof renderToBuffer>[0];
+
+    const buffer = await renderToBuffer(element);
+    const name = appointment.user.name ?? appointment.user.email;
+    return {
+      filename: `formulario-${name.replace(/\s+/g, "-").toLowerCase()}.pdf`,
+      content: buffer.toString("base64"),
+    };
+  } catch (err) {
+    console.error("Intake form PDF render failed:", err);
+    return undefined;
+  }
+}
+
 export async function sendNewAppointmentNotification(
   appointmentId: string,
 ): Promise<void> {
@@ -129,18 +181,20 @@ export async function sendNewAppointmentNotification(
       patientEmail: user.email,
       formattedDate: formatAppointmentDate(dateTime),
       duration: psychologist.sessionDuration,
-      intakeFormUrl: `${getBaseUrl()}/admin/formularios/${appointmentId}`,
       logoUrl: LOGO_DARK_URL,
       logoLightUrl: LOGO_LIGHT_URL,
       fontUrl: getFontUrl(),
     }),
   );
 
+  const attachment = await buildIntakeFormAttachment(appointmentId);
+
   await resend.emails.send({
     from: FROM,
     to: psychologist.email,
     subject: `Nueva sesión agendada — ${user.name ?? user.email}`,
     html,
+    ...(attachment ? { attachments: [attachment] } : {}),
   });
 }
 
@@ -251,6 +305,34 @@ export async function sendAppointmentRescheduled(
     from: FROM,
     to: user.email,
     subject: `Tu sesión con ${psychologist.name} fue reagendada`,
+    html,
+  });
+}
+
+export async function sendAppointmentRescheduledPsychologist(
+  appointmentId: string,
+): Promise<void> {
+  const appointment = await getAppointmentData(appointmentId);
+  if (!appointment) return;
+
+  const { psychologist, user, dateTime } = appointment;
+  const html = await render(
+    AppointmentRescheduledPsychologistEmail({
+      psychologistName: psychologist.name,
+      patientName: user.name ?? user.email,
+      patientEmail: user.email,
+      formattedDate: formatAppointmentDate(dateTime),
+      duration: psychologist.sessionDuration,
+      logoUrl: LOGO_DARK_URL,
+      logoLightUrl: LOGO_LIGHT_URL,
+      fontUrl: getFontUrl(),
+    }),
+  );
+
+  await resend.emails.send({
+    from: FROM,
+    to: psychologist.email,
+    subject: `Sesión reagendada — ${user.name ?? user.email}`,
     html,
   });
 }

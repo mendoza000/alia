@@ -12,7 +12,7 @@ import {
   Text,
 } from "@react-email/components";
 
-interface NewAppointmentNotificationEmailProps {
+interface AppointmentRescheduledPsychologistEmailProps {
   psychologistName: string;
   patientName: string;
   patientEmail: string;
@@ -23,7 +23,7 @@ interface NewAppointmentNotificationEmailProps {
   fontUrl: string;
 }
 
-export function NewAppointmentNotificationEmail({
+export function AppointmentRescheduledPsychologistEmail({
   psychologistName,
   patientName,
   patientEmail,
@@ -32,7 +32,7 @@ export function NewAppointmentNotificationEmail({
   logoUrl,
   logoLightUrl,
   fontUrl,
-}: NewAppointmentNotificationEmailProps) {
+}: AppointmentRescheduledPsychologistEmailProps) {
   return (
     <Html lang="es">
       <Head>
@@ -52,7 +52,7 @@ export function NewAppointmentNotificationEmail({
           }
         `}</style>
       </Head>
-      <Preview>Nueva sesión agendada — {patientName}</Preview>
+      <Preview>Sesión reagendada — {patientName}</Preview>
       <Body style={body}>
         <Container style={container}>
           <Section style={header}>
@@ -62,11 +62,16 @@ export function NewAppointmentNotificationEmail({
           </Section>
 
           <Section style={content}>
+            <Section style={badge}>
+              <Text style={badgeText}>Sesión reagendada</Text>
+            </Section>
+
             <Heading as="h2" style={heading}>
-              Nueva sesión agendada
+              Cambio de horario
             </Heading>
             <Text style={intro}>
-              Hola {psychologistName}, tienes una nueva sesión confirmada.
+              Hola {psychologistName}, tu sesión con {patientName} fue
+              reagendada a la siguiente fecha.
             </Text>
 
             <Section style={card}>
@@ -74,7 +79,7 @@ export function NewAppointmentNotificationEmail({
               <Text style={cardValue}>{patientName}</Text>
               <Text style={cardEmail}>{patientEmail}</Text>
               <Hr style={divider} />
-              <Text style={cardLabel}>Fecha y hora</Text>
+              <Text style={cardLabel}>Nueva fecha y hora</Text>
               <Text style={cardValue}>{formattedDate}</Text>
               <Hr style={divider} />
               <Text style={cardLabel}>Duración</Text>
@@ -82,8 +87,8 @@ export function NewAppointmentNotificationEmail({
             </Section>
 
             <Text style={hint}>
-              Revisa el formulario de inventario de vida adjunto en este
-              correo antes de la sesión.
+              El evento en tu Google Calendar ya fue actualizado a la nueva
+              fecha automáticamente.
             </Text>
           </Section>
 
@@ -96,7 +101,7 @@ export function NewAppointmentNotificationEmail({
   );
 }
 
-export default NewAppointmentNotificationEmail;
+export default AppointmentRescheduledPsychologistEmail;
 
 const body: React.CSSProperties = {
   backgroundColor: "#F9F4EE",
@@ -134,6 +139,24 @@ const content: React.CSSProperties = {
   borderRadius: "12px",
   padding: "40px 36px",
   marginBottom: "24px",
+  textAlign: "center",
+};
+
+const badge: React.CSSProperties = {
+  backgroundColor: "#DBD4C2",
+  borderRadius: "20px",
+  display: "inline-block",
+  padding: "4px 14px",
+  marginBottom: "20px",
+};
+
+const badgeText: React.CSSProperties = {
+  fontSize: "12px",
+  fontWeight: "600",
+  color: "#272727",
+  margin: "0",
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
 };
 
 const heading: React.CSSProperties = {
@@ -158,6 +181,7 @@ const card: React.CSSProperties = {
   borderRadius: "10px",
   padding: "20px 24px",
   margin: "0 0 24px 0",
+  textAlign: "left",
 };
 
 const cardLabel: React.CSSProperties = {
@@ -191,7 +215,7 @@ const hint: React.CSSProperties = {
   fontSize: "14px",
   color: "#46494F",
   lineHeight: "1.5",
-  margin: "0 0 20px 0",
+  margin: "0",
   textAlign: "center",
 };
 
