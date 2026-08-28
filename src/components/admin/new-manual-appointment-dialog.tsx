@@ -15,6 +15,7 @@ import { AvailabilityCalendar } from "@/components/availability/availability-cal
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -42,6 +43,7 @@ type FormValues = {
   time: string;
   timezone: string;
   notes: string;
+  isException: boolean;
 };
 
 export function NewManualAppointmentDialog({
@@ -77,12 +79,14 @@ export function NewManualAppointmentDialog({
       time: "",
       timezone: "America/Bogota",
       notes: "",
+      isException: false,
     },
   });
 
   const selectedDate = watch("date");
   const selectedTime = watch("time");
   const selectedTimezone = watch("timezone");
+  const isException = watch("isException");
   const patientLocalTime =
     selectedDate && selectedTime && selectedTimezone
       ? formatInTimezone(selectedDate, selectedTime, selectedTimezone)
@@ -112,6 +116,7 @@ export function NewManualAppointmentDialog({
       time: values.time,
       timezone: values.timezone,
       notes: values.notes || undefined,
+      isException: values.isException,
     });
     setIsSubmitting(false);
 
@@ -192,6 +197,30 @@ export function NewManualAppointmentDialog({
             )}
           </div>
 
+          <div className="flex items-center gap-2 rounded-md border border-border bg-secondary/40 px-3 py-2">
+            <Controller
+              control={control}
+              name="isException"
+              render={({ field }) => (
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={checked => {
+                    field.onChange(checked);
+                    setValue("date", "");
+                    setValue("time", "");
+                  }}
+                />
+              )}
+            />
+            <div className="grid gap-0.5">
+              <Label>¿Es una excepción?</Label>
+              <p className="text-xs text-muted-foreground">
+                Permite agendar fuera de horario, en fechas pasadas, o si el
+                horario está ocupado. Quedará marcada como excepción.
+              </p>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-1.5">
               <Label htmlFor="patientName">Nombre del paciente</Label>
@@ -247,12 +276,30 @@ export function NewManualAppointmentDialog({
             </p>
           </div>
 
-          <input type="hidden" {...register("date", { required: true })} />
-          <input type="hidden" {...register("time", { required: true })} />
+          {isException ? (
+            <div className="grid gap-1.5">
+              <Label>Fecha y hora (excepción)</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  type="date"
+                  {...register("date", { required: true })}
+                />
+                <Input
+                  type="time"
+                  {...register("time", { required: true })}
+                />
+              </div>
+            </div>
+          ) : (
+            <>
+              <input type="hidden" {...register("date", { required: true })} />
+              <input type="hidden" {...register("time", { required: true })} />
+            </>
+          )}
 
           <div className="grid gap-1.5">
-            <Label>Disponibilidad</Label>
-            {!watch("psychologistId") ? (
+            {!isException && <Label>Disponibilidad</Label>}
+            {isException ? null : !watch("psychologistId") ? (
               <p className="text-sm text-muted-foreground">
                 Selecciona un psicólogo para ver sus horarios disponibles.
               </p>

@@ -7,6 +7,7 @@ import { TZDate } from "@date-fns/tz";
 import { CARACAS_TZ } from "@/lib/availability";
 import { matchTimezoneOption } from "@/lib/timezones";
 import {
+  AlertTriangle,
   CheckCircle2,
   CreditCard,
   FileText,
@@ -29,6 +30,7 @@ import { formatCurrencyAmount } from "@/lib/currency";
 import type { AppointmentRow } from "@/lib/admin/appointment-queries";
 import type { PayoutSettings } from "@/lib/admin/payout-settings-queries";
 import { AppointmentStatusBadge } from "@/components/admin/appointment-status-badge";
+import { Badge } from "@/components/ui/badge";
 import { PaymentStatusBadge } from "@/components/admin/payment-status-badge";
 import { GeneratePaymentLinkDialog } from "@/components/admin/generate-payment-link-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -154,7 +156,18 @@ function AppointmentRow({
         </p>
       </TableCell>
       <TableCell>
-        <AppointmentStatusBadge status={appointment.status} />
+        <div className="flex flex-wrap items-center gap-1.5">
+          <AppointmentStatusBadge status={appointment.status} />
+          {appointment.isException && (
+            <Badge
+              variant="outline"
+              className="gap-1 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+            >
+              <AlertTriangle className="size-3" />
+              Excepción
+            </Badge>
+          )}
+        </div>
       </TableCell>
       <TableCell className="text-sm">
         <div className="flex items-center gap-1">

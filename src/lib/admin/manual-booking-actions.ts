@@ -30,6 +30,7 @@ type ManualBookingInput = {
   time: string; // "HH:mm"
   timezone: string;
   notes?: string;
+  isException?: boolean;
 };
 
 type ManualBookingResult =
@@ -47,18 +48,38 @@ export async function createManualAppointment(
     return { success: false, error: "Psicólogo no encontrado" };
   }
 
+  const bypassAvailability = input.isException === true;
+
   const slotStart = toCaracasDate(input.date, input.time);
   const slotEnd = addMinutes(slotStart, psychologist.sessionDuration);
 
-  const dayOfWeek = getDay(slotStart);
-  const daySchedules = getScheduleForDay(psychologist.schedules, dayOfWeek);
-  const allSlots = generateTimeSlots(daySchedules, psychologist.sessionDuration);
-  const slot = allSlots.find(s => s.start === input.time);
-  if (!slot) {
-    return {
-      success: false,
-      error: "Este horario no está dentro del horario del psicólogo",
-    };
+  if (!bypassAvailability) {
+    const dayOfWeek = getDay(slotStart);
+    const daySchedules = getScheduleForDay(psychologist.schedules, dayOfWeek);
+    const allSlots = generateTimeSlots(daySchedules, psychologist.sessionDuration);
+    const slot = allSlots.find(s => s.start === input.time);
+    if (!slot) {
+      return {
+        success: false,
+        error: "Este horario no está dentro del horario del psicólogo",
+      };
+    }
+
+    const [calendarBusy, existingAppointments] = await Promise.all([
+      psychologist.calendarId
+        ? getCachedFreeBusyPeriods(psychologist.calendarId, slotStart, slotEnd)
+        : Promise.resolve([]),
+      getBlockingAppointments(psychologist.id, slotStart, slotEnd),
+    ]);
+    const allBusy = [
+      ...calendarBusy,
+      ...appointmentsToBusyPeriods(existingAppointments),
+    ];
+    const afterBusy = subtractBusyPeriods([slot], allBusy, input.date);
+    const available = filterPastSlots(afterBusy, input.date, new Date());
+    if (available.length === 0) {
+      return { success: false, error: "Este horario ya está ocupado" };
+    }
   }
 
   const confirmedCountByDate = await getConfirmedCountsByDate(
@@ -73,22 +94,6 @@ export async function createManualAppointment(
       success: false,
       error: "Este psicólogo ya alcanzó el máximo de sesiones para este día",
     };
-  }
-
-  const [calendarBusy, existingAppointments] = await Promise.all([
-    psychologist.calendarId
-      ? getCachedFreeBusyPeriods(psychologist.calendarId, slotStart, slotEnd)
-      : Promise.resolve([]),
-    getBlockingAppointments(psychologist.id, slotStart, slotEnd),
-  ]);
-  const allBusy = [
-    ...calendarBusy,
-    ...appointmentsToBusyPeriods(existingAppointments),
-  ];
-  const afterBusy = subtractBusyPeriods([slot], allBusy, input.date);
-  const available = filterPastSlots(afterBusy, input.date, new Date());
-  if (available.length === 0) {
-    return { success: false, error: "Este horario ya está ocupado" };
   }
 
   let user = await prisma.user.findUnique({
@@ -118,21 +123,23 @@ export async function createManualAppointment(
   let appointmentId: string;
   try {
     const appointment = await prisma.$transaction(async tx => {
-      const conflicting = await tx.appointment.findFirst({
-        where: {
-          psychologistId: input.psychologistId,
-          dateTime: { lt: slotEnd },
-          endTime: { gt: slotStart },
-          OR: [
-            { status: "CONFIRMED" },
-            {
-              status: "PENDING_FORM",
-              OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-            },
-          ],
-        },
-      });
-      if (conflicting) throw new Error("SLOT_TAKEN");
+      if (!bypassAvailability) {
+        const conflicting = await tx.appointment.findFirst({
+          where: {
+            psychologistId: input.psychologistId,
+            dateTime: { lt: slotEnd },
+            endTime: { gt: slotStart },
+            OR: [
+              { status: "CONFIRMED" },
+              {
+                status: "PENDING_FORM",
+                OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+              },
+            ],
+          },
+        });
+        if (conflicting) throw new Error("SLOT_TAKEN");
+      }
 
       return tx.appointment.create({
         data: {
@@ -143,6 +150,7 @@ export async function createManualAppointment(
           status: "CONFIRMED",
           notes: input.notes || null,
           timezone: input.timezone,
+          isException: bypassAvailability,
         },
       });
     });
