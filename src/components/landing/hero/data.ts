@@ -60,7 +60,7 @@ export const bentoCards: BentoCard[] = [
 	{
 		id: "photo-2",
 		type: "photo",
-		name: "Juani V.",
+		name: "Jauni V.",
 		specialty: "Ansiedad y Crisis",
 		imgUrl: "/hero/psicologa-1.webp",
 		className:
