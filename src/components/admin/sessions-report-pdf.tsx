@@ -1,7 +1,7 @@
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { formatCurrencyAmount } from "@/lib/currency";
+import { formatUSD } from "@/lib/currency";
 import type { SessionsReportPsychologist } from "@/lib/admin/report-queries";
 
 const styles = StyleSheet.create({
@@ -132,6 +132,7 @@ type SessionsReportPDFProps = {
     dateFrom: string;
     dateTo: string;
     scopeLabel: string;
+    showPending: boolean;
 };
 
 export function SessionsReportPDF({
@@ -139,13 +140,18 @@ export function SessionsReportPDF({
     dateFrom,
     dateTo,
     scopeLabel,
+    showPending,
 }: SessionsReportPDFProps) {
     return (
         <Document>
             <Page size="A4" style={styles.page}>
                 <View style={styles.header}>
-                    <Text style={styles.title}>Reporte de sesiones y pagos</Text>
-                    <Text style={styles.subtitle}>ALIA — Tu psicólogo Aliado</Text>
+                    <Text style={styles.title}>
+                        Reporte de sesiones y pagos
+                    </Text>
+                    <Text style={styles.subtitle}>
+                        ALIA — Tu psicólogo Aliado
+                    </Text>
                     <Text style={styles.rangeLabel}>
                         {`${scopeLabel} · ${format(new Date(`${dateFrom}T00:00:00`), "d 'de' MMMM 'de' yyyy", { locale: es })} — ${format(new Date(`${dateTo}T00:00:00`), "d 'de' MMMM 'de' yyyy", { locale: es })}`}
                     </Text>
@@ -153,54 +159,119 @@ export function SessionsReportPDF({
 
                 {psychologists.length === 0 && (
                     <Text style={styles.emptyState}>
-                        No se encontraron sesiones confirmadas o completadas en este rango.
+                        No se encontraron sesiones confirmadas o completadas en
+                        este rango.
                     </Text>
                 )}
 
-                {psychologists.map((psychologist) => (
+                {psychologists.map(psychologist => (
                     <View
                         key={psychologist.id}
                         style={styles.psychologistBlock}
                         wrap={false}
                     >
-                        <Text style={styles.psychologistName}>{psychologist.name}</Text>
+                        <Text style={styles.psychologistName}>
+                            {psychologist.name}
+                        </Text>
 
                         <View style={styles.table}>
                             <View style={styles.tableHeaderRow}>
-                                <Text style={[styles.tableHeaderCell, styles.colDate]}>
+                                <Text
+                                    style={[
+                                        styles.tableHeaderCell,
+                                        styles.colDate,
+                                    ]}
+                                >
                                     Fecha
                                 </Text>
-                                <Text style={[styles.tableHeaderCell, styles.colPatient]}>
+                                <Text
+                                    style={[
+                                        styles.tableHeaderCell,
+                                        styles.colPatient,
+                                    ]}
+                                >
                                     Paciente
                                 </Text>
-                                <Text style={[styles.tableHeaderCell, styles.colStatus]}>
+                                <Text
+                                    style={[
+                                        styles.tableHeaderCell,
+                                        styles.colStatus,
+                                    ]}
+                                >
                                     Sesión
                                 </Text>
-                                <Text style={[styles.tableHeaderCell, styles.colPayment]}>
+                                <Text
+                                    style={[
+                                        styles.tableHeaderCell,
+                                        styles.colPayment,
+                                    ]}
+                                >
                                     Pago
                                 </Text>
-                                <Text style={[styles.tableHeaderCell, styles.colAmount]}>
+                                <Text
+                                    style={[
+                                        styles.tableHeaderCell,
+                                        styles.colAmount,
+                                    ]}
+                                >
                                     Monto
                                 </Text>
                             </View>
 
-                            {psychologist.sessions.map((session) => (
+                            {psychologist.sessions.map(session => (
                                 <View key={session.id} style={styles.tableRow}>
-                                    <Text style={[styles.tableCell, styles.colDate]}>
-                                        {format(session.dateTime, "d MMM yyyy", { locale: es })}
+                                    <Text
+                                        style={[
+                                            styles.tableCell,
+                                            styles.colDate,
+                                        ]}
+                                    >
+                                        {format(
+                                            session.dateTime,
+                                            "d MMM yyyy",
+                                            { locale: es },
+                                        )}
                                     </Text>
-                                    <Text style={[styles.tableCell, styles.colPatient]}>
+                                    <Text
+                                        style={[
+                                            styles.tableCell,
+                                            styles.colPatient,
+                                        ]}
+                                    >
                                         {session.patientName}
                                     </Text>
-                                    <Text style={[styles.tableCell, styles.colStatus]}>
-                                        {APPOINTMENT_STATUS_LABEL[session.status]}
+                                    <Text
+                                        style={[
+                                            styles.tableCell,
+                                            styles.colStatus,
+                                        ]}
+                                    >
+                                        {
+                                            APPOINTMENT_STATUS_LABEL[
+                                                session.status
+                                            ]
+                                        }
                                     </Text>
-                                    <Text style={[styles.tableCell, styles.colPayment]}>
-                                        {session.isPaid ? "Pagada" : "Pendiente"}
+                                    <Text
+                                        style={[
+                                            styles.tableCell,
+                                            styles.colPayment,
+                                        ]}
+                                    >
+                                        {session.isPaid
+                                            ? "Pagada"
+                                            : "Pendiente"}
                                     </Text>
-                                    <Text style={[styles.tableCell, styles.colAmount]}>
-                                        {session.amount != null && session.currency
-                                            ? formatCurrencyAmount(session.amount, session.currency)
+                                    <Text
+                                        style={[
+                                            styles.tableCell,
+                                            styles.colAmount,
+                                        ]}
+                                    >
+                                        {session.amountUsd != null
+                                            ? formatUSD.format(
+                                                  session.amountUsd,
+                                              )
                                             : "—"}
                                     </Text>
                                 </View>
@@ -208,27 +279,47 @@ export function SessionsReportPDF({
                         </View>
 
                         <View style={styles.totalsRow}>
-                            {psychologist.totalsByCurrency.length === 0 && (
-                                <Text style={styles.totalsLabel}>
-                                    Sin cobros generados para estas sesiones
-                                </Text>
-                            )}
-                            {psychologist.totalsByCurrency.map((t) => (
-                                <View key={t.currency} style={styles.totalsItem}>
+                            {psychologist.totals.paidCount === 0 &&
+                                psychologist.totals.pendingCount === 0 && (
                                     <Text style={styles.totalsLabel}>
-                                        {`Pagado (${t.paidCount})`}
+                                        Sin cobros generados para estas sesiones
+                                    </Text>
+                                )}
+                            {(psychologist.totals.paidCount > 0 ||
+                                psychologist.totals.pendingCount > 0) && (
+                                <View style={styles.totalsItem}>
+                                    <Text style={styles.totalsLabel}>
+                                        {`Pagado (${psychologist.totals.paidCount})`}
                                     </Text>
                                     <Text style={styles.totalsValuePaid}>
-                                        {formatCurrencyAmount(t.paidAmount, t.currency)}
+                                        {formatUSD.format(
+                                            psychologist.totals.paidAmountUsd,
+                                        )}
                                     </Text>
-                                    <Text style={[styles.totalsLabel, { marginTop: 4 }]}>
-                                        {`Pendiente (${t.pendingCount})`}
-                                    </Text>
-                                    <Text style={styles.totalsValuePending}>
-                                        {formatCurrencyAmount(t.pendingAmount, t.currency)}
-                                    </Text>
+                                    {showPending && (
+                                        <>
+                                            <Text
+                                                style={[
+                                                    styles.totalsLabel,
+                                                    { marginTop: 4 },
+                                                ]}
+                                            >
+                                                {`Pendiente (${psychologist.totals.pendingCount})`}
+                                            </Text>
+                                            <Text
+                                                style={
+                                                    styles.totalsValuePending
+                                                }
+                                            >
+                                                {formatUSD.format(
+                                                    psychologist.totals
+                                                        .pendingAmountUsd,
+                                                )}
+                                            </Text>
+                                        </>
+                                    )}
                                 </View>
-                            ))}
+                            )}
                         </View>
                     </View>
                 ))}
