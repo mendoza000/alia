@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { getUsdRateMap, paymentToUsd } from "@/lib/exchange-rates";
+import { getPaymentAmountUsd, getUsdRateMap, paymentToUsd } from "@/lib/exchange-rates";
 
 export type FinancePeriod = "month" | "3months" | "6months" | "year" | "all";
 
@@ -77,6 +77,7 @@ export async function getFinanceByPsychologist(range: FinanceDateRange) {
                 currency: true,
                 status: true,
                 exchangeRateToUsd: true,
+                stripeSettledAmountUsd: true,
                 payoutAmountUsd: true,
               },
             },
@@ -95,7 +96,7 @@ export async function getFinanceByPsychologist(range: FinanceDateRange) {
 
       const totalRevenueByCurrency = groupByCurrency(approvedPayments);
       const totalRevenueUsd = approvedPayments.reduce(
-        (sum, p) => sum + paymentToUsd(p.finalAmount, p.currency, p.exchangeRateToUsd, rates),
+        (sum, p) => sum + getPaymentAmountUsd(p, rates),
         0,
       );
       const totalOwedUsd = approvedPayments.reduce(
@@ -135,6 +136,7 @@ export async function getFinanceSummary(range: FinanceDateRange) {
         finalAmount: true,
         discountAmount: true,
         exchangeRateToUsd: true,
+        stripeSettledAmountUsd: true,
         payoutAmountUsd: true,
       },
     }),
@@ -142,10 +144,7 @@ export async function getFinanceSummary(range: FinanceDateRange) {
   ]);
 
   const totalRevenueByCurrency = groupByCurrency(payments);
-  const totalRevenueUsd = payments.reduce(
-    (sum, p) => sum + paymentToUsd(p.finalAmount, p.currency, p.exchangeRateToUsd, rates),
-    0,
-  );
+  const totalRevenueUsd = payments.reduce((sum, p) => sum + getPaymentAmountUsd(p, rates), 0);
   const totalSessions = payments.length;
   const totalDiscountsUsd = payments.reduce(
     (sum, p) => sum + paymentToUsd(p.discountAmount, p.currency, p.exchangeRateToUsd, rates),

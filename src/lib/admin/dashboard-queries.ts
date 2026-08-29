@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { getUsdRateMap, paymentToUsd } from "@/lib/exchange-rates";
+import { getPaymentAmountUsd, getUsdRateMap } from "@/lib/exchange-rates";
 
 /** Venezuela UTC-4 offset in ms */
 const VENEZUELA_OFFSET_MS = 4 * 60 * 60 * 1000;
@@ -69,14 +69,24 @@ export async function getDashboardStats() {
 				status: "APPROVED",
 				paidAt: { gte: monthStart },
 			},
-			select: { finalAmount: true, currency: true, exchangeRateToUsd: true },
+			select: {
+				finalAmount: true,
+				currency: true,
+				exchangeRateToUsd: true,
+				stripeSettledAmountUsd: true,
+			},
 		}),
 		prisma.payment.findMany({
 			where: {
 				status: "APPROVED",
 				paidAt: { gte: prevMonthStart, lte: prevMonthEnd },
 			},
-			select: { finalAmount: true, currency: true, exchangeRateToUsd: true },
+			select: {
+				finalAmount: true,
+				currency: true,
+				exchangeRateToUsd: true,
+				stripeSettledAmountUsd: true,
+			},
 		}),
 		prisma.psychologist.count({
 			where: { isActive: true },
@@ -107,12 +117,13 @@ export async function getDashboardStats() {
 
 	const rates = await getUsdRateMap();
 	const sumToUsd = (
-		payments: { finalAmount: number; currency: string; exchangeRateToUsd: number | null }[],
-	) =>
-		payments.reduce(
-			(total, p) => total + paymentToUsd(p.finalAmount, p.currency, p.exchangeRateToUsd, rates),
-			0,
-		);
+		payments: {
+			finalAmount: number;
+			currency: string;
+			exchangeRateToUsd: number | null;
+			stripeSettledAmountUsd: number | null;
+		}[],
+	) => payments.reduce((total, p) => total + getPaymentAmountUsd(p, rates), 0);
 
 	return {
 		appointmentsToday,
@@ -174,7 +185,13 @@ export async function getRevenueTrend() {
 				status: "APPROVED",
 				paidAt: { gte: sixMonthsAgo },
 			},
-			select: { finalAmount: true, currency: true, paidAt: true, exchangeRateToUsd: true },
+			select: {
+				finalAmount: true,
+				currency: true,
+				paidAt: true,
+				exchangeRateToUsd: true,
+				stripeSettledAmountUsd: true,
+			},
 		}),
 		getUsdRateMap(),
 	]);
@@ -192,10 +209,7 @@ export async function getRevenueTrend() {
 		if (!p.paidAt) continue;
 		const key = `${p.paidAt.getFullYear()}-${String(p.paidAt.getMonth() + 1).padStart(2, "0")}`;
 		if (grouped.has(key)) {
-			grouped.set(
-				key,
-				(grouped.get(key) ?? 0) + paymentToUsd(p.finalAmount, p.currency, p.exchangeRateToUsd, rates),
-			);
+			grouped.set(key, (grouped.get(key) ?? 0) + getPaymentAmountUsd(p, rates));
 		}
 	}
 

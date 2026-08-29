@@ -7,7 +7,7 @@ import { PaymentTable } from "@/components/admin/payment-table";
 import { PaymentsFilters } from "@/components/admin/payments-filters";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrencyBreakdown, formatUSD } from "@/lib/currency";
-import { getUsdRateMap, paymentToUsd } from "@/lib/exchange-rates";
+import { getPaymentAmountUsd, getUsdRateMap, paymentToUsd } from "@/lib/exchange-rates";
 
 type Props = {
   searchParams: Promise<{
@@ -56,10 +56,7 @@ export default async function PagosPage({ searchParams }: Props) {
     currency,
     amount: t.discounts,
   }));
-  const totalRevenueUsd = approved.reduce(
-    (sum, p) => sum + paymentToUsd(p.finalAmount, p.currency, p.exchangeRateToUsd, rates),
-    0,
-  );
+  const totalRevenueUsd = approved.reduce((sum, p) => sum + getPaymentAmountUsd(p, rates), 0);
   const totalDiscountsUsd = approved.reduce(
     (sum, p) => sum + paymentToUsd(p.discountAmount, p.currency, p.exchangeRateToUsd, rates),
     0,
@@ -73,7 +70,7 @@ export default async function PagosPage({ searchParams }: Props) {
 
   const paymentsWithUsd = payments.map((p) => ({
     ...p,
-    finalAmountUsd: paymentToUsd(p.finalAmount, p.currency, p.exchangeRateToUsd, rates),
+    finalAmountUsd: getPaymentAmountUsd(p, rates),
   }));
 
   return (
@@ -119,7 +116,7 @@ export default async function PagosPage({ searchParams }: Props) {
         </div>
       </div>
       <p className="text-xs text-muted-foreground">
-        Conversión a USD con la tasa de referencia del día en que se aprobó cada pago. El desglose por moneda es el monto real cobrado.
+        Monto en USD según lo liquidado por Stripe cuando está disponible; si no, se estima con la tasa del día en que se aprobó el pago. El desglose por moneda es el monto real cobrado.
       </p>
 
       <Suspense fallback={<Skeleton className="h-9 w-96" />}>

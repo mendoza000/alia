@@ -6,7 +6,7 @@ import { createPaymentCheckoutSession, stripe } from "@/lib/stripe";
 import { sendPaymentRequestEmail } from "@/lib/email";
 import { getPayoutSettings } from "@/lib/admin/payout-settings-queries";
 import { getPayoutTypeRate } from "@/lib/payout-type";
-import { getUsdRateMap, paymentToUsd } from "@/lib/exchange-rates";
+import { getPaymentAmountUsd, getUsdRateMap } from "@/lib/exchange-rates";
 import type { PayoutType } from "@/generated/prisma/enums";
 
 type ActionResult = { success: true } | { success: false; error: string };
@@ -194,14 +194,12 @@ export async function updatePaymentCommission(
     const payoutRatePercent = getPayoutTypeRate(payoutSettings, payoutType);
 
     let payoutAmountUsd = payment.payoutAmountUsd;
-    if (payment.status === "APPROVED" && payment.exchangeRateToUsd != null) {
+    if (
+      payment.status === "APPROVED" &&
+      (payment.stripeSettledAmountUsd != null || payment.exchangeRateToUsd != null)
+    ) {
       const rates = await getUsdRateMap();
-      const finalAmountUsd = paymentToUsd(
-        payment.finalAmount,
-        payment.currency,
-        payment.exchangeRateToUsd,
-        rates,
-      );
+      const finalAmountUsd = getPaymentAmountUsd(payment, rates);
       payoutAmountUsd = finalAmountUsd * (payoutRatePercent / 100);
     }
 

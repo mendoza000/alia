@@ -121,7 +121,18 @@ function PaymentTableRow({
         {formatCurrencyAmount(p.finalAmount, p.currency)}
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
-        {formatUSD.format(p.finalAmountUsd)}
+        <span
+          title={
+            p.stripeSettledAmountUsd != null
+              ? "Monto real liquidado por Stripe"
+              : "Monto estimado con tasa de referencia"
+          }
+        >
+          {formatUSD.format(p.finalAmountUsd)}
+          {p.stripeSettledAmountUsd == null && (
+            <sup className="ml-0.5 text-[10px]">~</sup>
+          )}
+        </span>
       </TableCell>
       <TableCell className="text-sm">
         <div className="space-y-1">

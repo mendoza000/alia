@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { getUsdRateMap, paymentToUsd } from "@/lib/exchange-rates";
+import { getPaymentAmountUsd, getUsdRateMap } from "@/lib/exchange-rates";
 
 export type SessionsReportFilters = {
     psychologistId?: string;
@@ -30,6 +30,25 @@ export type SessionsReportPsychologist = {
     totals: SessionsReportTotals;
 };
 
+function getPayoutUsd(
+    payment: {
+        finalAmount: number;
+        currency: string;
+        exchangeRateToUsd: number | null;
+        stripeSettledAmountUsd: number | null;
+        payoutRatePercent: number | null;
+        payoutAmountUsd: number | null;
+    } | null,
+    rates: Map<string, number>,
+): number | null {
+    if (!payment) return null;
+    if (payment.payoutAmountUsd != null) return payment.payoutAmountUsd;
+    if (payment.payoutRatePercent == null) return null;
+
+    const finalAmountUsd = getPaymentAmountUsd(payment, rates);
+    return finalAmountUsd * (payment.payoutRatePercent / 100);
+}
+
 export async function getSessionsReportData(
     filters: SessionsReportFilters,
 ): Promise<SessionsReportPsychologist[]> {
@@ -55,6 +74,9 @@ export async function getSessionsReportData(
                         currency: true,
                         status: true,
                         exchangeRateToUsd: true,
+                        stripeSettledAmountUsd: true,
+                        payoutRatePercent: true,
+                        payoutAmountUsd: true,
                     },
                 },
             },
@@ -88,14 +110,7 @@ export async function getSessionsReportData(
         }
 
         const isPaid = appt.payment?.status === "APPROVED";
-        const amountUsd = appt.payment
-            ? paymentToUsd(
-                  appt.payment.finalAmount,
-                  appt.payment.currency,
-                  appt.payment.exchangeRateToUsd,
-                  rates,
-              )
-            : null;
+        const amountUsd = getPayoutUsd(appt.payment, rates);
 
         entry.sessions.push({
             id: appt.id,

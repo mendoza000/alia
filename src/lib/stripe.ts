@@ -31,6 +31,59 @@ export function toStripeAmount(amount: number, currency: string): number {
     : amount * 100;
 }
 
+export function fromStripeAmount(amount: number, currency: string): number {
+  return ZERO_DECIMAL_CURRENCIES.has(currency.toLowerCase())
+    ? amount
+    : amount / 100;
+}
+
+export type StripeSettlement = {
+  chargeId: string;
+  balanceTransactionId: string;
+  settledAmountUsd: number;
+  feeUsd: number;
+  exchangeRate: number | null;
+};
+
+// Reads the amount Stripe actually settled in the account's currency for a
+// payment made in another currency (eg. patient paid in COP). Requires
+// expanding latest_charge.balance_transaction, which is only populated once
+// Stripe finishes processing the charge — callers must treat a null result
+// as "not ready yet", not as an error.
+export async function getStripeSettlement(
+  paymentIntentId: string,
+): Promise<StripeSettlement | null> {
+  const pi = await stripe.paymentIntents.retrieve(paymentIntentId, {
+    expand: ["latest_charge.balance_transaction"],
+  });
+
+  const charge =
+    typeof pi.latest_charge === "object" && pi.latest_charge !== null
+      ? pi.latest_charge
+      : null;
+  const balanceTransaction =
+    charge &&
+    typeof charge.balance_transaction === "object" &&
+    charge.balance_transaction !== null
+      ? charge.balance_transaction
+      : null;
+  if (!charge || !balanceTransaction) return null;
+
+  return {
+    chargeId: charge.id,
+    balanceTransactionId: balanceTransaction.id,
+    settledAmountUsd: fromStripeAmount(
+      balanceTransaction.amount,
+      balanceTransaction.currency,
+    ),
+    feeUsd: fromStripeAmount(
+      balanceTransaction.fee,
+      balanceTransaction.currency,
+    ),
+    exchangeRate: balanceTransaction.exchange_rate,
+  };
+}
+
 type CreatePaymentCheckoutSessionParams = {
   appointmentId: string;
   amount: number;

@@ -87,3 +87,26 @@ export function paymentToUsd(
   if (!rate) return 0;
   return amount / rate;
 }
+
+/**
+ * Prefers the amount Stripe actually settled (`stripeSettledAmountUsd`) over
+ * our own mid-market estimate, since Stripe's own conversion rate — which
+ * includes its FX spread — is what really lands in the account.
+ */
+export function getPaymentAmountUsd(
+  payment: {
+    finalAmount: number;
+    currency: string;
+    exchangeRateToUsd: number | null;
+    stripeSettledAmountUsd: number | null;
+  },
+  liveRates: Map<string, number>,
+): number {
+  if (payment.stripeSettledAmountUsd != null) return payment.stripeSettledAmountUsd;
+  return paymentToUsd(
+    payment.finalAmount,
+    payment.currency,
+    payment.exchangeRateToUsd,
+    liveRates,
+  );
+}

@@ -193,6 +193,12 @@ model Payment {
   payoutType              PayoutType?
   payoutRatePercent       Float?
   payoutAmountUsd         Float?
+  stripeChargeId              String?   @unique
+  stripeBalanceTransactionId  String?   @unique
+  stripeSettledAmountUsd      Float?
+  stripeFeeUsd                Float?
+  stripeSettlementRate        Float?
+  stripeSettlementCheckedAt   DateTime?
   createdAt               DateTime      @default(now())
   updatedAt               DateTime      @updatedAt
 

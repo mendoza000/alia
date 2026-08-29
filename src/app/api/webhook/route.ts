@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { prisma } from "@/lib/db";
-import { stripe } from "@/lib/stripe";
+import { getStripeSettlement, stripe, type StripeSettlement } from "@/lib/stripe";
 import { getLiveUsdRateMap, paymentToUsd } from "@/lib/exchange-rates";
 import { getPayoutSettings } from "@/lib/admin/payout-settings-queries";
 import { isFirstCompletedAppointment } from "@/lib/queries/patient-appointments";
@@ -90,6 +90,22 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   );
   const payoutAmountUsd = finalAmountUsd * (payoutRatePercent / 100);
 
+  const stripePaymentIntentId =
+    typeof session.payment_intent === "string" ? session.payment_intent : null;
+
+  // Best-effort: Stripe's balance_transaction (the real settled USD amount
+  // and exchange rate) isn't always ready the instant checkout completes.
+  // Never let a failure here block the payment approval — the estimate
+  // above still gets stored, and reconciliation fills this in later.
+  let settlement: StripeSettlement | null = null;
+  if (stripePaymentIntentId) {
+    try {
+      settlement = await getStripeSettlement(stripePaymentIntentId);
+    } catch (err) {
+      console.error("No se pudo obtener el balance_transaction de Stripe", err);
+    }
+  }
+
   await prisma.$transaction(async (tx) => {
     await tx.payment.update({
       where: { appointmentId },
@@ -101,10 +117,13 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         isFirstAppointment,
         payoutRatePercent,
         payoutAmountUsd,
-        stripePaymentIntentId:
-          typeof session.payment_intent === "string"
-            ? session.payment_intent
-            : null,
+        stripePaymentIntentId,
+        stripeChargeId: settlement?.chargeId ?? null,
+        stripeBalanceTransactionId: settlement?.balanceTransactionId ?? null,
+        stripeSettledAmountUsd: settlement?.settledAmountUsd ?? null,
+        stripeFeeUsd: settlement?.feeUsd ?? null,
+        stripeSettlementRate: settlement?.exchangeRate ?? null,
+        stripeSettlementCheckedAt: new Date(),
       },
     });
 
