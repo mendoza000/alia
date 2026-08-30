@@ -30,6 +30,7 @@ type ManualBookingInput = {
   time: string; // "HH:mm"
   timezone: string;
   notes?: string;
+  internalNotes?: string;
   isException?: boolean;
 };
 
@@ -151,6 +152,7 @@ export async function createManualAppointment(
           endTime: slotEnd,
           status: "CONFIRMED",
           notes: input.notes || null,
+          internalNotes: input.internalNotes || null,
           timezone: input.timezone,
           isException: bypassAvailability,
         },

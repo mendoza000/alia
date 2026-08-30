@@ -43,6 +43,7 @@ type FormValues = {
   time: string;
   timezone: string;
   notes: string;
+  internalNotes: string;
   isException: boolean;
 };
 
@@ -79,6 +80,7 @@ export function NewManualAppointmentDialog({
       time: "",
       timezone: "America/Bogota",
       notes: "",
+      internalNotes: "",
       isException: false,
     },
   });
@@ -116,6 +118,7 @@ export function NewManualAppointmentDialog({
       time: values.time,
       timezone: values.timezone,
       notes: values.notes || undefined,
+      internalNotes: values.internalNotes || undefined,
       isException: values.isException,
     });
     setIsSubmitting(false);
@@ -350,6 +353,13 @@ export function NewManualAppointmentDialog({
           <div className="grid gap-1.5">
             <Label htmlFor="notes">Notas (opcional)</Label>
             <Textarea id="notes" rows={3} {...register("notes")} />
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label htmlFor="internalNotes">
+              Nota interna (solo para el equipo, el paciente no la ve)
+            </Label>
+            <Textarea id="internalNotes" rows={3} {...register("internalNotes")} />
           </div>
 
           <DialogFooter>

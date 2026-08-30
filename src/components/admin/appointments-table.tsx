@@ -14,6 +14,7 @@ import {
   FileText,
   Mail,
   MoreHorizontal,
+  StickyNote,
   Trash2,
   UserX,
   XCircle,
@@ -25,6 +26,7 @@ import {
   completeAppointment,
   markNoShow,
 } from "@/lib/admin/appointment-actions";
+import { AppointmentNotesDialog } from "@/components/admin/appointment-notes-dialog";
 import { DeleteAppointmentDialog } from "@/components/admin/delete-appointment-dialog";
 import { RescheduleAppointmentDialog } from "@/components/admin/reschedule-appointment-dialog";
 import { sendPaymentLinkEmail } from "@/lib/admin/payment-actions";
@@ -70,12 +72,14 @@ function AppointmentRow({
   onGenerateLink,
   onDeleteClick,
   onRescheduleClick,
+  onNotesClick,
 }: {
   appointment: AppointmentRow;
   hasAvailableCurrencies: boolean;
   onGenerateLink: (appointment: AppointmentRow) => void;
   onDeleteClick: (appointment: AppointmentRow) => void;
   onRescheduleClick: (appointment: AppointmentRow) => void;
+  onNotesClick: (appointment: AppointmentRow) => void;
 }) {
   const [, startTransition] = useTransition();
 
@@ -182,6 +186,11 @@ function AppointmentRow({
               Excepción
             </Badge>
           )}
+          {appointment.internalNotes && (
+            <span title={appointment.internalNotes}>
+              <StickyNote className="size-3.5 text-muted-foreground" />
+            </span>
+          )}
         </div>
       </TableCell>
       <TableCell className="text-sm">
@@ -221,8 +230,13 @@ function AppointmentRow({
                 Ver formulario
               </DropdownMenuItem>
             )}
-            {(canComplete || canNoShow || canCancel || canDelete || canGenerateLink) &&
-              appointment.user.intakeForm && <DropdownMenuSeparator />}
+            <DropdownMenuItem onClick={() => onNotesClick(appointment)}>
+              <StickyNote />
+              {appointment.internalNotes ? "Editar nota interna" : "Agregar nota interna"}
+            </DropdownMenuItem>
+            {(canComplete || canNoShow || canCancel || canDelete || canGenerateLink) && (
+              <DropdownMenuSeparator />
+            )}
             {canGenerateLink && (
               <>
                 <DropdownMenuItem onClick={handleGenerateLinkClick}>
@@ -305,6 +319,7 @@ export function AppointmentsTable({
   );
   const [reschedulingAppointment, setReschedulingAppointment] =
     useState<AppointmentRow | null>(null);
+  const [notesAppointment, setNotesAppointment] = useState<AppointmentRow | null>(null);
 
   if (appointments.length === 0) {
     return (
@@ -337,6 +352,7 @@ export function AppointmentsTable({
               onGenerateLink={setActiveAppointment}
               onDeleteClick={setDeletingAppointment}
               onRescheduleClick={setReschedulingAppointment}
+              onNotesClick={setNotesAppointment}
             />
           ))}
         </TableBody>
@@ -370,6 +386,16 @@ export function AppointmentsTable({
           patientName={deletingAppointment.user.name}
           open={!!deletingAppointment}
           onOpenChange={(v) => !v && setDeletingAppointment(null)}
+        />
+      )}
+
+      {notesAppointment && (
+        <AppointmentNotesDialog
+          appointmentId={notesAppointment.id}
+          patientName={notesAppointment.user.name}
+          initialNotes={notesAppointment.internalNotes}
+          open={!!notesAppointment}
+          onOpenChange={(v) => !v && setNotesAppointment(null)}
         />
       )}
     </div>

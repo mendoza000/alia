@@ -62,6 +62,26 @@ export async function completeAppointment(
     return { success: true };
 }
 
+export async function updateAppointmentNotes(
+    appointmentId: string,
+    internalNotes: string,
+): Promise<ActionResult> {
+    const appointment = await prisma.appointment.findUnique({
+        where: { id: appointmentId },
+        select: { id: true },
+    });
+
+    if (!appointment) return { success: false, error: "Sesión no encontrada" };
+
+    await prisma.appointment.update({
+        where: { id: appointmentId },
+        data: { internalNotes: internalNotes.trim() || null },
+    });
+
+    revalidatePath("/admin/citas", "layout");
+    return { success: true };
+}
+
 export async function deleteAppointment(
     appointmentId: string,
 ): Promise<ActionResult> {

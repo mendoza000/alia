@@ -129,6 +129,7 @@ model Appointment {
   expiresAt       DateTime?
   googleEventId   String?
   notes           String?           @db.Text
+  internalNotes   String?           @db.Text
   patientCountry  String?
   termsVersion    String?
   termsAcceptedAt DateTime?
