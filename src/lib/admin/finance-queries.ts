@@ -32,9 +32,12 @@ export async function getFinanceByPsychologist(range: FinanceDateRange) {
         appointments: {
           where: {
             status: { in: ["CONFIRMED", "COMPLETED"] },
-            dateTime: {
-              ...(range.since ? { gte: range.since } : {}),
-              ...(range.until ? { lte: range.until } : {}),
+            payment: {
+              status: "APPROVED",
+              paidAt: {
+                ...(range.since ? { gte: range.since } : {}),
+                ...(range.until ? { lte: range.until } : {}),
+              },
             },
           },
           select: {
