@@ -93,7 +93,13 @@ export async function submitIntakeForm(input: {
             }),
             prisma.appointment.update({
                 where: { id: input.appointmentId },
-                data: { status: "CONFIRMED", expiresAt: null, timezone, patientCountry },
+                data: {
+                    status: "CONFIRMED",
+                    expiresAt: null,
+                    timezone,
+                    patientCountry,
+                    selfBookedAt: new Date(),
+                },
             }),
         ]);
     } catch (error) {
@@ -108,7 +114,13 @@ export async function submitIntakeForm(input: {
 
         await prisma.appointment.update({
             where: { id: input.appointmentId },
-            data: { status: "CONFIRMED", expiresAt: null, timezone, patientCountry },
+            data: {
+                status: "CONFIRMED",
+                expiresAt: null,
+                timezone,
+                patientCountry,
+                selfBookedAt: new Date(),
+            },
         });
     }
 

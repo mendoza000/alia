@@ -11,13 +11,15 @@ export type AdminAlert = {
 
 const FORM_EXPIRY_WINDOW_MS = 30 * 60 * 1000;
 const STALE_PAYMENT_THRESHOLD_MS = 3 * 24 * 60 * 60 * 1000;
+const SELF_BOOKED_ALERT_WINDOW_MS = 5 * 24 * 60 * 60 * 1000;
 
 export async function getAdminAlerts(): Promise<AdminAlert[]> {
   const now = new Date();
   const expiringSoon = new Date(now.getTime() + FORM_EXPIRY_WINDOW_MS);
   const stalePaymentCutoff = new Date(now.getTime() - STALE_PAYMENT_THRESHOLD_MS);
+  const selfBookedCutoff = new Date(now.getTime() - SELF_BOOKED_ALERT_WINDOW_MS);
 
-  const [expiringForms, stalePayments] = await Promise.all([
+  const [expiringForms, stalePayments, selfBookedAppointments] = await Promise.all([
     prisma.appointment.findMany({
       where: {
         status: "PENDING_FORM",
@@ -50,6 +52,20 @@ export async function getAdminAlerts(): Promise<AdminAlert[]> {
       },
       orderBy: { createdAt: "asc" },
     }),
+    prisma.appointment.findMany({
+      where: {
+        status: "CONFIRMED",
+        selfBookedAt: { gte: selfBookedCutoff },
+      },
+      select: {
+        id: true,
+        selfBookedAt: true,
+        dateTime: true,
+        user: { select: { name: true } },
+        psychologist: { select: { name: true } },
+      },
+      orderBy: { selfBookedAt: "asc" },
+    }),
   ]);
 
   const alerts: AdminAlert[] = expiringForms
@@ -79,6 +95,15 @@ export async function getAdminAlerts(): Promise<AdminAlert[]> {
       message: `Pago pendiente hace ${daysElapsed} días — ${payment.appointment.user.name}`,
       detail: `Sesión del ${format(payment.appointment.dateTime, "d MMM, HH:mm", { locale: es })}`,
       href: "/admin/pagos",
+    });
+  }
+
+  for (const appt of selfBookedAppointments) {
+    alerts.push({
+      id: `self-booked-${appt.id}`,
+      message: `Nuevo paciente agendado sin intervención — ${appt.user.name}`,
+      detail: `Sesión con ${appt.psychologist.name} · ${format(appt.dateTime, "d MMM, HH:mm", { locale: es })}`,
+      href: "/admin/formularios",
     });
   }
 
