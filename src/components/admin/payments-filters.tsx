@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
-import { Input } from "@/components/ui/input";
+import { PeriodFilter } from "@/components/admin/period-filter";
 import {
   Select,
   SelectContent,
@@ -80,20 +80,7 @@ export function PaymentsFilters({ psychologists }: PaymentsFiltersProps) {
         </SelectContent>
       </Select>
 
-      <Input
-        type="date"
-        className="h-9 w-40"
-        value={searchParams.get("dateFrom") ?? ""}
-        onChange={(e) => updateParam("dateFrom", e.target.value)}
-        placeholder="Desde"
-      />
-      <Input
-        type="date"
-        className="h-9 w-40"
-        value={searchParams.get("dateTo") ?? ""}
-        onChange={(e) => updateParam("dateTo", e.target.value)}
-        placeholder="Hasta"
-      />
+      <PeriodFilter />
     </div>
   );
 }

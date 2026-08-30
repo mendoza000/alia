@@ -16,7 +16,7 @@ function getInitials(name: string) {
   return name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 }
 
-const VALID_PERIODS: FinancePeriod[] = ["month", "3months", "6months", "year", "all"];
+const VALID_PERIODS: FinancePeriod[] = ["today", "month", "3months", "6months", "year", "all"];
 
 type Props = {
   searchParams: Promise<{ period?: string; dateFrom?: string; dateTo?: string }>;
@@ -27,14 +27,14 @@ export default async function FinanzasPage({ searchParams }: Props) {
   const period: FinancePeriod =
     VALID_PERIODS.includes(params.period as FinancePeriod)
       ? (params.period as FinancePeriod)
-      : "month";
+      : "today";
   const range = resolveFinanceRange(period, params.dateFrom, params.dateTo);
 
-  const [summary, psychologists, payoutSettings] = await Promise.all([
-    getFinanceSummary(range),
+  const [psychologists, payoutSettings] = await Promise.all([
     getFinanceByPsychologist(range),
     getPayoutSettings(),
   ]);
+  const summary = getFinanceSummary(psychologists);
 
   const grandTotal = summary.totalRevenueUsd;
 
@@ -50,7 +50,7 @@ export default async function FinanzasPage({ searchParams }: Props) {
         <div className="flex items-center gap-3">
           <PayoutSettingsSheet defaultValues={payoutSettings} />
           <Suspense fallback={<Skeleton className="h-9 w-96" />}>
-            <FinanceFilters value={period} />
+            <FinanceFilters />
           </Suspense>
         </div>
       </div>

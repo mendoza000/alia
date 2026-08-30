@@ -1,11 +1,11 @@
 import { prisma } from "@/lib/db";
 import type { AppointmentStatus } from "@/generated/prisma/enums";
+import type { DateRange } from "@/lib/admin/date-range";
 
 export type AppointmentFilters = {
   status?: AppointmentStatus;
   psychologistId?: string;
-  dateFrom?: string;
-  dateTo?: string;
+  range?: DateRange;
 };
 
 export async function getAllAppointments(filters: AppointmentFilters = {}) {
@@ -19,10 +19,10 @@ export async function getAllAppointments(filters: AppointmentFilters = {}) {
     where.psychologistId = filters.psychologistId;
   }
 
-  if (filters.dateFrom || filters.dateTo) {
+  if (filters.range?.since || filters.range?.until) {
     where.dateTime = {
-      ...(filters.dateFrom ? { gte: new Date(filters.dateFrom) } : {}),
-      ...(filters.dateTo ? { lte: new Date(`${filters.dateTo}T23:59:59`) } : {}),
+      ...(filters.range.since ? { gte: filters.range.since } : {}),
+      ...(filters.range.until ? { lte: filters.range.until } : {}),
     };
   }
 

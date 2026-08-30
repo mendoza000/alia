@@ -1,11 +1,11 @@
 import { prisma } from "@/lib/db";
 import type { PaymentStatus } from "@/generated/prisma/enums";
+import type { DateRange } from "@/lib/admin/date-range";
 
 export type PaymentFilters = {
   status?: PaymentStatus;
   psychologistId?: string;
-  dateFrom?: string;
-  dateTo?: string;
+  range?: DateRange;
 };
 
 export async function getAllPayments(filters: PaymentFilters = {}) {
@@ -15,10 +15,12 @@ export async function getAllPayments(filters: PaymentFilters = {}) {
     where.status = filters.status;
   }
 
-  if (filters.dateFrom || filters.dateTo) {
-    where.paidAt = {
-      ...(filters.dateFrom ? { gte: new Date(filters.dateFrom) } : {}),
-      ...(filters.dateTo ? { lte: new Date(`${filters.dateTo}T23:59:59`) } : {}),
+  if (filters.range?.since || filters.range?.until) {
+    // createdAt (not paidAt) so PENDING payments — which never got a paidAt —
+    // still show up under a date filter like the default "Hoy".
+    where.createdAt = {
+      ...(filters.range.since ? { gte: filters.range.since } : {}),
+      ...(filters.range.until ? { lte: filters.range.until } : {}),
     };
   }
 

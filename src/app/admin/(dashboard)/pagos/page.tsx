@@ -8,11 +8,15 @@ import { PaymentsFilters } from "@/components/admin/payments-filters";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrencyBreakdown, formatUSD } from "@/lib/currency";
 import { getPaymentAmountUsd, getUsdRateMap, paymentToUsd } from "@/lib/exchange-rates";
+import { resolveDateRange, type DateFilterPeriod } from "@/lib/admin/date-range";
+
+const VALID_PERIODS: DateFilterPeriod[] = ["today", "month", "3months", "6months", "year", "all"];
 
 type Props = {
   searchParams: Promise<{
     status?: string;
     psychologistId?: string;
+    period?: string;
     dateFrom?: string;
     dateTo?: string;
   }>;
@@ -21,11 +25,15 @@ type Props = {
 export default async function PagosPage({ searchParams }: Props) {
   const params = await searchParams;
 
+  const period: DateFilterPeriod = VALID_PERIODS.includes(params.period as DateFilterPeriod)
+    ? (params.period as DateFilterPeriod)
+    : "today";
+  const range = resolveDateRange(period, params.dateFrom, params.dateTo);
+
   const filters: PaymentFilters = {
     status: params.status as PaymentStatus | undefined,
     psychologistId: params.psychologistId,
-    dateFrom: params.dateFrom,
-    dateTo: params.dateTo,
+    range,
   };
 
   const [payments, psychologists, rates, commissionRates] = await Promise.all([

@@ -12,11 +12,15 @@ import { AppointmentsFilters } from "@/components/admin/appointments-filters";
 import { NewManualAppointmentDialog } from "@/components/admin/new-manual-appointment-dialog";
 import { GenerateReportDialog } from "@/components/admin/generate-report-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { resolveDateRange, type DateFilterPeriod } from "@/lib/admin/date-range";
+
+const VALID_PERIODS: DateFilterPeriod[] = ["today", "month", "3months", "6months", "year", "all"];
 
 type Props = {
   searchParams: Promise<{
     status?: string;
     psychologistId?: string;
+    period?: string;
     dateFrom?: string;
     dateTo?: string;
   }>;
@@ -25,11 +29,15 @@ type Props = {
 export default async function CitasPage({ searchParams }: Props) {
   const params = await searchParams;
 
+  const period: DateFilterPeriod = VALID_PERIODS.includes(params.period as DateFilterPeriod)
+    ? (params.period as DateFilterPeriod)
+    : "today";
+  const range = resolveDateRange(period, params.dateFrom, params.dateTo);
+
   const filters: AppointmentFilters = {
     status: params.status as AppointmentStatus | undefined,
     psychologistId: params.psychologistId,
-    dateFrom: params.dateFrom,
-    dateTo: params.dateTo,
+    range,
   };
 
   const [appointments, psychologists, rates, commissionRates] = await Promise.all([

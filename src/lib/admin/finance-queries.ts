@@ -1,45 +1,12 @@
 import { prisma } from "@/lib/db";
-import { getPaymentAmountUsd, getUsdRateMap, paymentToUsd } from "@/lib/exchange-rates";
+import { getPaymentAmountUsd, getUsdRateMap } from "@/lib/exchange-rates";
+import { resolveDateRange, type DateFilterPeriod, type DateRange } from "@/lib/admin/date-range";
 
-export type FinancePeriod = "month" | "3months" | "6months" | "year" | "all";
+export type FinancePeriod = DateFilterPeriod;
 
-export type FinanceDateRange = { since: Date | null; until: Date | null };
+export type FinanceDateRange = DateRange;
 
-function getPeriodStart(period: FinancePeriod): Date | null {
-  const now = new Date();
-  switch (period) {
-    case "month":
-      return new Date(now.getFullYear(), now.getMonth(), 1);
-    case "3months": {
-      const d = new Date(now);
-      d.setMonth(d.getMonth() - 2);
-      d.setDate(1);
-      d.setHours(0, 0, 0, 0);
-      return d;
-    }
-    case "6months": {
-      const d = new Date(now);
-      d.setMonth(d.getMonth() - 5);
-      d.setDate(1);
-      d.setHours(0, 0, 0, 0);
-      return d;
-    }
-    case "year":
-      return new Date(now.getFullYear(), 0, 1);
-    case "all":
-      return null;
-  }
-}
-
-export function resolveFinanceRange(
-  period: FinancePeriod,
-  dateFrom?: string,
-  dateTo?: string,
-): FinanceDateRange {
-  const since = dateFrom ? new Date(dateFrom) : getPeriodStart(period);
-  const until = dateTo ? new Date(`${dateTo}T23:59:59`) : null;
-  return { since, until };
-}
+export const resolveFinanceRange = resolveDateRange;
 
 export type FinanceCurrencyTotal = { currency: string; amount: number };
 
@@ -121,43 +88,26 @@ export async function getFinanceByPsychologist(range: FinanceDateRange) {
 
 export type FinancePsychologist = Awaited<ReturnType<typeof getFinanceByPsychologist>>[number];
 
-export async function getFinanceSummary(range: FinanceDateRange) {
-  const [payments, rates] = await Promise.all([
-    prisma.payment.findMany({
-      where: {
-        status: "APPROVED",
-        paidAt: {
-          ...(range.since ? { gte: range.since } : {}),
-          ...(range.until ? { lte: range.until } : {}),
-        },
-      },
-      select: {
-        currency: true,
-        finalAmount: true,
-        discountAmount: true,
-        exchangeRateToUsd: true,
-        stripeSettledAmountUsd: true,
-        payoutAmountUsd: true,
-      },
-    }),
-    getUsdRateMap(),
-  ]);
-
-  const totalRevenueByCurrency = groupByCurrency(payments);
-  const totalRevenueUsd = payments.reduce((sum, p) => sum + getPaymentAmountUsd(p, rates), 0);
-  const totalSessions = payments.length;
-  const totalDiscountsUsd = payments.reduce(
-    (sum, p) => sum + paymentToUsd(p.discountAmount, p.currency, p.exchangeRateToUsd, rates),
-    0,
-  );
-  const totalOwedUsd = payments.reduce((sum, p) => sum + (p.payoutAmountUsd ?? 0), 0);
+export function getFinanceSummary(psychologists: FinancePsychologist[]) {
+  const totalRevenueUsd = psychologists.reduce((sum, p) => sum + p.totalRevenueUsd, 0);
+  const totalOwedUsd = psychologists.reduce((sum, p) => sum + p.totalOwedUsd, 0);
+  const totalSessions = psychologists.reduce((sum, p) => sum + p.sessionCount, 0);
   const netRevenueUsd = totalRevenueUsd - totalOwedUsd;
+
+  const currencyTotals = new Map<string, number>();
+  for (const p of psychologists) {
+    for (const c of p.totalRevenueByCurrency) {
+      currencyTotals.set(c.currency, (currencyTotals.get(c.currency) ?? 0) + c.amount);
+    }
+  }
+  const totalRevenueByCurrency: FinanceCurrencyTotal[] = Array.from(
+    currencyTotals.entries(),
+  ).map(([currency, amount]) => ({ currency, amount }));
 
   return {
     totalRevenueByCurrency,
     totalRevenueUsd,
     totalSessions,
-    totalDiscountsUsd,
     totalOwedUsd,
     netRevenueUsd,
   };
