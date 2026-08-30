@@ -182,6 +182,28 @@ export async function sendPaymentLinkEmail(
   }
 }
 
+export async function voidPayment(paymentId: string): Promise<ActionResult> {
+  try {
+    const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
+    if (!payment) return { success: false, error: "Pago no encontrado" };
+    if (payment.status !== "PENDING") {
+      return { success: false, error: "Solo se pueden anular pagos pendientes" };
+    }
+
+    await prisma.payment.update({
+      where: { id: paymentId },
+      data: { status: "VOIDED" },
+    });
+
+    revalidatePath("/admin/pagos", "layout");
+    revalidatePath("/admin/citas", "layout");
+    return { success: true };
+  } catch (err) {
+    if (err instanceof Error) return { success: false, error: err.message };
+    return { success: false, error: "No se pudo anular el pago" };
+  }
+}
+
 export async function updatePaymentCommission(
   paymentId: string,
   payoutType: PayoutType,

@@ -3,9 +3,13 @@
 import { useTransition } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Mail } from "lucide-react";
+import { Mail, MoreHorizontal, XCircle } from "lucide-react";
 import { toast } from "sonner";
-import { sendPaymentLinkEmail, updatePaymentCommission } from "@/lib/admin/payment-actions";
+import {
+  sendPaymentLinkEmail,
+  updatePaymentCommission,
+  voidPayment,
+} from "@/lib/admin/payment-actions";
 import { formatCurrencyAmount, formatUSD } from "@/lib/currency";
 import { PAYOUT_TYPES, PAYOUT_TYPE_LABELS, getPayoutTypeRate } from "@/lib/payout-type";
 import type { PayoutSettings } from "@/lib/admin/payout-settings-queries";
@@ -13,6 +17,12 @@ import type { PaymentRow } from "@/lib/admin/payment-queries";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CopyLinkButton } from "@/components/ui/copy-link-button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -74,6 +84,17 @@ function PaymentTableRow({
       const result = await sendPaymentLinkEmail(p.appointmentId, p.currency);
       if (result.success) {
         toast.success("Correo enviado");
+      } else {
+        toast.error(result.error);
+      }
+    });
+  }
+
+  function handleVoid() {
+    startTransition(async () => {
+      const result = await voidPayment(p.id);
+      if (result.success) {
+        toast.success("Pago anulado");
       } else {
         toast.error(result.error);
       }
@@ -184,20 +205,39 @@ function PaymentTableRow({
           : "—"}
       </TableCell>
       <TableCell>
-        {hasUsableLink && (
-          <div className="flex items-center gap-1">
-            <CopyLinkButton text={p.stripeCheckoutUrl ?? ""} />
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={handleResend}
-              disabled={isPending}
-              title="Reenviar por correo"
-            >
-              <Mail />
-            </Button>
-          </div>
-        )}
+        <div className="flex items-center gap-1">
+          {hasUsableLink && (
+            <>
+              <CopyLinkButton text={p.stripeCheckoutUrl ?? ""} />
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={handleResend}
+                disabled={isPending}
+                title="Reenviar por correo"
+              >
+                <Mail />
+              </Button>
+            </>
+          )}
+          {p.status === "PENDING" && (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button variant="ghost" size="icon-sm" disabled={isPending}>
+                    <MoreHorizontal className="size-4" />
+                  </Button>
+                }
+              />
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem variant="destructive" onClick={handleVoid}>
+                  <XCircle />
+                  Anular pago
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
       </TableCell>
     </TableRow>
   );
