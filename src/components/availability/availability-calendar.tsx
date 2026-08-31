@@ -1,11 +1,16 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { es } from "date-fns/locale";
 import { format } from "date-fns";
 import type { Schedule } from "@/generated/prisma/client";
-import type { MonthAvailability, TimeSlot } from "@/lib/availability";
+import {
+    CARACAS_TZ,
+    type MonthAvailability,
+    type TimeSlot,
+} from "@/lib/availability";
+import { detectBrowserTimezone } from "@/lib/timezones";
 import { getMonthAvailability } from "@/app/(landing)/psicologos/[slug]/actions";
 import { TimeSlotsPanel } from "./time-slots-panel";
 import { cn } from "@/lib/utils";
@@ -52,6 +57,17 @@ export function AvailabilityCalendar({
         defaultDate,
     );
     const [isPending, startTransition] = useTransition();
+    // Starts at CARACAS_TZ so server and client render the same markup on
+    // first paint — Intl.DateTimeFormat().resolvedOptions().timeZone reads
+    // the server's own timezone during SSR, not the visitor's, which would
+    // otherwise cause a hydration mismatch. The real value is filled in
+    // client-side right after mount (same pattern as the booking flow).
+    const [detectedTimezone, setDetectedTimezone] = useState(CARACAS_TZ);
+
+    useEffect(() => {
+        setDetectedTimezone(detectBrowserTimezone());
+    }, []);
+
     const cacheRef = useRef<Map<string, MonthAvailability>>(
         new Map([[`${initialYear}-${initialMonth}`, initialAvailability]]),
     );
@@ -123,7 +139,7 @@ export function AvailabilityCalendar({
                     slots={selectedSlots}
                     psychologistSlug={psychologistSlug}
                     onSlotSelect={onSlotSelect}
-                    patientTimezone={patientTimezone}
+                    patientTimezone={patientTimezone ?? detectedTimezone}
                 />
 
                 <div
