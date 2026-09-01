@@ -77,7 +77,9 @@ function PaymentTableRow({
     p.payoutAmountUsd ??
     (p.payoutRatePercent != null ? p.finalAmountUsd * (p.payoutRatePercent / 100) : null);
   const companyShareUsd =
-    psychologistShareUsd != null ? p.finalAmountUsd - psychologistShareUsd : null;
+    psychologistShareUsd != null
+      ? p.finalAmountUsd - psychologistShareUsd - (p.stripeFeeUsd ?? 0)
+      : null;
 
   function handleResend() {
     startTransition(async () => {
@@ -183,7 +185,14 @@ function PaymentTableRow({
         </div>
       </TableCell>
       <TableCell className="text-sm">
-        {companyShareUsd != null ? formatUSD.format(companyShareUsd) : "—"}
+        <div className="space-y-0.5">
+          <p>{companyShareUsd != null ? formatUSD.format(companyShareUsd) : "—"}</p>
+          {p.stripeFeeUsd != null && p.stripeFeeUsd > 0 && (
+            <p className="text-xs text-muted-foreground">
+              −{formatUSD.format(p.stripeFeeUsd)} Stripe
+            </p>
+          )}
+        </div>
       </TableCell>
       <TableCell>
         {p.coupon ? (
