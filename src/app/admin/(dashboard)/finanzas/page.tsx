@@ -74,7 +74,8 @@ export default async function FinanzasPage({ searchParams }: Props) {
           <p className="text-xs text-muted-foreground uppercase tracking-wide">Neto para la empresa</p>
           <p className="mt-1 text-2xl font-bold">{formatUSD.format(summary.netRevenueUsd)}</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Recaudado menos comisiones pagadas a psicólogos
+            Recaudado menos comisiones a psicólogos y comisión de Stripe (
+            {formatUSD.format(summary.totalStripeFeeUsd)})
           </p>
         </div>
       </div>

@@ -48,6 +48,7 @@ export async function getFinanceByPsychologist(range: FinanceDateRange) {
                 status: true,
                 exchangeRateToUsd: true,
                 stripeSettledAmountUsd: true,
+                stripeFeeUsd: true,
                 payoutAmountUsd: true,
               },
             },
@@ -73,6 +74,10 @@ export async function getFinanceByPsychologist(range: FinanceDateRange) {
         (sum, p) => sum + (p.payoutAmountUsd ?? 0),
         0,
       );
+      const totalStripeFeeUsd = approvedPayments.reduce(
+        (sum, p) => sum + (p.stripeFeeUsd ?? 0),
+        0,
+      );
       const sessionCount = approvedPayments.length;
 
       return {
@@ -83,6 +88,7 @@ export async function getFinanceByPsychologist(range: FinanceDateRange) {
         totalRevenueByCurrency,
         totalRevenueUsd,
         totalOwedUsd,
+        totalStripeFeeUsd,
         sessionCount,
       };
     })
@@ -94,8 +100,9 @@ export type FinancePsychologist = Awaited<ReturnType<typeof getFinanceByPsycholo
 export function getFinanceSummary(psychologists: FinancePsychologist[]) {
   const totalRevenueUsd = psychologists.reduce((sum, p) => sum + p.totalRevenueUsd, 0);
   const totalOwedUsd = psychologists.reduce((sum, p) => sum + p.totalOwedUsd, 0);
+  const totalStripeFeeUsd = psychologists.reduce((sum, p) => sum + p.totalStripeFeeUsd, 0);
   const totalSessions = psychologists.reduce((sum, p) => sum + p.sessionCount, 0);
-  const netRevenueUsd = totalRevenueUsd - totalOwedUsd;
+  const netRevenueUsd = totalRevenueUsd - totalOwedUsd - totalStripeFeeUsd;
 
   const currencyTotals = new Map<string, number>();
   for (const p of psychologists) {
@@ -112,6 +119,7 @@ export function getFinanceSummary(psychologists: FinancePsychologist[]) {
     totalRevenueUsd,
     totalSessions,
     totalOwedUsd,
+    totalStripeFeeUsd,
     netRevenueUsd,
   };
 }
