@@ -99,19 +99,28 @@ export async function createManualAppointment(
     }
   }
 
+  const normalizedEmail = input.patientEmail.trim().toLowerCase();
+
   let user = await prisma.user.findUnique({
-    where: { email: input.patientEmail },
+    where: { email: normalizedEmail },
   });
 
   if (!user) {
-    const result = await auth.api.createUser({
-      body: {
-        email: input.patientEmail,
-        name: input.patientName,
-      },
-      headers: await headers(),
-    });
-    user = await prisma.user.findUnique({ where: { id: result.user.id } });
+    try {
+      const result = await auth.api.createUser({
+        body: {
+          email: normalizedEmail,
+          name: input.patientName,
+        },
+        headers: await headers(),
+      });
+      user = await prisma.user.findUnique({ where: { id: result.user.id } });
+    } catch (error) {
+      // Race or case-mismatch: another request may have created this user
+      // between the findUnique above and createUser. Re-check before failing.
+      user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+      if (!user) throw error;
+    }
   }
   if (!user) {
     return { success: false, error: "No se pudo crear el usuario del paciente" };
@@ -178,7 +187,7 @@ export async function createManualAppointment(
         userId: patientId,
         data: {
           fullName: input.patientName,
-          email: input.patientEmail,
+          email: normalizedEmail,
           timezone: input.timezone,
           consultationReason:
             input.notes || "Cita agendada manualmente por el equipo de ALIA.",
