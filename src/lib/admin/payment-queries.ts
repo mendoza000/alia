@@ -46,3 +46,41 @@ export async function getAllPayments(filters: PaymentFilters = {}) {
 }
 
 export type PaymentRow = Awaited<ReturnType<typeof getAllPayments>>[number];
+
+export type RevenueFilters = {
+  range?: DateRange;
+  psychologistId?: string;
+};
+
+// Canonical "recaudado" definition, shared with /admin/finanzas: paid within
+// range and tied to an appointment that wasn't cancelled, so a refunded or
+// cancelled session's payment doesn't count as collected revenue.
+export async function getApprovedRevenuePayments(filters: RevenueFilters = {}) {
+  const where: Record<string, unknown> = {
+    status: "APPROVED",
+    appointment: {
+      status: { in: ["CONFIRMED", "COMPLETED"] },
+      ...(filters.psychologistId ? { psychologistId: filters.psychologistId } : {}),
+    },
+  };
+
+  if (filters.range?.since || filters.range?.until) {
+    where.paidAt = {
+      ...(filters.range.since ? { gte: filters.range.since } : {}),
+      ...(filters.range.until ? { lte: filters.range.until } : {}),
+    };
+  }
+
+  return prisma.payment.findMany({
+    where,
+    select: {
+      finalAmount: true,
+      currency: true,
+      discountAmount: true,
+      exchangeRateToUsd: true,
+      stripeSettledAmountUsd: true,
+      stripeFeeUsd: true,
+      payoutAmountUsd: true,
+    },
+  });
+}

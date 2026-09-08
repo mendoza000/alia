@@ -23,7 +23,6 @@ function groupByCurrency(
 export async function getFinanceByPsychologist(range: FinanceDateRange) {
   const [psychologists, rates] = await Promise.all([
     prisma.psychologist.findMany({
-      where: { isActive: true },
       select: {
         id: true,
         name: true,

@@ -1,6 +1,10 @@
 import { Suspense } from "react";
 import type { PaymentStatus } from "@/generated/prisma/enums";
-import { getAllPayments, type PaymentFilters } from "@/lib/admin/payment-queries";
+import {
+  getAllPayments,
+  getApprovedRevenuePayments,
+  type PaymentFilters,
+} from "@/lib/admin/payment-queries";
 import { getAllPsychologists } from "@/lib/admin/psychologist-queries";
 import { getPayoutSettings } from "@/lib/admin/payout-settings-queries";
 import { PaymentTable } from "@/components/admin/payment-table";
@@ -36,14 +40,15 @@ export default async function PagosPage({ searchParams }: Props) {
     range,
   };
 
-  const [payments, psychologists, rates, commissionRates] = await Promise.all([
+  const [payments, revenuePayments, psychologists, rates, commissionRates] = await Promise.all([
     getAllPayments(filters),
+    getApprovedRevenuePayments({ range, psychologistId: filters.psychologistId }),
     getAllPsychologists(),
     getUsdRateMap(),
     getPayoutSettings(),
   ]);
 
-  const approved = payments.filter((p) => p.status === "APPROVED");
+  const approved = revenuePayments;
 
   const totalsByCurrency = approved.reduce<
     Record<string, { revenue: number; discounts: number }>
