@@ -110,3 +110,21 @@ export function getPaymentAmountUsd(
     liveRates,
   );
 }
+
+/**
+ * The psychologist's cut of a payment, in USD. Prefers the frozen
+ * `payoutAmountUsd` (set once the commission is applied); falls back to
+ * computing it from `payoutRatePercent` for a payment where the fixed
+ * amount hasn't been recorded yet. Shared by row display and aggregate
+ * totals so a row that shows a dollar amount always counts toward the sum.
+ */
+export function getPsychologistShareUsd(
+  payment: { payoutAmountUsd: number | null; payoutRatePercent: number | null },
+  finalAmountUsd: number,
+): number | null {
+  if (payment.payoutAmountUsd != null) return payment.payoutAmountUsd;
+  if (payment.payoutRatePercent != null) {
+    return finalAmountUsd * (payment.payoutRatePercent / 100);
+  }
+  return null;
+}

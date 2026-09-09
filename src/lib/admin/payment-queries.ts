@@ -16,12 +16,14 @@ export async function getAllPayments(filters: PaymentFilters = {}) {
   }
 
   if (filters.range?.since || filters.range?.until) {
-    // createdAt (not paidAt) so PENDING payments — which never got a paidAt —
-    // still show up under a date filter like the default "Hoy".
-    where.createdAt = {
+    const dateFilter = {
       ...(filters.range.since ? { gte: filters.range.since } : {}),
       ...(filters.range.until ? { lte: filters.range.until } : {}),
     };
+    // paidAt for settled payments so the date filter matches when the money
+    // actually moved; createdAt only as a fallback for PENDING payments
+    // (which never got a paidAt) so they still show up under "Hoy" etc.
+    where.OR = [{ paidAt: dateFilter }, { status: "PENDING", createdAt: dateFilter }];
   }
 
   if (filters.psychologistId) {
@@ -37,6 +39,7 @@ export async function getAllPayments(filters: PaymentFilters = {}) {
         select: {
           id: true,
           dateTime: true,
+          status: true,
           user: { select: { name: true, email: true } },
           psychologist: { select: { name: true } },
         },
@@ -46,41 +49,3 @@ export async function getAllPayments(filters: PaymentFilters = {}) {
 }
 
 export type PaymentRow = Awaited<ReturnType<typeof getAllPayments>>[number];
-
-export type RevenueFilters = {
-  range?: DateRange;
-  psychologistId?: string;
-};
-
-// Canonical "recaudado" definition, shared with /admin/finanzas: paid within
-// range and tied to an appointment that wasn't cancelled, so a refunded or
-// cancelled session's payment doesn't count as collected revenue.
-export async function getApprovedRevenuePayments(filters: RevenueFilters = {}) {
-  const where: Record<string, unknown> = {
-    status: "APPROVED",
-    appointment: {
-      status: { in: ["CONFIRMED", "COMPLETED"] },
-      ...(filters.psychologistId ? { psychologistId: filters.psychologistId } : {}),
-    },
-  };
-
-  if (filters.range?.since || filters.range?.until) {
-    where.paidAt = {
-      ...(filters.range.since ? { gte: filters.range.since } : {}),
-      ...(filters.range.until ? { lte: filters.range.until } : {}),
-    };
-  }
-
-  return prisma.payment.findMany({
-    where,
-    select: {
-      finalAmount: true,
-      currency: true,
-      discountAmount: true,
-      exchangeRateToUsd: true,
-      stripeSettledAmountUsd: true,
-      stripeFeeUsd: true,
-      payoutAmountUsd: true,
-    },
-  });
-}

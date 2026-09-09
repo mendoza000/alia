@@ -1,17 +1,18 @@
 import { Suspense } from "react";
 import type { PaymentStatus } from "@/generated/prisma/enums";
-import {
-  getAllPayments,
-  getApprovedRevenuePayments,
-  type PaymentFilters,
-} from "@/lib/admin/payment-queries";
+import { getAllPayments, type PaymentFilters } from "@/lib/admin/payment-queries";
 import { getAllPsychologists } from "@/lib/admin/psychologist-queries";
 import { getPayoutSettings } from "@/lib/admin/payout-settings-queries";
 import { PaymentTable } from "@/components/admin/payment-table";
 import { PaymentsFilters } from "@/components/admin/payments-filters";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrencyBreakdown, formatUSD } from "@/lib/currency";
-import { getPaymentAmountUsd, getUsdRateMap, paymentToUsd } from "@/lib/exchange-rates";
+import {
+  getPaymentAmountUsd,
+  getPsychologistShareUsd,
+  getUsdRateMap,
+  paymentToUsd,
+} from "@/lib/exchange-rates";
 import { resolveDateRange, type DateFilterPeriod } from "@/lib/admin/date-range";
 
 const VALID_PERIODS: DateFilterPeriod[] = ["today", "month", "3months", "6months", "year", "all"];
@@ -40,15 +41,26 @@ export default async function PagosPage({ searchParams }: Props) {
     range,
   };
 
-  const [payments, revenuePayments, psychologists, rates, commissionRates] = await Promise.all([
+  const [payments, psychologists, rates, commissionRates] = await Promise.all([
     getAllPayments(filters),
-    getApprovedRevenuePayments({ range, psychologistId: filters.psychologistId }),
     getAllPsychologists(),
     getUsdRateMap(),
     getPayoutSettings(),
   ]);
 
-  const approved = revenuePayments;
+  const paymentsWithUsd = payments.map((p) => ({
+    ...p,
+    finalAmountUsd: getPaymentAmountUsd(p, rates),
+  }));
+
+  // Same set the table renders, narrowed to what actually counts as
+  // collected revenue — so summing the visible "Total (USD)" column always
+  // reconciles with these totals.
+  const approved = paymentsWithUsd.filter(
+    (p) =>
+      p.status === "APPROVED" &&
+      ["CONFIRMED", "COMPLETED"].includes(p.appointment.status),
+  );
 
   const totalsByCurrency = approved.reduce<
     Record<string, { revenue: number; discounts: number }>
@@ -69,22 +81,17 @@ export default async function PagosPage({ searchParams }: Props) {
     currency,
     amount: t.discounts,
   }));
-  const totalRevenueUsd = approved.reduce((sum, p) => sum + getPaymentAmountUsd(p, rates), 0);
+  const totalRevenueUsd = approved.reduce((sum, p) => sum + p.finalAmountUsd, 0);
   const totalDiscountsUsd = approved.reduce(
     (sum, p) => sum + paymentToUsd(p.discountAmount, p.currency, p.exchangeRateToUsd, rates),
     0,
   );
   const totalOwedUsd = approved.reduce(
-    (sum, p) => sum + (p.payoutAmountUsd ?? 0),
+    (sum, p) => sum + (getPsychologistShareUsd(p, p.finalAmountUsd) ?? 0),
     0,
   );
 
   const psychologistOptions = psychologists.map((p) => ({ id: p.id, name: p.name }));
-
-  const paymentsWithUsd = payments.map((p) => ({
-    ...p,
-    finalAmountUsd: getPaymentAmountUsd(p, rates),
-  }));
 
   return (
     <div className="space-y-6">

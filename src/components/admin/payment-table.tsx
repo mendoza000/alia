@@ -11,6 +11,7 @@ import {
   voidPayment,
 } from "@/lib/admin/payment-actions";
 import { formatCurrencyAmount, formatUSD } from "@/lib/currency";
+import { getPsychologistShareUsd } from "@/lib/exchange-rates";
 import { PAYOUT_TYPES, PAYOUT_TYPE_LABELS, getPayoutTypeRate } from "@/lib/payout-type";
 import type { PayoutSettings } from "@/lib/admin/payout-settings-queries";
 import type { PaymentRow } from "@/lib/admin/payment-queries";
@@ -73,13 +74,14 @@ function PaymentTableRow({
   const config = statusConfig[p.status];
   const hasUsableLink = p.status === "PENDING" && p.stripeCheckoutUrl;
 
-  const psychologistShareUsd =
-    p.payoutAmountUsd ??
-    (p.payoutRatePercent != null ? p.finalAmountUsd * (p.payoutRatePercent / 100) : null);
+  const psychologistShareUsd = getPsychologistShareUsd(p, p.finalAmountUsd);
   const companyShareUsd =
     psychologistShareUsd != null
       ? p.finalAmountUsd - psychologistShareUsd - (p.stripeFeeUsd ?? 0)
       : null;
+  const countsAsRevenue =
+    p.status === "APPROVED" &&
+    (p.appointment.status === "CONFIRMED" || p.appointment.status === "COMPLETED");
 
   function handleResend() {
     startTransition(async () => {
@@ -156,6 +158,9 @@ function PaymentTableRow({
             <sup className="ml-0.5 text-[10px]">~</sup>
           )}
         </span>
+        {!countsAsRevenue && p.status === "APPROVED" && (
+          <p className="text-xs text-muted-foreground">No cuenta como recaudado</p>
+        )}
       </TableCell>
       <TableCell className="text-sm">
         <div className="space-y-1">
