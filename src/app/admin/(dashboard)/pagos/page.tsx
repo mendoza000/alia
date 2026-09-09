@@ -7,12 +7,13 @@ import { PaymentTable } from "@/components/admin/payment-table";
 import { PaymentsFilters } from "@/components/admin/payments-filters";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrencyBreakdown, formatUSD } from "@/lib/currency";
+import { getUsdRateMap } from "@/lib/exchange-rates";
 import {
   getPaymentAmountUsd,
   getPsychologistShareUsd,
-  getUsdRateMap,
   paymentToUsd,
-} from "@/lib/exchange-rates";
+  sumUsd,
+} from "@/lib/payment-math";
 import { resolveDateRange, type DateFilterPeriod } from "@/lib/admin/date-range";
 
 const VALID_PERIODS: DateFilterPeriod[] = ["today", "month", "3months", "6months", "year", "all"];
@@ -81,14 +82,12 @@ export default async function PagosPage({ searchParams }: Props) {
     currency,
     amount: t.discounts,
   }));
-  const totalRevenueUsd = approved.reduce((sum, p) => sum + p.finalAmountUsd, 0);
-  const totalDiscountsUsd = approved.reduce(
-    (sum, p) => sum + paymentToUsd(p.discountAmount, p.currency, p.exchangeRateToUsd, rates),
-    0,
+  const totalRevenueUsd = sumUsd(approved.map((p) => p.finalAmountUsd));
+  const totalDiscountsUsd = sumUsd(
+    approved.map((p) => paymentToUsd(p.discountAmount, p.currency, p.exchangeRateToUsd, rates)),
   );
-  const totalOwedUsd = approved.reduce(
-    (sum, p) => sum + (getPsychologistShareUsd(p, p.finalAmountUsd) ?? 0),
-    0,
+  const totalOwedUsd = sumUsd(
+    approved.map((p) => getPsychologistShareUsd(p, p.finalAmountUsd)),
   );
 
   const psychologistOptions = psychologists.map((p) => ({ id: p.id, name: p.name }));

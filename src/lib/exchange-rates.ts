@@ -1,5 +1,14 @@
 import { prisma } from "@/lib/db";
 
+export {
+  roundToCents,
+  sumUsd,
+  toUsd,
+  paymentToUsd,
+  getPaymentAmountUsd,
+  getPsychologistShareUsd,
+} from "@/lib/payment-math";
+
 const RATES_ENDPOINT = "https://open.er-api.com/v6/latest/USD";
 
 type OpenErApiResponse = {
@@ -60,71 +69,4 @@ export async function getLiveUsdRateMap(): Promise<Map<string, number>> {
   } catch {
     return getUsdRateMap();
   }
-}
-
-export function toUsd(
-  amount: number,
-  currency: string,
-  rates: Map<string, number>,
-): number {
-  const rate = rates.get(currency.toUpperCase());
-  if (!rate) return 0;
-  return amount / rate;
-}
-
-/**
- * Converts a payment's amount to USD using the exchange rate frozen at
- * the moment it was approved (`exchangeRateToUsd`). Falls back to the
- * live rate map only for payments approved before that field existed.
- */
-export function paymentToUsd(
-  amount: number,
-  currency: string,
-  exchangeRateToUsd: number | null,
-  liveRates: Map<string, number>,
-): number {
-  const rate = exchangeRateToUsd ?? liveRates.get(currency.toUpperCase());
-  if (!rate) return 0;
-  return amount / rate;
-}
-
-/**
- * Prefers the amount Stripe actually settled (`stripeSettledAmountUsd`) over
- * our own mid-market estimate, since Stripe's own conversion rate — which
- * includes its FX spread — is what really lands in the account.
- */
-export function getPaymentAmountUsd(
-  payment: {
-    finalAmount: number;
-    currency: string;
-    exchangeRateToUsd: number | null;
-    stripeSettledAmountUsd: number | null;
-  },
-  liveRates: Map<string, number>,
-): number {
-  if (payment.stripeSettledAmountUsd != null) return payment.stripeSettledAmountUsd;
-  return paymentToUsd(
-    payment.finalAmount,
-    payment.currency,
-    payment.exchangeRateToUsd,
-    liveRates,
-  );
-}
-
-/**
- * The psychologist's cut of a payment, in USD. Prefers the frozen
- * `payoutAmountUsd` (set once the commission is applied); falls back to
- * computing it from `payoutRatePercent` for a payment where the fixed
- * amount hasn't been recorded yet. Shared by row display and aggregate
- * totals so a row that shows a dollar amount always counts toward the sum.
- */
-export function getPsychologistShareUsd(
-  payment: { payoutAmountUsd: number | null; payoutRatePercent: number | null },
-  finalAmountUsd: number,
-): number | null {
-  if (payment.payoutAmountUsd != null) return payment.payoutAmountUsd;
-  if (payment.payoutRatePercent != null) {
-    return finalAmountUsd * (payment.payoutRatePercent / 100);
-  }
-  return null;
 }

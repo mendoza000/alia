@@ -11,7 +11,7 @@ import {
   voidPayment,
 } from "@/lib/admin/payment-actions";
 import { formatCurrencyAmount, formatUSD } from "@/lib/currency";
-import { getPsychologistShareUsd } from "@/lib/exchange-rates";
+import { getPsychologistShareUsd } from "@/lib/payment-math";
 import { PAYOUT_TYPES, PAYOUT_TYPE_LABELS, getPayoutTypeRate } from "@/lib/payout-type";
 import type { PayoutSettings } from "@/lib/admin/payout-settings-queries";
 import type { PaymentRow } from "@/lib/admin/payment-queries";

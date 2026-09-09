@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
-import { getPaymentAmountUsd, getUsdRateMap } from "@/lib/exchange-rates";
+import { getUsdRateMap } from "@/lib/exchange-rates";
+import { getPaymentAmountUsd, getPsychologistShareUsd, sumUsd } from "@/lib/payment-math";
 import { resolveDateRange, type DateFilterPeriod, type DateRange } from "@/lib/admin/date-range";
 
 export type FinancePeriod = DateFilterPeriod;
@@ -49,6 +50,7 @@ export async function getFinanceByPsychologist(range: FinanceDateRange) {
                 stripeSettledAmountUsd: true,
                 stripeFeeUsd: true,
                 payoutAmountUsd: true,
+                payoutRatePercent: true,
               },
             },
           },
@@ -65,18 +67,15 @@ export async function getFinanceByPsychologist(range: FinanceDateRange) {
         .filter((pay): pay is NonNullable<typeof pay> => pay?.status === "APPROVED");
 
       const totalRevenueByCurrency = groupByCurrency(approvedPayments);
-      const totalRevenueUsd = approvedPayments.reduce(
-        (sum, p) => sum + getPaymentAmountUsd(p, rates),
-        0,
+      const paymentsWithUsd = approvedPayments.map((p) => ({
+        ...p,
+        finalAmountUsd: getPaymentAmountUsd(p, rates),
+      }));
+      const totalRevenueUsd = sumUsd(paymentsWithUsd.map((p) => p.finalAmountUsd));
+      const totalOwedUsd = sumUsd(
+        paymentsWithUsd.map((p) => getPsychologistShareUsd(p, p.finalAmountUsd)),
       );
-      const totalOwedUsd = approvedPayments.reduce(
-        (sum, p) => sum + (p.payoutAmountUsd ?? 0),
-        0,
-      );
-      const totalStripeFeeUsd = approvedPayments.reduce(
-        (sum, p) => sum + (p.stripeFeeUsd ?? 0),
-        0,
-      );
+      const totalStripeFeeUsd = sumUsd(paymentsWithUsd.map((p) => p.stripeFeeUsd));
       const sessionCount = approvedPayments.length;
 
       return {
@@ -97,11 +96,11 @@ export async function getFinanceByPsychologist(range: FinanceDateRange) {
 export type FinancePsychologist = Awaited<ReturnType<typeof getFinanceByPsychologist>>[number];
 
 export function getFinanceSummary(psychologists: FinancePsychologist[]) {
-  const totalRevenueUsd = psychologists.reduce((sum, p) => sum + p.totalRevenueUsd, 0);
-  const totalOwedUsd = psychologists.reduce((sum, p) => sum + p.totalOwedUsd, 0);
-  const totalStripeFeeUsd = psychologists.reduce((sum, p) => sum + p.totalStripeFeeUsd, 0);
+  const totalRevenueUsd = sumUsd(psychologists.map((p) => p.totalRevenueUsd));
+  const totalOwedUsd = sumUsd(psychologists.map((p) => p.totalOwedUsd));
+  const totalStripeFeeUsd = sumUsd(psychologists.map((p) => p.totalStripeFeeUsd));
   const totalSessions = psychologists.reduce((sum, p) => sum + p.sessionCount, 0);
-  const netRevenueUsd = totalRevenueUsd - totalOwedUsd - totalStripeFeeUsd;
+  const netRevenueUsd = sumUsd([totalRevenueUsd, -totalOwedUsd, -totalStripeFeeUsd]);
 
   const currencyTotals = new Map<string, number>();
   for (const p of psychologists) {
