@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
+import { requirePermission } from "@/lib/auth/require";
 import { siteSettingsSchema } from "@/lib/validators/site-settings";
 import type { SiteSettingsFormData } from "@/lib/validators/site-settings";
 
@@ -13,6 +14,8 @@ export async function updateSiteSettings(
     data: SiteSettingsFormData,
 ): Promise<ActionResult> {
     try {
+        await requirePermission("settings.write");
+
         const validated = await siteSettingsSchema.validate(data, {
             abortEarly: false,
         });

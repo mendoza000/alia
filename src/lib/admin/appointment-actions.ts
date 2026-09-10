@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getDay, addMinutes, differenceInMinutes } from "date-fns";
 import { prisma } from "@/lib/db";
+import { requirePermission, requireOwnAppointment } from "@/lib/auth/require";
 import { updateAppointmentEvent } from "@/lib/calendar-events";
 import {
     sendAppointmentRescheduled,
@@ -32,6 +33,9 @@ type ActionResult = { success: true } | { success: false; error: string };
 export async function cancelAppointment(
     appointmentId: string,
 ): Promise<CancelResult> {
+    const actor = await requirePermission("appointment.write");
+    await requireOwnAppointment(actor, appointmentId);
+
     const result = await cancelAppointmentCore(appointmentId);
     revalidatePath("/admin/citas", "layout");
     return result;
@@ -40,6 +44,9 @@ export async function cancelAppointment(
 export async function completeAppointment(
     appointmentId: string,
 ): Promise<ActionResult> {
+    const actor = await requirePermission("appointment.write");
+    await requireOwnAppointment(actor, appointmentId);
+
     const appointment = await prisma.appointment.findUnique({
         where: { id: appointmentId },
         select: { status: true },
@@ -66,6 +73,9 @@ export async function updateAppointmentNotes(
     appointmentId: string,
     internalNotes: string,
 ): Promise<ActionResult> {
+    const actor = await requirePermission("appointment.write");
+    await requireOwnAppointment(actor, appointmentId);
+
     const appointment = await prisma.appointment.findUnique({
         where: { id: appointmentId },
         select: { id: true },
@@ -85,6 +95,9 @@ export async function updateAppointmentNotes(
 export async function deleteAppointment(
     appointmentId: string,
 ): Promise<ActionResult> {
+    const actor = await requirePermission("appointment.write");
+    await requireOwnAppointment(actor, appointmentId);
+
     const appointment = await prisma.appointment.findUnique({
         where: { id: appointmentId },
         select: { status: true },
@@ -106,6 +119,9 @@ export async function deleteAppointment(
 }
 
 export async function markNoShow(appointmentId: string): Promise<ActionResult> {
+    const actor = await requirePermission("appointment.write");
+    await requireOwnAppointment(actor, appointmentId);
+
     const appointment = await prisma.appointment.findUnique({
         where: { id: appointmentId },
         select: { status: true },
@@ -134,6 +150,9 @@ export async function rescheduleAppointment(
     time: string, // "HH:mm"
     isException?: boolean,
 ): Promise<ActionResult> {
+    const actor = await requirePermission("appointment.write");
+    await requireOwnAppointment(actor, appointmentId);
+
     const appointment = await prisma.appointment.findUnique({
         where: { id: appointmentId },
         select: {

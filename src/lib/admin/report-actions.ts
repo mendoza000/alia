@@ -3,6 +3,7 @@
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createElement, type JSX } from "react";
 import { prisma } from "@/lib/db";
+import { requireActor, resolvePsychologistScope } from "@/lib/auth/require";
 import { getSessionsReportData } from "@/lib/admin/report-queries";
 import { SessionsReportPDF } from "@/components/admin/sessions-report-pdf";
 import { sendSessionsReportEmail } from "@/lib/email";
@@ -18,7 +19,16 @@ export async function emailSessionsReport(filters: {
     showPending: boolean;
 }): Promise<ActionResult> {
     try {
-        const psychologists = await getSessionsReportData(filters);
+        const actor = await requireActor();
+        const psychologistId = resolvePsychologistScope(
+            actor,
+            filters.psychologistId,
+        );
+
+        const psychologists = await getSessionsReportData({
+            ...filters,
+            psychologistId,
+        });
         const withSessions = psychologists.filter(p => p.sessions.length > 0);
 
         if (withSessions.length === 0) {

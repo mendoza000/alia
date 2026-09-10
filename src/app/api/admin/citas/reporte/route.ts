@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createElement, type JSX } from "react";
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getCurrentActor } from "@/lib/auth/require";
+import { can } from "@/lib/auth/permissions";
 import { getSessionsReportData } from "@/lib/admin/report-queries";
 import { SessionsReportPDF } from "@/components/admin/sessions-report-pdf";
 
 export async function GET(req: Request) {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session?.user || session.user.role !== "admin") {
+    const actor = await getCurrentActor();
+    if (!actor || !can(actor.role, "appointment.read.all")) {
         return new NextResponse("No autorizado", { status: 401 });
     }
 

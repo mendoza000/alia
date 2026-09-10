@@ -85,6 +85,7 @@ model Verification {
 
 model Psychologist {
   id              String   @id @default(cuid())
+  userId          String?  @unique
   name            String
   slug            String   @unique
   email           String   @unique

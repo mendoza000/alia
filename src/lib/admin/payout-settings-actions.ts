@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
+import { requirePermission } from "@/lib/auth/require";
 import { payoutSettingsSchema } from "@/lib/validators/payout-settings";
 import type { PayoutSettingsFormData } from "@/lib/validators/payout-settings";
 
@@ -13,6 +14,8 @@ export async function updatePayoutSettings(
     data: PayoutSettingsFormData,
 ): Promise<ActionResult> {
     try {
+        await requirePermission("settings.write");
+
         const validated = await payoutSettingsSchema.validate(data, {
             abortEarly: false,
         });
@@ -22,13 +25,15 @@ export async function updatePayoutSettings(
             create: {
                 id: SETTINGS_ID,
                 newClientRatePercent: validated.newClientRatePercent,
-                recurringClientRatePercent: validated.recurringClientRatePercent,
+                recurringClientRatePercent:
+                    validated.recurringClientRatePercent,
                 loyalRatePercent: validated.loyalRatePercent,
                 loyalNewRatePercent: validated.loyalNewRatePercent,
             },
             update: {
                 newClientRatePercent: validated.newClientRatePercent,
-                recurringClientRatePercent: validated.recurringClientRatePercent,
+                recurringClientRatePercent:
+                    validated.recurringClientRatePercent,
                 loyalRatePercent: validated.loyalRatePercent,
                 loyalNewRatePercent: validated.loyalNewRatePercent,
             },
