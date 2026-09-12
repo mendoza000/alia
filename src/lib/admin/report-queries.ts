@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { resolveDateRange } from "@/lib/admin/date-range";
 import { getPaymentAmountUsd, getUsdRateMap } from "@/lib/exchange-rates";
 
 export type SessionsReportFilters = {
@@ -52,13 +53,19 @@ function getPayoutUsd(
 export async function getSessionsReportData(
     filters: SessionsReportFilters,
 ): Promise<SessionsReportPsychologist[]> {
+    const { since, until } = resolveDateRange(
+        "all",
+        filters.dateFrom,
+        filters.dateTo,
+    );
+
     const [appointments, rates] = await Promise.all([
         prisma.appointment.findMany({
             where: {
                 status: { in: ["CONFIRMED", "COMPLETED"] },
                 dateTime: {
-                    gte: new Date(filters.dateFrom),
-                    lte: new Date(`${filters.dateTo}T23:59:59`),
+                    ...(since ? { gte: since } : {}),
+                    ...(until ? { lte: until } : {}),
                 },
                 ...(filters.psychologistId
                     ? { psychologistId: filters.psychologistId }
