@@ -3,7 +3,6 @@
 import Papa from "papaparse";
 import { format } from "date-fns";
 import { TZDate } from "@date-fns/tz";
-import { requirePermission } from "@/lib/auth/require";
 
 // The entity that files with Xero operates on US Mountain Time (MST -07:00
 // in winter, MDT -06:00 in summer) — distinct from the Caracas timezone used
@@ -67,11 +66,15 @@ function parseAmount(value: string): number {
     return Number.isFinite(n) ? n : 0;
 }
 
+// No requirePermission("finance.read") check here: master doesn't have the
+// @/lib/auth/require permission layer yet (it lands with develop's staff
+// authorization commit). Access is gated the same way every other admin
+// action on master is — by src/proxy.ts requiring session.user.role ===
+// "admin" for all of /admin/**. Re-add the permission check once that
+// commit reaches master.
 export async function convertStripeBalanceHistoryToXero(
     formData: FormData,
 ): Promise<ConvertResult> {
-    await requirePermission("finance.read");
-
     const file = formData.get("file") as File | null;
     if (!file) throw new Error("No se proporcionó un archivo");
     if (!file.name.toLowerCase().endsWith(".csv")) {
