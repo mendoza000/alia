@@ -8,6 +8,7 @@ import {
 import { getPayoutSettings } from "@/lib/admin/payout-settings-queries";
 import { FinanceFilters } from "@/components/admin/finance-filters";
 import { PayoutSettingsSheet } from "@/components/admin/payout-settings-sheet";
+import { StripeXeroImport } from "@/components/admin/stripe-xero-import";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrencyBreakdown, formatUSD } from "@/lib/currency";
@@ -82,6 +83,8 @@ export default async function FinanzasPage({ searchParams }: Props) {
       <p className="text-xs text-muted-foreground">
         Conversión aproximada a USD, tasa de referencia actualizada a diario. El desglose por moneda es el monto real cobrado.
       </p>
+
+      <StripeXeroImport />
 
       {/* Per-psychologist breakdown */}
       <div>
