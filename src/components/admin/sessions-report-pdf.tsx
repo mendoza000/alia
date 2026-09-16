@@ -164,17 +164,17 @@ export function SessionsReportPDF({
                     </Text>
                 )}
 
-                {psychologists.map(psychologist => (
+                {psychologists.map((psychologist, index) => (
                     <View
                         key={psychologist.id}
                         style={styles.psychologistBlock}
-                        wrap={false}
+                        break={index > 0}
                     >
-                        <Text style={styles.psychologistName}>
-                            {psychologist.name}
-                        </Text>
+                        <View wrap={false} minPresenceAhead={40}>
+                            <Text style={styles.psychologistName}>
+                                {psychologist.name}
+                            </Text>
 
-                        <View style={styles.table}>
                             <View style={styles.tableHeaderRow}>
                                 <Text
                                     style={[
@@ -217,9 +217,15 @@ export function SessionsReportPDF({
                                     Monto
                                 </Text>
                             </View>
+                        </View>
 
+                        <View style={styles.table}>
                             {psychologist.sessions.map(session => (
-                                <View key={session.id} style={styles.tableRow}>
+                                <View
+                                    key={session.id}
+                                    style={styles.tableRow}
+                                    wrap={false}
+                                >
                                     <Text
                                         style={[
                                             styles.tableCell,
@@ -278,7 +284,7 @@ export function SessionsReportPDF({
                             ))}
                         </View>
 
-                        <View style={styles.totalsRow}>
+                        <View style={styles.totalsRow} wrap={false}>
                             {psychologist.totals.paidCount === 0 &&
                                 psychologist.totals.pendingCount === 0 && (
                                     <Text style={styles.totalsLabel}>
