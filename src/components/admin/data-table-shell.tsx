@@ -21,9 +21,20 @@ export function DataTableShell<T>({
     return (
         <>
             {mobileRender && (
-                <div className="grid gap-3 sm:hidden">
+                // grid-cols-1 (not just `grid`) matters here: Tailwind's
+                // grid-cols-N sets `minmax(0, 1fr)` on the track, which lets
+                // it shrink to the container width. A bare `grid` leaves the
+                // implicit column sized by `auto` — content-based — so a
+                // single unusually wide card anywhere in the list (e.g. an
+                // unbroken long string) stretches every card's track to
+                // match it, and since <main> no longer scrolls (Fase 2.1),
+                // that overflow was invisible instead of showing a scrollbar.
+                <div className="grid grid-cols-1 gap-3 sm:hidden">
                     {items.map((item, i) => (
-                        <div key={getKey ? getKey(item, i) : i}>
+                        <div
+                            key={getKey ? getKey(item, i) : i}
+                            className="min-w-0"
+                        >
                             {mobileRender(item, i)}
                         </div>
                     ))}
