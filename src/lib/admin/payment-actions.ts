@@ -39,7 +39,7 @@ function getBaseUrl() {
     return process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
 }
 
-async function resolveCheckoutUrl(
+export async function resolveCheckoutUrl(
     appointmentId: string,
     overrides: CheckoutOverrides = {},
 ): Promise<{ success: true; url: string } | { success: false; error: string }> {
