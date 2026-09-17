@@ -150,7 +150,7 @@ export function AdminShell({
                         <NotificationBell alerts={alerts} />
                     </div>
                 </header>
-                <main className="min-w-0 flex-1 overflow-x-auto bg-background p-4 md:p-6">
+                <main className="min-w-0 flex-1 overflow-x-hidden bg-background p-4 md:p-6">
                     {children}
                 </main>
             </div>

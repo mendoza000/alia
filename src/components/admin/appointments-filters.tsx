@@ -4,84 +4,86 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 import { PeriodFilter } from "@/components/admin/period-filter";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select";
 
 const STATUS_OPTIONS = [
-  { value: "all", label: "Todos los estados" },
-  { value: "PENDING_FORM", label: "Formulario pendiente" },
-  { value: "CONFIRMED", label: "Confirmadas" },
-  { value: "COMPLETED", label: "Completadas" },
-  { value: "CANCELLED", label: "Canceladas" },
-  { value: "NO_SHOW", label: "No asistió" },
+    { value: "all", label: "Todos los estados" },
+    { value: "PENDING_FORM", label: "Formulario pendiente" },
+    { value: "CONFIRMED", label: "Confirmadas" },
+    { value: "COMPLETED", label: "Completadas" },
+    { value: "CANCELLED", label: "Canceladas" },
+    { value: "NO_SHOW", label: "No asistió" },
 ];
 
 type AppointmentsFiltersProps = {
-  psychologists: { id: string; name: string }[];
+    psychologists: { id: string; name: string }[];
 };
 
-export function AppointmentsFilters({ psychologists }: AppointmentsFiltersProps) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+export function AppointmentsFilters({
+    psychologists,
+}: AppointmentsFiltersProps) {
+    const router = useRouter();
+    const searchParams = useSearchParams();
 
-  const updateParam = useCallback(
-    (key: string, value: string) => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (value && value !== "all") {
-        params.set(key, value);
-      } else {
-        params.delete(key);
-      }
-      router.push(`?${params.toString()}`);
-    },
-    [router, searchParams],
-  );
+    const updateParam = useCallback(
+        (key: string, value: string) => {
+            const params = new URLSearchParams(searchParams.toString());
+            if (value && value !== "all") {
+                params.set(key, value);
+            } else {
+                params.delete(key);
+            }
+            router.push(`?${params.toString()}`);
+        },
+        [router, searchParams],
+    );
 
-  return (
-    <div className="flex flex-wrap gap-3">
-      <Select
-        items={STATUS_OPTIONS}
-        value={searchParams.get("status") ?? "all"}
-        onValueChange={(v) => updateParam("status", v ?? "all")}
-      >
-        <SelectTrigger className="h-9 w-52">
-          <SelectValue placeholder="Estado" />
-        </SelectTrigger>
-        <SelectContent>
-          {STATUS_OPTIONS.map((o) => (
-            <SelectItem key={o.value} value={o.value}>
-              {o.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+    return (
+        <div className="flex flex-wrap gap-3">
+            <Select
+                items={STATUS_OPTIONS}
+                value={searchParams.get("status") ?? "all"}
+                onValueChange={v => updateParam("status", v ?? "all")}
+            >
+                <SelectTrigger className="h-9 w-full sm:w-52">
+                    <SelectValue placeholder="Estado" />
+                </SelectTrigger>
+                <SelectContent>
+                    {STATUS_OPTIONS.map(o => (
+                        <SelectItem key={o.value} value={o.value}>
+                            {o.label}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
 
-      <Select
-        items={[
-          { value: "all", label: "Todos los psicólogos" },
-          ...psychologists.map((p) => ({ value: p.id, label: p.name })),
-        ]}
-        value={searchParams.get("psychologistId") ?? "all"}
-        onValueChange={(v) => updateParam("psychologistId", v ?? "all")}
-      >
-        <SelectTrigger className="h-9 w-52">
-          <SelectValue placeholder="Psicólogo" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todos los psicólogos</SelectItem>
-          {psychologists.map((p) => (
-            <SelectItem key={p.id} value={p.id}>
-              {p.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+            <Select
+                items={[
+                    { value: "all", label: "Todos los psicólogos" },
+                    ...psychologists.map(p => ({ value: p.id, label: p.name })),
+                ]}
+                value={searchParams.get("psychologistId") ?? "all"}
+                onValueChange={v => updateParam("psychologistId", v ?? "all")}
+            >
+                <SelectTrigger className="h-9 w-full sm:w-52">
+                    <SelectValue placeholder="Psicólogo" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">Todos los psicólogos</SelectItem>
+                    {psychologists.map(p => (
+                        <SelectItem key={p.id} value={p.id}>
+                            {p.name}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
 
-      <PeriodFilter />
-    </div>
-  );
+            <PeriodFilter />
+        </div>
+    );
 }

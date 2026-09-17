@@ -1,8 +1,8 @@
 import { Suspense } from "react";
 import type { AppointmentStatus } from "@/generated/prisma/enums";
 import {
-  getAllAppointments,
-  type AppointmentFilters,
+    getAllAppointments,
+    type AppointmentFilters,
 } from "@/lib/admin/appointment-queries";
 import { getAllPsychologists } from "@/lib/admin/psychologist-queries";
 import { getAllRates } from "@/lib/admin/payment-rate-queries";
@@ -11,72 +11,88 @@ import { AppointmentsTable } from "@/components/admin/appointments-table";
 import { AppointmentsFilters } from "@/components/admin/appointments-filters";
 import { NewManualAppointmentDialog } from "@/components/admin/new-manual-appointment-dialog";
 import { GenerateReportDialog } from "@/components/admin/generate-report-dialog";
+import { PageHeader } from "@/components/admin/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
-import { resolveDateRange, type DateFilterPeriod } from "@/lib/admin/date-range";
+import {
+    resolveDateRange,
+    type DateFilterPeriod,
+} from "@/lib/admin/date-range";
 
-const VALID_PERIODS: DateFilterPeriod[] = ["today", "month", "3months", "6months", "year", "all"];
+const VALID_PERIODS: DateFilterPeriod[] = [
+    "today",
+    "month",
+    "3months",
+    "6months",
+    "year",
+    "all",
+];
 
 type Props = {
-  searchParams: Promise<{
-    status?: string;
-    psychologistId?: string;
-    period?: string;
-    dateFrom?: string;
-    dateTo?: string;
-  }>;
+    searchParams: Promise<{
+        status?: string;
+        psychologistId?: string;
+        period?: string;
+        dateFrom?: string;
+        dateTo?: string;
+    }>;
 };
 
 export default async function CitasPage({ searchParams }: Props) {
-  const params = await searchParams;
+    const params = await searchParams;
 
-  const period: DateFilterPeriod = VALID_PERIODS.includes(params.period as DateFilterPeriod)
-    ? (params.period as DateFilterPeriod)
-    : "today";
-  const range = resolveDateRange(period, params.dateFrom, params.dateTo);
+    const period: DateFilterPeriod = VALID_PERIODS.includes(
+        params.period as DateFilterPeriod,
+    )
+        ? (params.period as DateFilterPeriod)
+        : "today";
+    const range = resolveDateRange(period, params.dateFrom, params.dateTo);
 
-  const filters: AppointmentFilters = {
-    status: params.status as AppointmentStatus | undefined,
-    psychologistId: params.psychologistId,
-    range,
-  };
+    const filters: AppointmentFilters = {
+        status: params.status as AppointmentStatus | undefined,
+        psychologistId: params.psychologistId,
+        range,
+    };
 
-  const [appointments, psychologists, rates, commissionRates] = await Promise.all([
-    getAllAppointments(filters),
-    getAllPsychologists(),
-    getAllRates(),
-    getPayoutSettings(),
-  ]);
+    const [appointments, psychologists, rates, commissionRates] =
+        await Promise.all([
+            getAllAppointments(filters),
+            getAllPsychologists(),
+            getAllRates(),
+            getPayoutSettings(),
+        ]);
 
-  const psychologistOptions = psychologists.map((p) => ({
-    id: p.id,
-    name: p.name,
-  }));
-  const availableCurrencies = rates.map((r) => r.currency);
+    const psychologistOptions = psychologists.map(p => ({
+        id: p.id,
+        name: p.name,
+    }));
+    const availableCurrencies = rates.map(r => r.currency);
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-heading text-2xl font-semibold">Sesiones</h1>
-          <p className="text-sm text-muted-foreground">
-            Gestiona todas las sesiones de la plataforma
-          </p>
+    return (
+        <div className="space-y-6">
+            <PageHeader
+                title="Sesiones"
+                description="Gestiona todas las sesiones de la plataforma"
+                actions={
+                    <>
+                        <GenerateReportDialog
+                            psychologists={psychologistOptions}
+                        />
+                        <NewManualAppointmentDialog
+                            psychologists={psychologistOptions}
+                        />
+                    </>
+                }
+            />
+
+            <Suspense fallback={<Skeleton className="h-9 w-full sm:w-96" />}>
+                <AppointmentsFilters psychologists={psychologistOptions} />
+            </Suspense>
+
+            <AppointmentsTable
+                appointments={appointments}
+                availableCurrencies={availableCurrencies}
+                commissionRates={commissionRates}
+            />
         </div>
-        <div className="flex items-center gap-2">
-          <GenerateReportDialog psychologists={psychologistOptions} />
-          <NewManualAppointmentDialog psychologists={psychologistOptions} />
-        </div>
-      </div>
-
-      <Suspense fallback={<Skeleton className="h-9 w-96" />}>
-        <AppointmentsFilters psychologists={psychologistOptions} />
-      </Suspense>
-
-      <AppointmentsTable
-        appointments={appointments}
-        availableCurrencies={availableCurrencies}
-        commissionRates={commissionRates}
-      />
-    </div>
-  );
+    );
 }

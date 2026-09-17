@@ -18,360 +18,397 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogClose,
 } from "@/components/ui/dialog";
 
 type FormValues = {
-  psychologistId: string;
-  patientName: string;
-  patientEmail: string;
-  date: string;
-  time: string;
-  timezone: string;
-  notes: string;
-  internalNotes: string;
-  isException: boolean;
+    psychologistId: string;
+    patientName: string;
+    patientEmail: string;
+    date: string;
+    time: string;
+    timezone: string;
+    notes: string;
+    internalNotes: string;
+    isException: boolean;
 };
 
 export function NewManualAppointmentDialog({
-  psychologists,
+    psychologists,
 }: {
-  psychologists: { id: string; name: string }[];
+    psychologists: { id: string; name: string }[];
 }) {
-  const router = useRouter();
-  const [open, setOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [availability, setAvailability] = useState<{
-    psychologistId: string;
-    year: number;
-    month: number;
-    data: MonthAvailability;
-  } | null>(null);
-  const [loadingAvailability, setLoadingAvailability] = useState(false);
+    const router = useRouter();
+    const [open, setOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [availability, setAvailability] = useState<{
+        psychologistId: string;
+        year: number;
+        month: number;
+        data: MonthAvailability;
+    } | null>(null);
+    const [loadingAvailability, setLoadingAvailability] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    control,
-    reset,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<FormValues>({
-    defaultValues: {
-      psychologistId: "",
-      patientName: "",
-      patientEmail: "",
-      date: "",
-      time: "",
-      timezone: "America/Bogota",
-      notes: "",
-      internalNotes: "",
-      isException: false,
-    },
-  });
-
-  const selectedDate = watch("date");
-  const selectedTime = watch("time");
-  const selectedTimezone = watch("timezone");
-  const isException = watch("isException");
-  const patientLocalTime =
-    selectedDate && selectedTime && selectedTimezone
-      ? formatInTimezone(selectedDate, selectedTime, selectedTimezone)
-      : null;
-  const timezoneLabel = TIMEZONE_OPTIONS.find(
-    tz => tz.value === selectedTimezone,
-  )?.label;
-
-  async function loadAvailability(psychologistId: string) {
-    setAvailability(null);
-    setLoadingAvailability(true);
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1;
-    const data = await getMonthAvailability(psychologistId, year, month);
-    setAvailability({ psychologistId, year, month, data });
-    setLoadingAvailability(false);
-  }
-
-  async function onSubmit(values: FormValues) {
-    setIsSubmitting(true);
-    const result = await createManualAppointment({
-      psychologistId: values.psychologistId,
-      patientName: values.patientName,
-      patientEmail: values.patientEmail,
-      date: values.date,
-      time: values.time,
-      timezone: values.timezone,
-      notes: values.notes || undefined,
-      internalNotes: values.internalNotes || undefined,
-      isException: values.isException,
+    const {
+        register,
+        handleSubmit,
+        control,
+        reset,
+        setValue,
+        watch,
+        formState: { errors },
+    } = useForm<FormValues>({
+        defaultValues: {
+            psychologistId: "",
+            patientName: "",
+            patientEmail: "",
+            date: "",
+            time: "",
+            timezone: "America/Bogota",
+            notes: "",
+            internalNotes: "",
+            isException: false,
+        },
     });
-    setIsSubmitting(false);
 
-    if (!result.success) {
-      toast.error(result.error);
-      return;
+    const selectedDate = watch("date");
+    const selectedTime = watch("time");
+    const selectedTimezone = watch("timezone");
+    const isException = watch("isException");
+    const patientLocalTime =
+        selectedDate && selectedTime && selectedTimezone
+            ? formatInTimezone(selectedDate, selectedTime, selectedTimezone)
+            : null;
+    const timezoneLabel = TIMEZONE_OPTIONS.find(
+        tz => tz.value === selectedTimezone,
+    )?.label;
+
+    async function loadAvailability(psychologistId: string) {
+        setAvailability(null);
+        setLoadingAvailability(true);
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth() + 1;
+        const data = await getMonthAvailability(psychologistId, year, month);
+        setAvailability({ psychologistId, year, month, data });
+        setLoadingAvailability(false);
     }
 
-    if (result.warning) {
-      toast.warning(result.warning);
+    async function onSubmit(values: FormValues) {
+        setIsSubmitting(true);
+        const result = await createManualAppointment({
+            psychologistId: values.psychologistId,
+            patientName: values.patientName,
+            patientEmail: values.patientEmail,
+            date: values.date,
+            time: values.time,
+            timezone: values.timezone,
+            notes: values.notes || undefined,
+            internalNotes: values.internalNotes || undefined,
+            isException: values.isException,
+        });
+        setIsSubmitting(false);
+
+        if (!result.success) {
+            toast.error(result.error);
+            return;
+        }
+
+        if (result.warning) {
+            toast.warning(result.warning);
+        }
+        toast.success("Cita creada y confirmada");
+        reset();
+        setAvailability(null);
+        setOpen(false);
+        router.refresh();
     }
-    toast.success("Cita creada y confirmada");
-    reset();
-    setAvailability(null);
-    setOpen(false);
-    router.refresh();
-  }
 
-  function handleOpenChange(nextOpen: boolean) {
-    setOpen(nextOpen);
-    if (!nextOpen) {
-      reset();
-      setAvailability(null);
+    function handleOpenChange(nextOpen: boolean) {
+        setOpen(nextOpen);
+        if (!nextOpen) {
+            reset();
+            setAvailability(null);
+        }
     }
-  }
 
-  return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger render={<Button className="gap-2" />}>
-        <PlusIcon className="size-4" />
-        Nueva cita manual
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Agendar cita manualmente</DialogTitle>
-          <DialogDescription>
-            Crea y confirma una cita directamente, sin pasar por el flujo de
-            pago o formulario. Útil para pacientes con problemas durante el
-            agendamiento automático.
-          </DialogDescription>
-        </DialogHeader>
+    return (
+        <Dialog open={open} onOpenChange={handleOpenChange}>
+            <DialogTrigger render={<Button className="gap-2" />}>
+                <PlusIcon className="size-4" />
+                Nueva cita manual
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>Agendar cita manualmente</DialogTitle>
+                    <DialogDescription>
+                        Crea y confirma una cita directamente, sin pasar por el
+                        flujo de pago o formulario. Útil para pacientes con
+                        problemas durante el agendamiento automático.
+                    </DialogDescription>
+                </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
-          <div className="grid gap-1.5">
-            <Label>Psicólogo</Label>
-            <Controller
-              control={control}
-              name="psychologistId"
-              rules={{ required: true }}
-              render={({ field }) => (
-                <Select
-                  items={psychologists.map(p => ({ value: p.id, label: p.name }))}
-                  value={field.value}
-                  onValueChange={value => {
-                    field.onChange(value);
-                    setValue("date", "");
-                    setValue("time", "");
-                    if (value) loadAvailability(value);
-                  }}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecciona un psicólogo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {psychologists.map(p => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-            {errors.psychologistId && (
-              <p className="text-xs text-destructive">
-                Selecciona un psicólogo
-              </p>
-            )}
-          </div>
+                <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
+                    <div className="grid gap-1.5">
+                        <Label>Psicólogo</Label>
+                        <Controller
+                            control={control}
+                            name="psychologistId"
+                            rules={{ required: true }}
+                            render={({ field }) => (
+                                <Select
+                                    items={psychologists.map(p => ({
+                                        value: p.id,
+                                        label: p.name,
+                                    }))}
+                                    value={field.value}
+                                    onValueChange={value => {
+                                        field.onChange(value);
+                                        setValue("date", "");
+                                        setValue("time", "");
+                                        if (value) loadAvailability(value);
+                                    }}
+                                >
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Selecciona un psicólogo" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {psychologists.map(p => (
+                                            <SelectItem key={p.id} value={p.id}>
+                                                {p.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        />
+                        {errors.psychologistId && (
+                            <p className="text-xs text-destructive">
+                                Selecciona un psicólogo
+                            </p>
+                        )}
+                    </div>
 
-          <div className="flex items-center gap-2 rounded-md border border-border bg-secondary/40 px-3 py-2">
-            <Controller
-              control={control}
-              name="isException"
-              render={({ field }) => (
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={checked => {
-                    field.onChange(checked);
-                    setValue("date", "");
-                    setValue("time", "");
-                  }}
-                />
-              )}
-            />
-            <div className="grid gap-0.5">
-              <Label>¿Es una excepción?</Label>
-              <p className="text-xs text-muted-foreground">
-                Permite agendar fuera de horario, en fechas pasadas, o si el
-                horario está ocupado. Quedará marcada como excepción.
-              </p>
-            </div>
-          </div>
+                    <div className="flex items-center gap-2 rounded-md border border-border bg-secondary/40 px-3 py-2">
+                        <Controller
+                            control={control}
+                            name="isException"
+                            render={({ field }) => (
+                                <Switch
+                                    checked={field.value}
+                                    onCheckedChange={checked => {
+                                        field.onChange(checked);
+                                        setValue("date", "");
+                                        setValue("time", "");
+                                    }}
+                                />
+                            )}
+                        />
+                        <div className="grid gap-0.5">
+                            <Label>¿Es una excepción?</Label>
+                            <p className="text-xs text-muted-foreground">
+                                Permite agendar fuera de horario, en fechas
+                                pasadas, o si el horario está ocupado. Quedará
+                                marcada como excepción.
+                            </p>
+                        </div>
+                    </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-1.5">
-              <Label htmlFor="patientName">Nombre del paciente</Label>
-              <Input
-                id="patientName"
-                {...register("patientName", { required: true })}
-              />
-              {errors.patientName && (
-                <p className="text-xs text-destructive">Obligatorio</p>
-              )}
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="patientEmail">Correo del paciente</Label>
-              <Input
-                id="patientEmail"
-                type="email"
-                {...register("patientEmail", { required: true })}
-              />
-              {errors.patientEmail && (
-                <p className="text-xs text-destructive">Obligatorio</p>
-              )}
-            </div>
-          </div>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div className="grid gap-1.5">
+                            <Label htmlFor="patientName">
+                                Nombre del paciente
+                            </Label>
+                            <Input
+                                id="patientName"
+                                {...register("patientName", { required: true })}
+                            />
+                            {errors.patientName && (
+                                <p className="text-xs text-destructive">
+                                    Obligatorio
+                                </p>
+                            )}
+                        </div>
+                        <div className="grid gap-1.5">
+                            <Label htmlFor="patientEmail">
+                                Correo del paciente
+                            </Label>
+                            <Input
+                                id="patientEmail"
+                                type="email"
+                                {...register("patientEmail", {
+                                    required: true,
+                                })}
+                            />
+                            {errors.patientEmail && (
+                                <p className="text-xs text-destructive">
+                                    Obligatorio
+                                </p>
+                            )}
+                        </div>
+                    </div>
 
-          <div className="grid gap-1.5">
-            <Label>Zona horaria del paciente</Label>
-            <Controller
-              control={control}
-              name="timezone"
-              rules={{ required: true }}
-              render={({ field }) => (
-                <Select
-                  items={TIMEZONE_OPTIONS}
-                  value={field.value}
-                  onValueChange={field.onChange}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecciona una zona horaria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TIMEZONE_OPTIONS.map(tz => (
-                      <SelectItem key={tz.value} value={tz.value}>
-                        {tz.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-            <p className="text-xs text-muted-foreground">
-              Se usa para mostrarle al paciente la hora de su cita en el
-              correo de confirmación.
-            </p>
-          </div>
+                    <div className="grid gap-1.5">
+                        <Label>Zona horaria del paciente</Label>
+                        <Controller
+                            control={control}
+                            name="timezone"
+                            rules={{ required: true }}
+                            render={({ field }) => (
+                                <Select
+                                    items={TIMEZONE_OPTIONS}
+                                    value={field.value}
+                                    onValueChange={field.onChange}
+                                >
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Selecciona una zona horaria" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {TIMEZONE_OPTIONS.map(tz => (
+                                            <SelectItem
+                                                key={tz.value}
+                                                value={tz.value}
+                                            >
+                                                {tz.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Se usa para mostrarle al paciente la hora de su cita
+                            en el correo de confirmación.
+                        </p>
+                    </div>
 
-          {isException ? (
-            <div className="grid gap-1.5">
-              <Label>Fecha y hora (excepción)</Label>
-              <div className="grid grid-cols-2 gap-4">
-                <Input
-                  type="date"
-                  {...register("date", { required: true })}
-                />
-                <Input
-                  type="time"
-                  {...register("time", { required: true })}
-                />
-              </div>
-            </div>
-          ) : (
-            <>
-              <input type="hidden" {...register("date", { required: true })} />
-              <input type="hidden" {...register("time", { required: true })} />
-            </>
-          )}
+                    {isException ? (
+                        <div className="grid gap-1.5">
+                            <Label>Fecha y hora (excepción)</Label>
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                <Input
+                                    type="date"
+                                    {...register("date", { required: true })}
+                                />
+                                <Input
+                                    type="time"
+                                    {...register("time", { required: true })}
+                                />
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            <input
+                                type="hidden"
+                                {...register("date", { required: true })}
+                            />
+                            <input
+                                type="hidden"
+                                {...register("time", { required: true })}
+                            />
+                        </>
+                    )}
 
-          <div className="grid gap-1.5">
-            {!isException && <Label>Disponibilidad</Label>}
-            {isException ? null : !watch("psychologistId") ? (
-              <p className="text-sm text-muted-foreground">
-                Selecciona un psicólogo para ver sus horarios disponibles.
-              </p>
-            ) : loadingAvailability ||
-              availability?.psychologistId !== watch("psychologistId") ? (
-              <p className="text-sm text-muted-foreground">
-                Cargando disponibilidad...
-              </p>
-            ) : (
-              <AvailabilityCalendar
-                key={availability.psychologistId}
-                psychologistId={availability.psychologistId}
-                psychologistSlug=""
-                schedules={[]}
-                sessionDuration={0}
-                initialAvailability={availability.data}
-                initialYear={availability.year}
-                initialMonth={availability.month}
-                onSlotSelect={(date, time) => {
-                  setValue("date", date, { shouldValidate: true });
-                  setValue("time", time, { shouldValidate: true });
-                }}
-              />
-            )}
-            {selectedDate && selectedTime && (
-              <p className="text-sm font-medium text-foreground">
-                Horario seleccionado:{" "}
-                {format(
-                  new Date(`${selectedDate}T12:00:00`),
-                  "EEEE d 'de' MMMM",
-                  { locale: es },
-                )}{" "}
-                — {selectedTime}
-              </p>
-            )}
-            {patientLocalTime && (
-              <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm font-medium">
-                Para el paciente ({timezoneLabel}): {patientLocalTime}
-              </p>
-            )}
-            {(errors.date || errors.time) && (
-              <p className="text-xs text-destructive">
-                Selecciona un horario disponible
-              </p>
-            )}
-          </div>
+                    <div className="grid gap-1.5">
+                        {!isException && <Label>Disponibilidad</Label>}
+                        {isException ? null : !watch("psychologistId") ? (
+                            <p className="text-sm text-muted-foreground">
+                                Selecciona un psicólogo para ver sus horarios
+                                disponibles.
+                            </p>
+                        ) : loadingAvailability ||
+                          availability?.psychologistId !==
+                              watch("psychologistId") ? (
+                            <p className="text-sm text-muted-foreground">
+                                Cargando disponibilidad...
+                            </p>
+                        ) : (
+                            <AvailabilityCalendar
+                                key={availability.psychologistId}
+                                psychologistId={availability.psychologistId}
+                                psychologistSlug=""
+                                schedules={[]}
+                                sessionDuration={0}
+                                initialAvailability={availability.data}
+                                initialYear={availability.year}
+                                initialMonth={availability.month}
+                                onSlotSelect={(date, time) => {
+                                    setValue("date", date, {
+                                        shouldValidate: true,
+                                    });
+                                    setValue("time", time, {
+                                        shouldValidate: true,
+                                    });
+                                }}
+                            />
+                        )}
+                        {selectedDate && selectedTime && (
+                            <p className="text-sm font-medium text-foreground">
+                                Horario seleccionado:{" "}
+                                {format(
+                                    new Date(`${selectedDate}T12:00:00`),
+                                    "EEEE d 'de' MMMM",
+                                    { locale: es },
+                                )}{" "}
+                                — {selectedTime}
+                            </p>
+                        )}
+                        {patientLocalTime && (
+                            <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm font-medium">
+                                Para el paciente ({timezoneLabel}):{" "}
+                                {patientLocalTime}
+                            </p>
+                        )}
+                        {(errors.date || errors.time) && (
+                            <p className="text-xs text-destructive">
+                                Selecciona un horario disponible
+                            </p>
+                        )}
+                    </div>
 
-          <div className="grid gap-1.5">
-            <Label htmlFor="notes">Notas (opcional)</Label>
-            <Textarea id="notes" rows={3} {...register("notes")} />
-          </div>
+                    <div className="grid gap-1.5">
+                        <Label htmlFor="notes">Notas (opcional)</Label>
+                        <Textarea id="notes" rows={3} {...register("notes")} />
+                    </div>
 
-          <div className="grid gap-1.5">
-            <Label htmlFor="internalNotes">
-              Nota interna (solo para el equipo, el paciente no la ve)
-            </Label>
-            <Textarea id="internalNotes" rows={3} {...register("internalNotes")} />
-          </div>
+                    <div className="grid gap-1.5">
+                        <Label htmlFor="internalNotes">
+                            Nota interna (solo para el equipo, el paciente no la
+                            ve)
+                        </Label>
+                        <Textarea
+                            id="internalNotes"
+                            rows={3}
+                            {...register("internalNotes")}
+                        />
+                    </div>
 
-          <DialogFooter>
-            <DialogClose render={<Button type="button" variant="outline" />}>
-              Cancelar
-            </DialogClose>
-            <Button type="submit" isLoading={isSubmitting}>
-              Crear y confirmar cita
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
+                    <DialogFooter>
+                        <DialogClose
+                            render={<Button type="button" variant="outline" />}
+                        >
+                            Cancelar
+                        </DialogClose>
+                        <Button type="submit" isLoading={isSubmitting}>
+                            Crear y confirmar cita
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
 }
