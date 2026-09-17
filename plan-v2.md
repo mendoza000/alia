@@ -125,50 +125,55 @@ Permisos forward-declared (no consumidos aún, para que la matriz y su test qued
 
 ---
 
-## Fase 1 — Roles y cuentas de staff
+## Fase 1 — Roles y cuentas de staff ✅ implementada
 
-### 1.1 Schema
-- [ ] `prisma/schema.prisma`: enum `Role { ADMIN ASSISTANT PSYCHOLOGIST PATIENT }`. `User.role` pasa de `String @default("patient")` a `Role @default(PATIENT)`.
-  - Ojo: better-auth escribe `role` como string vía el plugin `admin` (`src/lib/auth.ts`, `defaultRole: "patient"`). Alinear `defaultRole` al valor del enum y verificar que `additionalFields.role` siga serializando bien en `session.user`.
-  - Alternativa si el plugin da problemas: dejar `String` y validar con yup/`Role` en el borde. Decidir al escribir la migración; documentar la elección en el commit.
-- [ ] `Psychologist.userId` ya existe (agregado en la Fase 0.2) — esta fase solo agrega la relación `@relation` formal a `User` (`onDelete: SetNull`).
-- [ ] Migración `add_roles_and_psychologist_relation` + backfill: `UPDATE "user" SET role='ADMIN' WHERE role='admin'`, resto `PATIENT`.
+### 1.1 Schema — hecho
+- [x] **Decisión: `User.role` se queda `String`, no pasa a enum de Prisma.** El plugin `admin` de better-auth escribe ese campo con sus propios valores (`defaultRole: "patient"`, `additionalFields.role.defaultValue: "patient"`); forzar un enum de Prisma habría exigido que esas escrituras coincidan con los nombres exactos del enum, fricción real sin ganancia de seguridad — `src/lib/auth/permissions.ts` (`Role`, `isStaffRole`) ya normaliza y valida el string en el borde de la app. Documentado en el commit `feat(schema): add formal Psychologist-User relation`.
+- [x] `Psychologist.userId` ya existía (Fase 0.2) — se agregó la relación `@relation` formal (`user User? @relation(..., onDelete: SetNull)`) más el back-relation `User.psychologistProfile`.
+- [x] Migración `20260917120000_add_psychologist_user_relation` (solo el FK, sin backfill — al no migrar a enum no hacía falta transformar datos), escrita a mano y aplicada con `prisma migrate deploy` por el mismo motivo que en la Fase 0.2 (`_intake_form_dedup_backup` fuera de schema).
 
-### 1.2 Alta de cuentas de staff
-- [ ] Nueva página `/admin/equipo` (permiso `staff.write`, solo admin): tabla de usuarios staff + sheet de creación.
-- [ ] `src/lib/admin/staff-actions.ts`: `createStaffUser({ name, email, role, psychologistId? })` usando `auth.api.createUser` (mismo patrón que `manual-booking-actions.ts:110`) y luego set del rol; `updateStaffRole`, `deactivateStaffUser` (usar `banned` que ya existe en el schema).
-- [ ] Al crear un usuario con rol `PSYCHOLOGIST`, exigir seleccionar el `Psychologist` a vincular (select de `getActivePsychologists()`) y escribir `Psychologist.userId`.
-- [ ] Enviar correo de bienvenida con set-password reusando `sendPasswordResetEmail` (`src/lib/email.ts:372`).
-- [ ] Permitir login por credenciales a los tres roles staff en `/admin/login` y, tras el signIn, validar el rol devuelto antes de `router.push("/admin")` (hoy no lo valida).
+### 1.2 Alta de cuentas de staff — hecho
+- [x] `/admin/equipo` (permiso `staff.write`, gate propio además del layout — es el punto de entrada para crear cuentas admin) con `staff-table.tsx` + `staff-sheet.tsx`.
+- [x] `src/lib/admin/staff-actions.ts`: `createStaffUser`, `updateStaffRole` (desvincula `Psychologist.userId` si el rol deja de ser psicólogo), `setStaffUserBanned`.
+  - **Desviación del plan**: `createStaffUser` escribe el usuario directo por Prisma (mismo patrón que el admin sembrado en `prisma/seed.ts`) en vez de `auth.api.createUser` — ese endpoint corre el RBAC propio del plugin `admin` de better-auth contra un vocabulario de roles (`admin`/`user`) que nunca configuramos para `assistant`/`psychologist`.
+  - El correo de bienvenida reusa `auth.api.requestPasswordReset` (dispara `sendResetPassword` → `sendPasswordResetEmail`, ya wireado en `auth.ts`) en vez de `sendPasswordResetEmail` directo — su endpoint `resetPassword` crea la cuenta de credenciales en el primer uso, así que no hace falta generar una password aquí.
+- [x] Alta con rol psicólogo exige `psychologistId` (solo psicólogos sin cuenta vinculada, `getUnlinkedPsychologists()`).
+- [x] `/admin/login`: valida `isStaffRole` tras el `signIn.email` antes de redirigir; si no es staff, `signOut` + error.
 
-### 1.3 Nav y dashboard por rol
-- [ ] `src/components/admin/sidebar-nav.tsx`: el array `navSections` hardcodeado pasa a llevar `permission: Permission` por ítem; el componente recibe `role` y filtra con `can(role, item.permission)`.
-- [ ] Nuevos ítems: `Aprobaciones` (`/admin/aprobaciones`), `Equipo` (`/admin/equipo`).
-- [ ] El ítem existente `Formularios` se renombra a `Clientes` (`/admin/clientes`) — ver Fase 4.2 (PRD §6.8, nuevo en v1.1: reemplaza "Formularios" como punto de entrada, visible para los tres roles de staff con datos filtrados por permiso).
-- [ ] `src/components/admin/admin-shell.tsx`: el subtítulo hardcodeado `"Administrador"` pasa a derivarse del rol.
-- [ ] `src/app/admin/(dashboard)/page.tsx`: extraer las tarjetas en componentes y renderizar por permiso (psicólogo: sus sesiones de hoy/semana y su ingreso propio; asistente: sesiones y formularios, sin finanzas).
-- [ ] `src/lib/admin/alerts-queries.ts` (`getAdminAlerts`): aceptar el actor y filtrar por `psychologistId` cuando corresponda.
+### 1.3 Nav y dashboard por rol — hecho, con alcance recortado
+- [x] `sidebar-nav.tsx` recibe `role` y filtra cada ítem con `can(role, item.permission)`.
+- [x] Ítem nuevo: `Equipo` (`staff.write`).
+- [ ] **Diferido a Fase 5**: ítem `Aprobaciones` — la página no existe todavía, así que no se agrega un link muerto.
+- [ ] **Diferido a Fase 4.3**: `Sesiones` y `Pagos` se ocultan del rol `psychologist` aunque ya tiene los permisos `appointment.write`/`payment.link.create` — sus queries de listado (`/admin/citas`, `/admin/pagos`) no están scoped por `psychologistId` todavía. Mostrar el link antes de esa fase dejaría a un psicólogo ver las citas y pagos de todos los pacientes.
+- [ ] **Diferido a Fase 4.2**: el ítem `Formularios` **no** se renombra a `Clientes` todavía — esa página tampoco filtra por rol y `/admin/clientes` no existe. Sigue visible solo para admin/asistente (`intake.write`), sin cambios de comportamiento.
+- [x] `admin-shell.tsx`: subtítulo derivado del rol (`ROLE_LABELS`).
+- [x] `page.tsx` bifurca por actor: `StaffDashboard` (admin ve todo; asistente igual pero sin tarjeta/gráfico de ingresos, gateado en `finance.read`) y `PsychologistDashboard` (nuevo, 100% scoped a su propio `psychologistId`: sus sesiones, sus pacientes, su comisión — nunca cifras de otros ni totales de plataforma). Nuevas queries en `dashboard-queries.ts`: `getPsychologistDashboardStats/*Trend`.
+- [x] `alerts-queries.ts` (`getAdminAlerts(actor)`): devuelve `[]` para `psychologist` en vez de enlazar a páginas que su nav no muestra y cuyas queries no están scoped — su propio dashboard ya cubre "sesiones de hoy" directamente. Admin/asistente sin cambios.
 
-**Verificación 1**: crear un usuario de cada rol; entrar con cada uno y confirmar que el sidebar muestra solo lo permitido y que `/admin/finanzas` con rol asistente redirige o muestra "no autorizado".
+**Verificación 1**: pendiente la prueba manual real (crear un usuario de cada rol y entrar con cada uno) — el código pasa `bunx tsc --noEmit`, lint de los archivos tocados y `bun test` (mismos 4 fallos preexistentes de siempre, 0 relacionados).
 
 ---
 
-## Fase 2 — Responsive del admin
+## Fase 2 — Responsive del admin ✅ implementada
 
-Se hace **antes** de construir pantallas nuevas: todo lo que se cree después hereda estos primitivos. El shell ya tiene Sheet móvil funcionando (`admin-shell.tsx`); el problema está en el contenido.
+Se hizo antes de construir pantallas nuevas, como estaba planeado.
 
-### 2.1 Primitivos
-- [ ] `src/components/ui/table.tsx`: quitar `whitespace-nowrap` de `TableHead`/`TableCell` y dejarlo opt-in por clase; el `overflow-x-auto` debe vivir en el contenedor de la tabla y no en `<main>`.
-- [ ] `src/components/admin/admin-shell.tsx:121`: quitar `overflow-x-auto` de `<main>` para que scrollee la tabla, no la página entera.
-- [ ] Crear `src/components/admin/data-table-shell.tsx`: wrapper con `overflow-x-auto` propio + prop `mobileRender?` para pintar tarjetas en `< md` en lugar de tabla.
-- [ ] Crear `src/components/admin/page-header.tsx`: reemplaza los 6 `<div className="flex items-center justify-between">` sin `flex-wrap` (`citas`, `finanzas`, `cupones`, `formularios`, `psicologos`, `tarifas`) por `flex-col gap-3 sm:flex-row sm:items-center sm:justify-between`.
+### 2.1 Primitivos — hecho
+- [x] `table.tsx`: `whitespace-nowrap` ya no es forzado en `TableHead`/`TableCell`.
+- [x] `admin-shell.tsx`: `<main>` pasó de `overflow-x-auto` a `overflow-x-hidden` — competía con el `overflow-x-auto` propio de cada `Table`, y con dos ancestros scrolleables la página entera se corría en vez de solo la tabla.
+- [x] `data-table-shell.tsx` (nuevo): `overflow-x-auto` propio + `mobileRender?` para tarjetas en `< sm`.
+- [x] `page-header.tsx` (nuevo): reemplaza los 6 headers sin `flex-wrap` en `citas`, `finanzas`, `cupones`, `formularios`, `psicologos`, `tarifas`.
 
-### 2.2 Arreglos puntuales
-- [ ] Sheets con `min-w-lg` (512px, revienta en móvil): `coupon-sheet.tsx:76`, `rate-sheet.tsx:39`, `payout-settings-sheet.tsx`, `psychologist-sheet.tsx:84` → `w-full sm:min-w-lg`.
-- [ ] `grid-cols-2` sin prefijo responsive: `new-manual-appointment-dialog.tsx:227,285`, `reschedule-appointment-dialog.tsx:115`, `generate-report-dialog.tsx:99` → `grid-cols-1 sm:grid-cols-2`.
-- [ ] Filtros con ancho fijo `w-52` / skeleton `w-96`: `appointments-filters.tsx:51,71`, `finance-filters.tsx`, `payments-filters.tsx`, `period-filter.tsx`, y los `Skeleton className="h-9 w-96"` de `finanzas/page.tsx:52` y `citas/page.tsx:69` → `w-full sm:w-52`.
-- [ ] `payment-table.tsx` (13 columnas, el peor caso): definir prioridad de columnas y usar `data-table-shell` con vista de tarjeta en móvil (Persona, Total USD, Estado, acciones).
-- [ ] Mismo tratamiento en `appointments-table.tsx`, `coupon-table.tsx`, `psychologist-table.tsx`, `rate-table.tsx` y la tabla inline de `formularios/page.tsx:62` (extraerla a componente primero).
+### 2.2 Arreglos puntuales — hecho
+- [x] Los 4 sheets con `min-w-lg` fijo → `w-full sm:min-w-lg` (incluye `staff-sheet.tsx`, construido ya responsive desde el inicio).
+- [x] Los 3 `grid-cols-2` sin prefijo → `grid-cols-1 sm:grid-cols-2`.
+- [x] Filtros y skeletons con ancho fijo → `w-full sm:w-<size>` (`appointments-filters`, `payments-filters`, `period-filter`, y los skeletons de `citas`/`finanzas`/**`pagos`** — este último no estaba en el plan original pero tenía el mismo bug).
+- [x] `payment-table.tsx` (13 columnas): tarjeta móvil vía `data-table-shell`, priorizando Persona/Estado/Total(USD) como pedía el plan, más el selector de comisión y las acciones. Lógica interactiva (`useTransition`, handlers) extraída a `usePaymentRowActions` para que la fila de escritorio y la tarjeta no dupliquen tres handlers cada una.
+- [x] Mismo tratamiento en `appointments-table.tsx` (con `useAppointmentActions` + `AppointmentActionsMenu` compartidos) y en `coupon-table.tsx`/`psychologist-table.tsx` (sin extracción de hooks — su estado de edición/toggle ya vivía a nivel de tabla, no por fila).
+- [x] `formularios/page.tsx:62`: tabla inline extraída a `intake-form-table.tsx`, con su propia tarjeta móvil.
+- [ ] **`rate-table.tsx` deliberadamente sin tocar**: son 2 columnas reales (Moneda, Monto) + una acción — no revienta a 375px, así que agregarle una tarjeta hubiera sido ceremonia sin problema que resolver.
+
+**Verificación 2**: `bunx tsc --noEmit` limpio, lint limpio en todos los archivos tocados, `bun test` sin regresiones. Pendiente el recorrido visual real en DevTools a 375px.
 
 **Verificación 2**: en `bun run dev`, con DevTools a 375px, recorrer las 9 páginas de admin: ningún scroll horizontal de página, ningún sheet cortado, todos los botones alcanzables.
 
