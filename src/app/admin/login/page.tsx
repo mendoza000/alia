@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { InputPassword } from "@/components/ui/input-password";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
+import { isStaffRole } from "@/lib/auth/permissions";
 
 const schema = yup.object({
     email: yup
@@ -54,6 +55,19 @@ export default function AdminLoginPage() {
                     ? "No se pudo iniciar sesión por un error de configuración. Contacta soporte."
                     : "Credenciales incorrectas",
             );
+            return;
+        }
+
+        // Nothing stops a patient from typing credentials into this form —
+        // `signIn.email` only checks the password, not who's allowed into
+        // /admin. `src/proxy.ts` would bounce them on the next navigation
+        // anyway, but signing them out immediately avoids a confusing
+        // logged-in-but-redirected flash.
+        const role = (result.data?.user as { role?: string } | undefined)
+            ?.role;
+        if (!isStaffRole(role)) {
+            await authClient.signOut();
+            setError("Tu cuenta no tiene acceso al panel administrativo");
             return;
         }
 
