@@ -144,6 +144,11 @@ async function resolveCheckoutUrl(
         }
     }
 
+    // TODO(Fase 3.4, out of scope for this pass): serve this Checkout
+    // Session under the client's own domain instead of checkout.stripe.com.
+    // Needs a custom domain verified via DNS in the Stripe dashboard first —
+    // configuration + client sign-off on the subdomain, not a code change
+    // here beyond pointing Stripe at that domain once it exists.
     const { sessionId, url } = await createPaymentCheckoutSession({
         appointmentId,
         amount,
