@@ -163,6 +163,11 @@ export function EditAppointmentPriceDialog({
                     </div>
                 </div>
 
+                {/* TODO(Fase 5): if the appointment has a pending
+                    patient-requested custom amount, surface it here for
+                    the admin to approve/reject instead of typing a value
+                    manually. Out of scope until the approval flow exists. */}
+
                 <DialogFooter>
                     <Button
                         variant="outline"
