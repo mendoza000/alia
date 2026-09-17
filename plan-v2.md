@@ -8,11 +8,14 @@ El resultado esperado al cerrar v2:
 
 - Tres roles con módulos diferenciados, con autorización real (no por middleware).
 - Especialistas con cuenta: su calendario, sus clientes, sus links de pago, agendamiento manual y solicitudes de monto personalizado.
-- Admin con bandeja de aprobaciones.
-- Paciente con dashboard: su especialista, su próxima sesión, cancelar/reagendar, editar formulario y datos, y pagar cobros pendientes.
-- Landing con agendamiento sin elegir psicólogo: match automático por carga semanal, con el especialista revelado **al terminar** el formulario.
-- Precio y comisión definidos al agendar, no al generar el link.
+- Admin y asistente con bandeja de aprobaciones — montos personalizados **y solicitudes de reembolso**.
+- Paciente con dashboard: su especialista, su próxima sesión, cancelar/reagendar, editar formulario y datos, y pagar cobros pendientes — bloqueado de agendar de nuevo en una modalidad mientras tenga ahí una sesión ya realizada y sin pagar.
+- Landing con agendamiento sin elegir psicólogo: match automático por carga semanal, con el especialista revelado **al terminar** el formulario. La sección de especialistas de la home deja de mostrar un subconjunto de 3: muestra a **todos** los psicólogos activos, en orden aleatorio.
+- Precio y comisión definidos al agendar, no al generar el link. Checkout de Stripe servido bajo **dominio propio** del cliente.
 - Terapia de pareja, multa por no presentarse, y fallback de correo a Brevo al topar el free tier de Resend.
+- Sección "Clientes" (reemplaza "Formularios"): listado filtrable de pacientes con ficha de detalle.
+
+> **Alineado con el PRD v2 v1.1** (`PRD_ALIA_v2_v1.1.pdf`, feedback directo del cliente). El registro de cambios v1.0→v1.1 del PRD: reembolso ya no se automatiza en Stripe (queda como solicitud aprobada + ejecución manual); asistente sí decide reembolsos; nueva regla de sesión impaga bloqueando agendamiento; landing muestra todos los psicólogos, no 3 al azar; balanceo del match cerrado (por número de sesiones, tope 5/día); dominio propio en Stripe Checkout; "Formularios" evoluciona a "Clientes"; paquetes de sesiones con descuento queda como decisión abierta. Cada fase de abajo señala dónde aplica.
 
 ### Hallazgo crítico que condiciona todo el orden
 
@@ -28,6 +31,12 @@ Por eso la Fase 0 no es opcional ni se puede posponer: es el prerequisito de la 
 | Paciente recurrente | siempre su mismo especialista asignado, **por modalidad** |
 | Espacio de rutas del psicólogo | mismo `/admin` con nav y datos filtrados por permiso |
 | Modalidades | individual (60 min) y pareja (120 min), como vías independientes |
+| Balanceo del match (PRD §6.6, cerrado en v1.1) | por **número de sesiones** confirmadas en la semana ISO, no por minutos; tope de **5 citas confirmadas/día por especialista**, sin distinguir individual/pareja |
+| Reembolsos (PRD §6.4/§9, cerrado en v1.1) | **nunca** se llama a la API de reembolso de Stripe; flujo de solicitud → aprobación (admin o asistente) → ejecución manual del admin en el dashboard de Stripe |
+| Landing de especialistas (PRD §6.6) | muestra el 100% de los psicólogos activos, orden aleatorio en cada carga — ya no `MAX_FEATURED = 3` |
+| Dominio de Stripe Checkout (PRD §6.7, nuevo) | checkout servido bajo un dominio propio del cliente, verificado por DNS en el dashboard de Stripe |
+| "Formularios" → "Clientes" (PRD §6.8, nuevo) | sección compartida por todo el staff con filtros y ficha de detalle, reemplaza la vista actual |
+| Sesión impaga bloquea agendar (PRD §6.5/§6.6, nuevo) | por **modalidad** (asunción del PRD, pendiente de confirmar explícitamente con el cliente — ver riesgos) |
 
 ### Individual y pareja son dos vías independientes
 
@@ -134,7 +143,8 @@ Permisos forward-declared (no consumidos aún, para que la matriz y su test qued
 
 ### 1.3 Nav y dashboard por rol
 - [ ] `src/components/admin/sidebar-nav.tsx`: el array `navSections` hardcodeado pasa a llevar `permission: Permission` por ítem; el componente recibe `role` y filtra con `can(role, item.permission)`.
-- [ ] Nuevos ítems: `Pacientes` (`/admin/pacientes`), `Aprobaciones` (`/admin/aprobaciones`), `Equipo` (`/admin/equipo`).
+- [ ] Nuevos ítems: `Aprobaciones` (`/admin/aprobaciones`), `Equipo` (`/admin/equipo`).
+- [ ] El ítem existente `Formularios` se renombra a `Clientes` (`/admin/clientes`) — ver Fase 4.2 (PRD §6.8, nuevo en v1.1: reemplaza "Formularios" como punto de entrada, visible para los tres roles de staff con datos filtrados por permiso).
 - [ ] `src/components/admin/admin-shell.tsx`: el subtítulo hardcodeado `"Administrador"` pasa a derivarse del rol.
 - [ ] `src/app/admin/(dashboard)/page.tsx`: extraer las tarjetas en componentes y renderizar por permiso (psicólogo: sus sesiones de hoy/semana y su ingreso propio; asistente: sesiones y formularios, sin finanzas).
 - [ ] `src/lib/admin/alerts-queries.ts` (`getAdminAlerts`): aceptar el actor y filtrar por `psychologistId` cuando corresponda.
@@ -192,7 +202,12 @@ Hoy el precio y la comisión se eligen al **generar el link** (`resolveCheckoutU
 - [ ] `/admin/psicologos`: en `psychologist-form.tsx`, checkboxes de modalidades atendidas y campo de duración de pareja.
 - [ ] La modalidad **no** se pregunta en el formulario de intake — se elige al inicio de `/agendar` (Fase 7.2) y en el diálogo de agendamiento manual. En el formulario aparece solo como dato de contexto de solo lectura.
 
-**Verificación 3**: `bun test`; agendar manualmente una sesión de pareja con monto y comisión, confirmar que ocupa 2 horas en el calendario y que Stripe recibe el monto de la tarifa de pareja; marcar un no-show y generar la multa.
+### 3.4 Dominio propio de Stripe Checkout (PRD §6.7, nuevo en v1.1)
+- [ ] Configurar y verificar (DNS) un dominio personalizado (p. ej. `pagos.<dominio-cliente>`) en el dashboard de Stripe para Checkout. Confirmar con el cliente el subdominio exacto y quién gestiona el DNS (ver riesgos).
+- [ ] Ajustar `resolveCheckoutUrl`/creación de la Checkout Session para que sirva bajo ese dominio en vez de `checkout.stripe.com`.
+- [ ] Verificar que el webhook (`/api/webhook`) y los parámetros de retorno `?pago=exitoso|cancelado` (Fase 6.2) siguen funcionando igual con el dominio nuevo — no es un cambio de lógica de negocio, solo de configuración.
+
+**Verificación 3**: `bun test`; agendar manualmente una sesión de pareja con monto y comisión, confirmar que ocupa 2 horas en el calendario y que Stripe recibe el monto de la tarifa de pareja; marcar un no-show y generar la multa; abrir un link de pago y confirmar que la URL usa el dominio propio configurado, no `stripe.com`.
 
 ---
 
@@ -204,11 +219,15 @@ Hoy el precio y la comisión se eligen al **generar el link** (`resolveCheckoutU
 - [ ] Página `/admin/mi-calendario` (permiso `schedule.write.own`): reusar `src/components/admin/schedule-editor.tsx` (ya responsive) scoped al `psychologistId` del actor + nueva sección de días libres (crear/eliminar rango).
 - [ ] Vista de agenda: reusar el calendario de `/admin/citas` filtrado a sus citas.
 
-### 4.2 Sus clientes
-- [ ] Query `getPatientsByPsychologist(psychologistId)` en `src/lib/admin/patient-queries.ts`: usuarios con al menos una cita con ese psicólogo, con conteo de citas pasadas/próximas y último formulario.
-- [ ] Página `/admin/pacientes` + `/admin/pacientes/[userId]`: datos básicos, notas, formulario (reusar `intake-form-detail.tsx`), historial de citas (pasadas y próximas) y pagos.
+### 4.2 Sección Clientes — reemplaza "Formularios" (PRD §6.8, nuevo en v1.1)
+El scope creció respecto al plan original: ya no es solo "sus clientes" del psicólogo — `/admin/formularios` evoluciona a `/admin/clientes` como punto de entrada compartido por los tres roles de staff, con datos filtrados por permiso.
+- [ ] Query `getPatientsByPsychologist(psychologistId)` en `src/lib/admin/patient-queries.ts` (scope psicólogo) y `getAllPatients(filters)` (scope admin/asistente): usuarios con al menos una cita, conteo de citas pasadas/próximas y último formulario.
+- [ ] `/admin/clientes`: listado con filtros — nombre, fecha de ingreso al servicio, psicólogo asignado, modalidad, estado de la sesión más reciente. Permiso `intake.read.all` (admin/asistente, filtro libre) / `intake.read.own` (psicólogo, forzado a lo propio — reusa `resolvePsychologistScope` como en `report-actions.ts`).
+- [ ] `/admin/clientes/[userId]`: datos básicos, notas, formulario (reusar `intake-form-detail.tsx`), historial de citas (pasadas y próximas) **por modalidad**, y **historial de pagos** del cliente.
 - [ ] Notas por paciente: reusar `Appointment.internalNotes` para notas de sesión y agregar `PatientNote { id, userId, psychologistId, body, createdAt }` para notas de paciente. Migración.
 - [ ] Edición de datos básicos del paciente: nueva action `updatePatientProfile({ userId, name, email?, phone?, dateOfBirth? })` que escribe `User.name` y los campos correspondientes dentro de `IntakeForm.data` (validar con `intakeFormAdminUpdateSchema`). Cubre el pedido de "cambiar el nombre de un cliente ya registrado".
+- [ ] Retirar la vista vieja de `/admin/formularios` (o dejarla como redirect a `/admin/clientes`) una vez migrada — decidir al implementar.
+- [ ] (Pendiente confirmar alcance con el cliente — PRD §6.9, decisión abierta) Si se confirma el alcance acotado de paquetes de sesiones: agregar seguimiento simple (`SessionPackage { id, userId, sessionType, totalSessions, usedSessions, discountApplied, createdAt }`) y mostrar "sesiones restantes" en la ficha de Clientes. No implementar sin confirmación explícita — ver riesgos.
 
 ### 4.3 Agendar y cobrar
 - [ ] `manual-booking-actions.ts`: cuando el actor es psicólogo, forzar `psychologistId = actor.psychologistId` y permitir el switch `isException`.
@@ -222,17 +241,25 @@ Hoy el precio y la comisión se eligen al **generar el link** (`resolveCheckoutU
 ## Fase 5 — Aprobaciones
 
 ### 5.1 Schema y lógica
-- [ ] Modelo `ApprovalRequest { id, type ApprovalType, status ApprovalStatus @default(PENDING), requestedByUserId, targetId String?, payload Json, decidedByUserId String?, decidedAt DateTime?, decisionNote String?, createdAt }`; enums `ApprovalType { CUSTOM_PAYMENT_AMOUNT }` (extensible) y `ApprovalStatus { PENDING APPROVED REJECTED }`. Migración.
-- [ ] `src/lib/admin/approval-actions.ts`: `requestApproval(type, targetId, payload)` (permiso `approval.request`), `approveRequest(id, note?)` y `rejectRequest(id, note?)` (permiso `approval.decide`, solo admin).
+- [ ] Modelo `ApprovalRequest { id, type ApprovalType, status ApprovalStatus @default(PENDING), requestedByUserId, targetId String?, payload Json, decidedByUserId String?, decidedAt DateTime?, decisionNote String?, createdAt }`; enums `ApprovalType { CUSTOM_PAYMENT_AMOUNT REFUND_REQUEST }` (extensible) y `ApprovalStatus { PENDING APPROVED REJECTED }`. Migración.
+- [ ] `src/lib/admin/approval-actions.ts`: `requestApproval(type, targetId, payload)` (permiso `approval.request`), `approveRequest(id, note?)` y `rejectRequest(id, note?)` (permiso `approval.decide`, **admin o asistente** — no solo admin; ver nota de negocio de la Fase 0 para el caso donde el payload fija un porcentaje de comisión arbitrario, que sigue exigiendo `settings.write`).
 - [ ] Al aprobar `CUSTOM_PAYMENT_AMOUNT`: escribir `Appointment.agreedAmount/agreedCurrency` y generar el link, reusando `resolveCheckoutUrl`.
 
-### 5.2 UI y avisos
-- [ ] Página `/admin/aprobaciones`: tabla de pendientes con detalle (quién, qué cita, monto solicitado vs tarifa) y acciones aprobar/rechazar con nota.
-- [ ] `getAdminAlerts`: sumar "N solicitudes pendientes de aprobación" con `href: "/admin/aprobaciones"`.
-- [ ] Correo al admin al crear la solicitud y al solicitante al resolverse (dos plantillas nuevas en `emails/`).
-- [ ] En el diálogo de link de pago, si el actor es psicólogo y pide monto distinto a la tarifa: el botón pasa a "Solicitar aprobación".
+### 5.1b `REFUND_REQUEST` (PRD §6.4/§9, nuevo en v1.1 — reemplaza el refund automático)
+El caso de uso no es "devolver un pago hecho por adelantado" (en ALIA el cobro es posterior a la sesión) sino corregir un cobro mal hecho: monto o moneda incorrecta, cobro duplicado. **Nunca se llama a la API de reembolso de Stripe.**
+- [ ] `requestApproval(REFUND_REQUEST, paymentId, { reason })`: permiso `approval.request` ampliado — a diferencia de `CUSTOM_PAYMENT_AMOUNT` (solo psicólogo sobre su propia cita), acá cualquier staff con acceso al pago puede solicitarlo (admin, asistente, psicólogo sobre lo propio).
+- [ ] Schema: agregar valores a `PaymentStatus` (o campo `refundStatus` aparte — decidir al escribir la migración, documentar en el commit) para distinguir "reembolso aprobado, pendiente de ejecución manual" de "reembolso ejecutado".
+- [ ] Al aprobar: marcar el `Payment` como reembolso aprobado — **no** dispara ninguna llamada a Stripe.
+- [ ] Nueva action `markRefundExecuted(paymentId)` (permiso `payment.commission.write`, solo admin, solo si está en estado "reembolso aprobado"): la usa el admin después de ejecutar el reembolso manualmente desde el dashboard de Stripe.
 
-**Verificación 5**: como psicólogo, solicitar un monto personalizado; como admin, verlo en aprobaciones, aprobarlo y confirmar que el link se genera con el monto aprobado.
+### 5.2 UI y avisos
+- [ ] Página `/admin/aprobaciones`: tabla de pendientes con detalle (quién, qué cita/pago, monto solicitado vs tarifa, o motivo del reembolso) y acciones aprobar/rechazar con nota.
+- [ ] `getAdminAlerts`: sumar "N solicitudes pendientes de aprobación" (monto + reembolso) con `href: "/admin/aprobaciones"`.
+- [ ] Correo al admin/asistente al crear la solicitud y al solicitante al resolverse (plantillas nuevas en `emails/`, una por tipo).
+- [ ] En el diálogo de link de pago, si el actor es psicólogo y pide monto distinto a la tarifa: el botón pasa a "Solicitar aprobación".
+- [ ] En `payment-table.tsx`/`appointments-table.tsx` (Fase 8): acción "Solicitar reembolso" visible para cualquier staff con acceso al pago; tras aprobarse, mostrar el estado "reembolso aprobado — pendiente de ejecución manual" y, para admin, el botón "Marcar reembolso ejecutado".
+
+**Verificación 5**: como psicólogo, solicitar un monto personalizado; como admin **o como asistente**, verlo en aprobaciones, aprobarlo y confirmar que el link se genera con el monto aprobado. Generar una solicitud de reembolso sobre un pago mal cobrado, aprobarla y confirmar que el sistema **no** llama a la API de Stripe — solo la deja pendiente de ejecución manual.
 
 ---
 
@@ -258,7 +285,15 @@ Hoy `/mi-cuenta` son 3 archivos: perfil de solo lectura y lista de sesiones con 
   - `getPatientTracks(userId)` → `{ INDIVIDUAL?: Psychologist, COUPLE?: Psychologist }` para el dashboard.
   - **Derivado, sin columna nueva** — un `assignedPsychologistId` por modalidad en `User` sería estado duplicado que se desincroniza con el historial real. Test primero: sin historial, solo individual, solo pareja, ambas con psicólogos distintos, y que una cita `CANCELLED` no cuente.
 
-**Verificación 6**: con un paciente real, ver su especialista y próxima sesión, reagendar, editar formulario y nombre, y pagar un cobro pendiente end-to-end (Stripe test mode + webhook local).
+### 6.4 Bloqueo por sesión impaga (PRD §6.5/§6.6, nuevo en v1.1)
+Nueva regla de negocio del cliente: como el cobro se hace después de la sesión, hay que frenar la acumulación de sesiones sin pagar antes de dejar agendar una nueva. El PRD asume que el bloqueo es **por modalidad** (coherente con "una cita activa por modalidad" de la Fase 3), pero recomienda confirmarlo con el cliente — ver riesgos.
+- [ ] `hasUnpaidCompletedSession(userId, sessionType)` en `src/lib/queries/patient-appointments.ts`: `true` si existe una cita `COMPLETED`/`NO_SHOW` en esa modalidad con un `Payment` que no está `APPROVED`, ni `VOIDED`, ni con reembolso ejecutado (Fase 5.1b). Test primero.
+- [ ] `createAutoAssignedAppointment` (Fase 7.2), `createManualAppointment` y el guard de `createAppointment` (`agendar/[slug]/actions.ts`): rechazar con un código nuevo (`UNPAID_SESSION_PENDING`) si `hasUnpaidCompletedSession` es `true` para esa modalidad.
+- [ ] `/mi-cuenta`: banner explícito "tenés una sesión pendiente de pago" con acceso directo a `createMyPaymentLink` cuando el bloqueo aplica.
+- [ ] `/agendar`: mismo bloqueo antes de dejar avanzar al paso de horario, con mensaje explicando por qué.
+- [ ] `active-appointment-notice.tsx`: cubrir también este caso (hoy solo cubre "ya tenés una cita activa").
+
+**Verificación 6**: con un paciente real, ver su especialista y próxima sesión, reagendar, editar formulario y nombre, y pagar un cobro pendiente end-to-end (Stripe test mode + webhook local). Con un paciente que tiene una sesión `COMPLETED` sin pagar: confirmar que no puede agendar de nuevo en esa modalidad, que el portal le explica por qué, y que pagar el cobro libera el bloqueo.
 
 ---
 
@@ -271,7 +306,7 @@ Todo el motor agregado es **por modalidad**: la duración del slot y el conjunto
 - [ ] `src/lib/availability/multi-psychologist.ts`:
   - `getAvailabilityForAllPsychologists(sessionType, year, month)`: para cada candidato, `getScheduleForDay` + `TimeOff` + `getBlockingAppointments` + `getConfirmedCountsByDate` + freebusy, usando `getSessionDuration(psychologist, sessionType)`. Aprovechar que `freebusy.query` acepta varios calendarios en `items` (hoy `getFreeBusyPeriods` manda uno solo) → agregar `getFreeBusyPeriodsForCalendars(calendarIds, timeMin, timeMax)`.
   - `getAggregatedMonthAvailability(sessionType, ...)`: unión de slots — un día/slot está disponible si **al menos un** candidato lo tiene. Con pareja los slots son de 120 min, así que el calendario agregado de pareja es visiblemente más escaso que el individual; es correcto, no es un bug.
-  - `matchPsychologistForSlot(sessionType, date, time)`: candidatos = los que atienden esa modalidad y tienen el bloque completo libre; ganador = el de menos citas `CONFIRMED` en la semana ISO de esa fecha; empate → menor carga total del mes; empate → aleatorio estable.
+  - `matchPsychologistForSlot(sessionType, date, time)`: candidatos = los que atienden esa modalidad y tienen el bloque completo libre; ganador = el de menos citas `CONFIRMED` en la semana ISO de esa fecha; empate → menor carga total del mes; empate → aleatorio estable. **Criterio cerrado por el cliente (PRD §6.6/§9, v1.1)**: el balanceo es por **número de sesiones**, no por minutos — pocos especialistas atienden pareja, así que ponderar por duración no ayudaba al equipo. Ya no es una decisión abierta (ver riesgo #3 más abajo, marcado resuelto).
 - [ ] Test primero en `src/lib/__tests__/match-psychologist.test.ts`: sin candidatos; un candidato; empate; que un psicólogo sin `COUPLE` en `offeredSessionTypes` nunca sea candidato de pareja; que un slot de pareja que se solapa con una individual existente quede descartado; que respete `TimeOff` y el cap diario.
 - [ ] Cache: reusar el patrón de `getCachedFreeBusyPeriods` (Map + TTL 5 min) para que el calendario agregado no dispare N llamadas por navegación de mes.
 
@@ -287,13 +322,13 @@ Clave de diseño: **el appointment se crea con el psicólogo ya asignado, pero l
 - [ ] `confirm-and-notify.ts` y las plantillas de correo: verificar que el nombre del psicólogo se resuelva bien en el flujo nuevo.
 
 ### 7.3 Reordenar el landing y matar la confusión
-- [ ] `src/components/landing/psychologist-section/psychologist-section-server.tsx`: `MAX_FEATURED = 3` con `pickRandom` es exactamente la fuente de la queja. Bajar la sección en `(landing)/page.tsx` (después de FAQ) y cambiar el CTA a "Ver todos los especialistas" apuntando a una nueva página `/psicologos` (índice completo, hoy no existe — solo hay `/psicologos/[slug]`).
+- [ ] `src/components/landing/psychologist-section/psychologist-section-server.tsx`: `MAX_FEATURED = 3` con `pickRandom` es exactamente la fuente de la queja. **(PRD §6.6, actualizado en v1.1)** No basta con bajarla y linkear a "ver todos": la sección debe mostrar el **100% de los psicólogos activos**, en orden aleatorio en cada carga (shuffle sobre el array completo, no un subconjunto). Bajar igual la sección en `(landing)/page.tsx` (después de FAQ). Mantener además el CTA a una página `/psicologos` (índice completo, hoy no existe — solo hay `/psicologos/[slug]`) para navegación directa.
 - [ ] Crear `/psicologos` reusando `PsychologistCard` con todos los activos, e incluirla en `src/app/sitemap.ts`.
 - [ ] `how-it-works-section.tsx`: los 5 pasos hardcodeados arrancan con "Elige psicólogo" — reescribir a "Elige modalidad → Elige fecha y hora → Llena tu Inventario de Vida → Te asignamos tu especialista → Sesión y pago".
 - [ ] Anti-confusión en el formulario: barra de progreso persistente con "Paso X de 7 — tu sesión NO está confirmada hasta terminar", banner de advertencia visible con el countdown de `expiresAt` (ya existe el dato en `intake-form-flow.tsx`, hay que hacerlo mucho más prominente), y `beforeunload` al intentar salir a mitad del formulario.
 - [ ] Ajustar `hero-section.tsx:67` y los CTAs del header/footer al flujo nuevo.
 
-**Verificación 7**: `bun test`; agendar como paciente nuevo sin elegir psicólogo y confirmar que el match cae en el de menor carga semanal; repetir con paciente recurrente y confirmar que le toca su mismo especialista; agendar pareja con el mismo paciente y confirmar que le asigna **otro** especialista y que la cita ocupa 2 horas en Google Calendar; verificar que un `TimeOff` saca al psicólogo de los candidatos y que tener individual activa no bloquea agendar pareja.
+**Verificación 7**: `bun test`; agendar como paciente nuevo sin elegir psicólogo y confirmar que el match cae en el de menor carga semanal; repetir con paciente recurrente y confirmar que le toca su mismo especialista; agendar pareja con el mismo paciente y confirmar que le asigna **otro** especialista y que la cita ocupa 2 horas en Google Calendar; verificar que un `TimeOff` saca al psicólogo de los candidatos y que tener individual activa no bloquea agendar pareja; confirmar que el tope de 5 citas/día se respeta mezclando individuales y pareja; entrar a la home y confirmar que la sección de especialistas muestra a todos los activos (no solo 3) y que el orden cambia entre cargas.
 
 ---
 
@@ -339,16 +374,22 @@ Hoy `src/lib/email.ts` es un singleton de Resend sin try/catch, sin inspeccionar
 | Embudo | `src/app/(landing)/agendar/**`, `src/components/booking/**`, `src/components/landing/**` |
 | Portal cliente | `src/app/mi-cuenta/**`, `src/lib/patient/appointment-actions.ts` |
 | Correo | `src/lib/email.ts`, `src/lib/email/**` (nuevo), `emails/**` |
+| Clientes (nuevo, reemplaza Formularios) | `src/app/admin/clientes/**` (antes `formularios`), `src/lib/admin/patient-queries.ts` |
+| Aprobaciones y reembolsos | `src/lib/admin/approval-actions.ts` (nuevo), `emails/refund-*` (nuevo) |
+| Dominio Stripe Checkout | `src/lib/admin/payment-actions.ts` (`resolveCheckoutUrl`), configuración en el dashboard de Stripe (fuera del repo) |
 
 ## Riesgos y decisiones abiertas
 
 1. **`User.role` a enum vs. seguir con `String`**: better-auth escribe ese campo por su cuenta. Si el enum de Prisma pelea con el plugin `admin`, se queda `String` con validación en el borde. Se decide al escribir la migración de Fase 1.
-2. **Ventana mínima para que el paciente reagende**: propongo 24h. Confirmar con el cliente.
-3. **Balanceo del match**: se cuenta por citas `CONFIRMED` de la semana ISO. Con sesiones de pareja de 2 horas, una cita de pareja pesa el doble en horas pero cuenta 1 igual que una individual. Si el balanceo por conteo resulta injusto, cambiar a **minutos agendados** en la semana en lugar de cantidad de citas — es un cambio de una línea en `matchPsychologistForSlot` si se deja aislado. Mismo problema con `DAILY_CONFIRMED_APPOINTMENT_CAP = 5`: cinco sesiones de pareja son 10 horas. Recomiendo revisar ese cap con el cliente al llegar a la Fase 7.
-4. **La segunda persona de la pareja** no tiene cuenta ni formulario propio en este plan: la cita cuelga de un solo `User` y el Inventario de Vida es uno. Si el cliente necesita dos formularios o dos usuarios vinculados por cita, es un modelo distinto y hay que planificarlo aparte.
-5. **Coupons están muertos** en el path de pago (`resolveCheckoutUrl` escribe `discountAmount: 0, couponId: null` siempre), aunque el CRUD y el webhook existen. Fuera de alcance de v2 salvo que se pida.
-6. **Cancelar una cita con pago `APPROVED` lo marca `VOIDED` sin llamar al refund de Stripe** (`cancel-appointment.ts`). Con el paciente pudiendo cancelar desde su portal (Fase 6), esto se vuelve más visible. Recomiendo cubrirlo en Fase 6.
+2. **Ventana mínima para que el paciente reagende**: propongo 24h. Sigue pendiente de confirmar con el cliente (el PRD v1.1 lo deja igual: "propuesta inicial de 24 horas").
+3. ~~**Balanceo del match**~~ — **Resuelto por el cliente (PRD §6.6/§9, v1.1)**: por **número de sesiones** confirmadas en la semana ISO (no por minutos) — pocos especialistas atienden pareja, así que ponderar por duración no le servía al equipo. El tope diario `DAILY_CONFIRMED_APPOINTMENT_CAP = 5` se mantiene en 5, mezclando individuales y pareja sin distinción. Ya no es una decisión abierta.
+4. **La segunda persona de la pareja** no tiene cuenta ni formulario propio en este plan: la cita cuelga de un solo `User` y el Inventario de Vida es uno. Sigue fuera de alcance de v2 (confirmado en el PRD v1.1, sin cambios). Si el cliente necesita dos formularios o dos usuarios vinculados por cita, es un modelo distinto y hay que planificarlo aparte.
+5. **Coupons están muertos** en el path de pago (`resolveCheckoutUrl` escribe `discountAmount: 0, couponId: null` siempre), aunque el CRUD y el webhook existen. Sigue fuera de alcance de v2 (confirmado en el PRD v1.1).
+6. ~~**Cancelar una cita con pago `APPROVED` lo marca `VOIDED` sin llamar al refund de Stripe**~~ — **Resuelto parcialmente por el cliente (PRD §6.4/§9, v1.1)**: se descarta automatizar el refund contra la API de Stripe. `cancel-appointment.ts` sigue marcando `VOIDED` sin tocar Stripe; si hace falta devolver dinero, el staff genera una **solicitud de reembolso** (Fase 5.1b) que aprueba admin/asistente y ejecuta el admin manualmente en el dashboard de Stripe. Queda abierto si, más adelante, se justifica automatizar la llamada a la API de reembolso.
 7. **Vercel Hobby limita cada cron a una vez por día**, así que cualquier proceso nuevo que necesite más frecuencia va por QStash, no por cron.
+8. **(Nuevo, PRD §6.5/§6.6/§9, v1.1) Alcance exacto del bloqueo por sesión impaga**: el PRD asume que bloquea **por modalidad** (una individual impaga bloquea solo nuevas individuales, no pareja) — coherente con el resto del diseño, pero recomienda confirmarlo explícitamente con el cliente antes de implementar la Fase 6.4.
+9. **(Nuevo, PRD §6.9, v1.1) Alcance de paquetes de sesiones con descuento**: decisión abierta con el cliente — si v2 entrega solo un campo de seguimiento simple (N sesiones totales/usadas/descuento, mostrado en la ficha de Clientes) o si requiere un modelo de "paquete" completo (vencimiento, reglas de descuento, venta desde el embudo público), que quedaría fuera de v2 como fase adicional. Impacta si entra en la Fase 4.2 o no. **No implementar sin confirmar el alcance.**
+10. **(Nuevo, PRD §6.7/§9, v1.1) Dominio de Stripe Checkout**: confirmar con el cliente el subdominio exacto a usar (p. ej. `pagos.dominio.com`) y quién gestiona el DNS — la verificación del dominio personalizado en Stripe depende de un registro DNS que debe crear el dueño del dominio.
 
 ## Verificación global de v2
 
@@ -361,4 +402,4 @@ bun test
 bun run dev
 ```
 
-Recorrido manual, en este orden: login de cada rol → sidebar por rol → 375px en las 9 páginas de admin → especialista edita horario y saca día libre → agendar público sin elegir psicólogo → formulario completo → reveal del especialista → paciente entra a su portal, reagenda y paga → admin ve el pago aprobado en pagos y finanzas → solicitud de monto personalizado aprobada → correo con `RESEND_DAILY_LIMIT=0` saliendo por Brevo.
+Recorrido manual, en este orden: login de cada rol → sidebar por rol → 375px en las 9 páginas de admin → especialista edita horario y saca día libre → agendar público sin elegir psicólogo → formulario completo → reveal del especialista → paciente entra a su portal, reagenda y paga → admin ve el pago aprobado en pagos y finanzas → solicitud de monto personalizado aprobada (admin **y** asistente) → solicitud de reembolso aprobada, confirmando que **no** se llama a la API de Stripe → paciente con sesión `COMPLETED` sin pagar no puede agendar de nuevo en esa modalidad hasta pagar → home muestra todos los psicólogos activos en orden aleatorio → link de pago abre bajo el dominio propio configurado en Stripe → sección Clientes filtra por nombre/fecha/psicólogo y muestra la ficha completa → correo con `RESEND_DAILY_LIMIT=0` saliendo por Brevo.
