@@ -9,169 +9,251 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
 } from "@/components/ui/table";
 import { DeletePsychologistDialog } from "@/components/admin/delete-psychologist-dialog";
+import { DataTableShell } from "@/components/admin/data-table-shell";
 
 type Psychologist = {
-  id: string;
-  name: string;
-  email: string;
-  photoUrl: string | null;
-  specialty: string;
-  isActive: boolean;
-  _count: {
-    appointments: number;
-    schedules: number;
-  };
+    id: string;
+    name: string;
+    email: string;
+    photoUrl: string | null;
+    specialty: string;
+    isActive: boolean;
+    _count: {
+        appointments: number;
+        schedules: number;
+    };
 };
 
 function getInitials(name: string) {
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+    return name
+        .split(" ")
+        .map(w => w[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase();
 }
 
 export function PsychologistTable({
-  psychologists,
+    psychologists,
 }: {
-  psychologists: Psychologist[];
+    psychologists: Psychologist[];
 }) {
-  const [togglingId, setTogglingId] = useState<string | null>(null);
+    const [togglingId, setTogglingId] = useState<string | null>(null);
 
-  async function handleToggle(id: string) {
-    setTogglingId(id);
-    try {
-      const p = psychologists.find((p) => p.id === id);
-      await togglePsychologistActive(id);
-      toast.success(
-        p?.isActive ? "Psicólogo desactivado" : "Psicólogo activado",
-      );
-    } catch {
-      toast.error("Error al cambiar el estado");
-    } finally {
-      setTogglingId(null);
+    async function handleToggle(id: string) {
+        setTogglingId(id);
+        try {
+            const p = psychologists.find(p => p.id === id);
+            await togglePsychologistActive(id);
+            toast.success(
+                p?.isActive ? "Psicólogo desactivado" : "Psicólogo activado",
+            );
+        } catch {
+            toast.error("Error al cambiar el estado");
+        } finally {
+            setTogglingId(null);
+        }
     }
-  }
 
-  if (psychologists.length === 0) {
+    if (psychologists.length === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-12">
+                <p className="text-sm text-muted-foreground">
+                    No hay psicólogos registrados
+                </p>
+            </div>
+        );
+    }
+
     return (
-      <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-12">
-        <p className="text-sm text-muted-foreground">
-          No hay psicólogos registrados
-        </p>
-      </div>
+        <DataTableShell
+            items={psychologists}
+            getKey={p => p.id}
+            mobileRender={p => (
+                <div className="rounded-lg border border-border bg-card p-4">
+                    <div className="flex items-start justify-between gap-3">
+                        <Link
+                            href={`/admin/psicologos/${p.id}`}
+                            className="flex min-w-0 items-center gap-3 hover:opacity-80"
+                        >
+                            <Avatar>
+                                {p.photoUrl && <AvatarImage src={p.photoUrl} />}
+                                <AvatarFallback>
+                                    {getInitials(p.name)}
+                                </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                                <p className="truncate font-medium">{p.name}</p>
+                                <p className="truncate text-xs text-muted-foreground">
+                                    {p.email}
+                                </p>
+                            </div>
+                        </Link>
+                        <Badge
+                            variant={p.isActive ? "default" : "outline"}
+                            className={
+                                p.isActive
+                                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                                    : ""
+                            }
+                        >
+                            {p.isActive ? "Activo" : "Inactivo"}
+                        </Badge>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between gap-2">
+                        <Badge variant="secondary">{p.specialty}</Badge>
+                        <span className="text-xs text-muted-foreground">
+                            {p._count.appointments} sesiones
+                        </span>
+                    </div>
+                    <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
+                        <Link
+                            href={`/admin/psicologos/${p.id}`}
+                            className="flex-1"
+                        >
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full"
+                            >
+                                <Eye />
+                                Ver perfil
+                            </Button>
+                        </Link>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleToggle(p.id)}
+                            disabled={togglingId === p.id}
+                        >
+                            <Power />
+                            {p.isActive ? "Desactivar" : "Activar"}
+                        </Button>
+                    </div>
+                </div>
+            )}
+        >
+            <Table>
+                <TableHeader className="[&_th]:font-semibold">
+                    <TableRow>
+                        <TableHead>Psicólogo</TableHead>
+                        <TableHead>Especialidad</TableHead>
+                        <TableHead>Sesiones</TableHead>
+                        <TableHead>Estado</TableHead>
+                        <TableHead className="w-10" />
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {psychologists.map(p => (
+                        <TableRow key={p.id}>
+                            <TableCell>
+                                <Link
+                                    href={`/admin/psicologos/${p.id}`}
+                                    className="flex items-center gap-3 hover:opacity-80"
+                                >
+                                    <Avatar>
+                                        {p.photoUrl && (
+                                            <AvatarImage src={p.photoUrl} />
+                                        )}
+                                        <AvatarFallback>
+                                            {getInitials(p.name)}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                        <p className="font-medium">{p.name}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                            {p.email}
+                                        </p>
+                                    </div>
+                                </Link>
+                            </TableCell>
+                            <TableCell>
+                                <Badge variant="secondary">{p.specialty}</Badge>
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                                {p._count.appointments}
+                            </TableCell>
+                            <TableCell>
+                                <Badge
+                                    variant={p.isActive ? "default" : "outline"}
+                                    className={
+                                        p.isActive
+                                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                                            : ""
+                                    }
+                                >
+                                    {p.isActive ? "Activo" : "Inactivo"}
+                                </Badge>
+                            </TableCell>
+                            <TableCell>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger
+                                        render={
+                                            <Button
+                                                variant="ghost"
+                                                size="icon-sm"
+                                            >
+                                                <MoreHorizontal className="size-4" />
+                                            </Button>
+                                        }
+                                    />
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem
+                                            render={
+                                                <Link
+                                                    href={`/admin/psicologos/${p.id}`}
+                                                />
+                                            }
+                                        >
+                                            <Eye />
+                                            Ver perfil
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            onClick={() => handleToggle(p.id)}
+                                            disabled={togglingId === p.id}
+                                        >
+                                            <Power />
+                                            {p.isActive
+                                                ? "Desactivar"
+                                                : "Activar"}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DeletePsychologistDialog
+                                            psychologistId={p.id}
+                                            psychologistName={p.name}
+                                        >
+                                            <DropdownMenuItem
+                                                variant="destructive"
+                                                onSelect={e =>
+                                                    e.preventDefault()
+                                                }
+                                            >
+                                                <Trash2 />
+                                                Eliminar
+                                            </DropdownMenuItem>
+                                        </DeletePsychologistDialog>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </DataTableShell>
     );
-  }
-
-  return (
-    <div className="rounded-lg border border-border bg-card">
-      <Table>
-        <TableHeader className="[&_th]:font-semibold">
-          <TableRow>
-            <TableHead>Psicólogo</TableHead>
-            <TableHead>Especialidad</TableHead>
-            <TableHead>Sesiones</TableHead>
-            <TableHead>Estado</TableHead>
-            <TableHead className="w-10" />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {psychologists.map((p) => (
-            <TableRow key={p.id}>
-              <TableCell>
-                <Link
-                  href={`/admin/psicologos/${p.id}`}
-                  className="flex items-center gap-3 hover:opacity-80"
-                >
-                  <Avatar>
-                    {p.photoUrl && <AvatarImage src={p.photoUrl} />}
-                    <AvatarFallback>{getInitials(p.name)}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-medium">{p.name}</p>
-                    <p className="text-xs text-muted-foreground">{p.email}</p>
-                  </div>
-                </Link>
-              </TableCell>
-              <TableCell>
-                <Badge variant="secondary">{p.specialty}</Badge>
-              </TableCell>
-              <TableCell className="text-muted-foreground">
-                {p._count.appointments}
-              </TableCell>
-              <TableCell>
-                <Badge
-                  variant={p.isActive ? "default" : "outline"}
-                  className={
-                    p.isActive
-                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                      : ""
-                  }
-                >
-                  {p.isActive ? "Activo" : "Inactivo"}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger
-                    render={
-                      <Button variant="ghost" size="icon-sm">
-                        <MoreHorizontal className="size-4" />
-                      </Button>
-                    }
-                  />
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      render={
-                        <Link href={`/admin/psicologos/${p.id}`} />
-                      }
-                    >
-                      <Eye />
-                      Ver perfil
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => handleToggle(p.id)}
-                      disabled={togglingId === p.id}
-                    >
-                      <Power />
-                      {p.isActive ? "Desactivar" : "Activar"}
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DeletePsychologistDialog
-                      psychologistId={p.id}
-                      psychologistName={p.name}
-                    >
-                      <DropdownMenuItem
-                        variant="destructive"
-                        onSelect={(e) => e.preventDefault()}
-                      >
-                        <Trash2 />
-                        Eliminar
-                      </DropdownMenuItem>
-                    </DeletePsychologistDialog>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  );
 }
