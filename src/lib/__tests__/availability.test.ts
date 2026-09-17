@@ -6,6 +6,7 @@ import {
     subtractBusyPeriods,
     filterPastSlots,
     appointmentsToBusyPeriods,
+    timeOffToBusyPeriods,
     computeMonthAvailability,
     toCaracasDate,
     getSessionDuration,
@@ -342,6 +343,20 @@ describe("computeMonthAvailability", () => {
         const result = computeMonthAvailability(schedules, [], year, month, 60);
         // July has 31 days
         expect(Object.keys(result)).toHaveLength(31);
+    });
+});
+
+describe("timeOffToBusyPeriods", () => {
+    it("maps startsAt/endsAt to start/end", () => {
+        const startsAt = new Date("2026-07-06T13:00:00Z");
+        const endsAt = new Date("2026-07-06T17:00:00Z");
+        expect(timeOffToBusyPeriods([{ startsAt, endsAt }])).toEqual([
+            { start: startsAt, end: endsAt },
+        ]);
+    });
+
+    it("returns an empty array for no time off", () => {
+        expect(timeOffToBusyPeriods([])).toEqual([]);
     });
 });
 

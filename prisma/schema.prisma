@@ -104,6 +104,7 @@ model Psychologist {
   updatedAt             DateTime      @updatedAt
 
   schedules    Schedule[]
+  timeOffs     TimeOff[]
   appointments Appointment[]
 
   @@map("psychologist")
@@ -120,6 +121,19 @@ model Schedule {
 
   @@index([psychologistId])
   @@map("schedule")
+}
+
+model TimeOff {
+  id             String       @id @default(cuid())
+  psychologistId String
+  psychologist   Psychologist @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
+  startsAt       DateTime
+  endsAt         DateTime
+  reason         String?
+  createdAt      DateTime     @default(now())
+
+  @@index([psychologistId])
+  @@map("time_off")
 }
 
 model Appointment {

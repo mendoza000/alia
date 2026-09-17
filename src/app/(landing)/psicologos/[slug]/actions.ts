@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getCachedFreeBusyPeriods } from "@/lib/google-calendar";
 import {
     appointmentsToBusyPeriods,
+    timeOffToBusyPeriods,
     computeMonthAvailability,
     CARACAS_TZ,
     type MonthAvailability,
@@ -12,6 +13,7 @@ import {
     getBlockingAppointments,
     getConfirmedCountsByDate,
 } from "@/lib/queries/appointments";
+import { getTimeOffOverlapping } from "@/lib/admin/time-off-actions";
 import { TZDate } from "@date-fns/tz";
 import { endOfMonth, startOfMonth } from "date-fns";
 
@@ -33,7 +35,7 @@ export async function getMonthAvailability(
     const timeMin = startOfMonth(firstDay);
     const timeMax = endOfMonth(firstDay);
 
-    const [calendarBusy, appointments, confirmedCountByDate] =
+    const [calendarBusy, appointments, timeOffs, confirmedCountByDate] =
         await Promise.all([
             psychologist.calendarId
                 ? getCachedFreeBusyPeriods(
@@ -43,12 +45,14 @@ export async function getMonthAvailability(
                   )
                 : Promise.resolve([]),
             getBlockingAppointments(psychologist.id, timeMin, timeMax),
+            getTimeOffOverlapping(psychologistId, timeMin, timeMax),
             getConfirmedCountsByDate(psychologistId, timeMin, timeMax),
         ]);
 
     const allBusyPeriods = [
         ...calendarBusy,
         ...appointmentsToBusyPeriods(appointments),
+        ...timeOffToBusyPeriods(timeOffs),
     ];
 
     return computeMonthAvailability(

@@ -3,6 +3,7 @@
 import {
     Banknote,
     Calendar,
+    CalendarClock,
     CreditCard,
     DollarSign,
     FileText,
@@ -23,6 +24,12 @@ type NavItem = {
     icon: typeof LayoutDashboard;
     /** Omitted = visible to every staff role. */
     permission?: Permission;
+    /** Restricts to specific roles regardless of permission — for pages
+     * that are inherently "your own" (like Mi calendario) where admin
+     * having every Permission via ALL_PERMISSIONS would otherwise also
+     * show it, even though admin manages schedules through
+     * /admin/psicologos, not a personal calendar of their own. */
+    roles?: Role[];
 };
 
 const navSections: { label: string; items: NavItem[] }[] = [
@@ -38,6 +45,13 @@ const navSections: { label: string; items: NavItem[] }[] = [
                 label: "Psicólogos",
                 icon: Users,
                 permission: "psychologist.write",
+            },
+            {
+                href: "/admin/mi-calendario",
+                label: "Mi calendario",
+                icon: CalendarClock,
+                permission: "schedule.write.own",
+                roles: ["psychologist"],
             },
             // /admin/citas and /admin/pagos are read-scoped by actor since
             // Fase 4.0 (resolvePsychologistScope) — a psychologist only ever
@@ -113,7 +127,9 @@ export function SidebarNav({
         <nav className="flex-1 space-y-6 px-3 py-4">
             {navSections.map(section => {
                 const items = section.items.filter(
-                    item => !item.permission || can(role, item.permission),
+                    item =>
+                        (!item.permission || can(role, item.permission)) &&
+                        (!item.roles || item.roles.includes(role)),
                 );
                 if (items.length === 0) return null;
                 return (

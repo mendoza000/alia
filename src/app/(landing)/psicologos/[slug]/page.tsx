@@ -6,6 +6,7 @@ import { getPublicDisplayRate } from "@/lib/admin/payment-rate-queries";
 import { getCachedFreeBusyPeriods } from "@/lib/google-calendar";
 import {
     appointmentsToBusyPeriods,
+    timeOffToBusyPeriods,
     computeMonthAvailability,
     CARACAS_TZ,
 } from "@/lib/availability";
@@ -13,6 +14,7 @@ import {
     getBlockingAppointments,
     getConfirmedCountsByDate,
 } from "@/lib/queries/appointments";
+import { getTimeOffOverlapping } from "@/lib/admin/time-off-actions";
 import { TZDate } from "@date-fns/tz";
 import { startOfMonth, endOfMonth } from "date-fns";
 import { ProfileContent } from "./profile-content";
@@ -73,23 +75,30 @@ export default async function PsychologistProfilePage({ params }: Props) {
     const timeMax = endOfMonth(firstDay);
 
     const country = (await headers()).get("x-vercel-ip-country");
-    const [calendarBusy, appointments, globalRate, confirmedCountByDate] =
-        await Promise.all([
-            psychologist.calendarId
-                ? getCachedFreeBusyPeriods(
-                      psychologist.calendarId,
-                      timeMin,
-                      timeMax,
-                  )
-                : Promise.resolve([]),
-            getBlockingAppointments(psychologist.id, timeMin, timeMax),
-            getPublicDisplayRate(country),
-            getConfirmedCountsByDate(psychologist.id, timeMin, timeMax),
-        ]);
+    const [
+        calendarBusy,
+        appointments,
+        timeOffs,
+        globalRate,
+        confirmedCountByDate,
+    ] = await Promise.all([
+        psychologist.calendarId
+            ? getCachedFreeBusyPeriods(
+                  psychologist.calendarId,
+                  timeMin,
+                  timeMax,
+              )
+            : Promise.resolve([]),
+        getBlockingAppointments(psychologist.id, timeMin, timeMax),
+        getTimeOffOverlapping(psychologist.id, timeMin, timeMax),
+        getPublicDisplayRate(country),
+        getConfirmedCountsByDate(psychologist.id, timeMin, timeMax),
+    ]);
 
     const allBusyPeriods = [
         ...calendarBusy,
         ...appointmentsToBusyPeriods(appointments),
+        ...timeOffToBusyPeriods(timeOffs),
     ];
 
     const initialAvailability = computeMonthAvailability(

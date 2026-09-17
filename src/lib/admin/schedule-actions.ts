@@ -38,4 +38,5 @@ export async function saveSchedules(
 
     revalidatePath("/admin/psicologos", "layout");
     revalidatePath(`/admin/psicologos/${psychologistId}`);
+    revalidatePath("/admin/mi-calendario");
 }

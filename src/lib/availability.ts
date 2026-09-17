@@ -90,6 +90,16 @@ export function appointmentsToBusyPeriods(
     return appointments.map(a => ({ start: a.dateTime, end: a.endTime }));
 }
 
+/** Mirrors appointmentsToBusyPeriods — a day off blocks the calendar the
+ * same way an existing appointment does. TimeOff already stores absolute
+ * DateTimes, so it maps straight to busyPeriods without going through
+ * getScheduleForDay/generateTimeSlots. */
+export function timeOffToBusyPeriods(
+    timeOffs: { startsAt: Date; endsAt: Date }[],
+): { start: Date; end: Date }[] {
+    return timeOffs.map(t => ({ start: t.startsAt, end: t.endsAt }));
+}
+
 export function filterPastSlots(
     slots: TimeSlot[],
     dateStr: string,
