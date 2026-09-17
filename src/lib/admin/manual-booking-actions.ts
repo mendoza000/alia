@@ -20,8 +20,10 @@ import {
     filterPastSlots,
     appointmentsToBusyPeriods,
     toCaracasDate,
+    getSessionDuration,
     DAILY_CONFIRMED_APPOINTMENT_CAP,
 } from "@/lib/availability";
+import type { PayoutType, SessionType } from "@/generated/prisma/enums";
 
 type ManualBookingInput = {
     psychologistId: string;
@@ -33,6 +35,10 @@ type ManualBookingInput = {
     notes?: string;
     internalNotes?: string;
     isException?: boolean;
+    sessionType?: SessionType;
+    agreedAmount?: number;
+    agreedCurrency?: string;
+    agreedPayoutType?: PayoutType;
 };
 
 type ManualBookingResult =
@@ -65,10 +71,22 @@ export async function createManualAppointment(
         return { success: false, error: "Psicólogo no encontrado" };
     }
 
+    const sessionType: SessionType = input.sessionType ?? "INDIVIDUAL";
+    if (
+        sessionType === "COUPLE" &&
+        !psychologist.offeredSessionTypes.includes("COUPLE")
+    ) {
+        return {
+            success: false,
+            error: "Este psicólogo no atiende sesiones de pareja",
+        };
+    }
+
     const bypassAvailability = input.isException === true;
 
+    const sessionDuration = getSessionDuration(psychologist, sessionType);
     const slotStart = toCaracasDate(input.date, input.time);
-    const slotEnd = addMinutes(slotStart, psychologist.sessionDuration);
+    const slotEnd = addMinutes(slotStart, sessionDuration);
 
     if (!bypassAvailability) {
         const dayOfWeek = getDay(slotStart);
@@ -76,10 +94,7 @@ export async function createManualAppointment(
             psychologist.schedules,
             dayOfWeek,
         );
-        const allSlots = generateTimeSlots(
-            daySchedules,
-            psychologist.sessionDuration,
-        );
+        const allSlots = generateTimeSlots(daySchedules, sessionDuration);
         const slot = allSlots.find(s => s.start === input.time);
         if (!slot) {
             return {
@@ -201,6 +216,10 @@ export async function createManualAppointment(
                     internalNotes: input.internalNotes || null,
                     timezone: input.timezone,
                     isException: bypassAvailability,
+                    sessionType,
+                    agreedAmount: input.agreedAmount ?? null,
+                    agreedCurrency: input.agreedCurrency ?? null,
+                    agreedPayoutType: input.agreedPayoutType ?? null,
                 },
             });
         });

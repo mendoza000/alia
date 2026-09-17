@@ -83,10 +83,7 @@ function usePaymentRowActions(p: PaymentRowWithUsd) {
 
     function handleResend() {
         startTransition(async () => {
-            const result = await sendPaymentLinkEmail(
-                p.appointmentId,
-                p.currency,
-            );
+            const result = await sendPaymentLinkEmail(p.appointmentId);
             if (result.success) {
                 toast.success("Correo enviado");
             } else {

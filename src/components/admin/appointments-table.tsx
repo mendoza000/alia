@@ -14,6 +14,8 @@ import {
     FileText,
     Mail,
     MoreHorizontal,
+    Pencil,
+    Receipt,
     StickyNote,
     Trash2,
     UserX,
@@ -29,7 +31,10 @@ import {
 import { AppointmentNotesDialog } from "@/components/admin/appointment-notes-dialog";
 import { DeleteAppointmentDialog } from "@/components/admin/delete-appointment-dialog";
 import { RescheduleAppointmentDialog } from "@/components/admin/reschedule-appointment-dialog";
-import { sendPaymentLinkEmail } from "@/lib/admin/payment-actions";
+import {
+    createNoShowFeeCharge,
+    sendPaymentLinkEmail,
+} from "@/lib/admin/payment-actions";
 import { formatCurrencyAmount } from "@/lib/currency";
 import type { AppointmentRow } from "@/lib/admin/appointment-queries";
 import type { PayoutSettings } from "@/lib/admin/payout-settings-queries";
@@ -37,6 +42,7 @@ import { AppointmentStatusBadge } from "@/components/admin/appointment-status-ba
 import { Badge } from "@/components/ui/badge";
 import { PaymentStatusBadge } from "@/components/admin/payment-status-badge";
 import { GeneratePaymentLinkDialog } from "@/components/admin/generate-payment-link-dialog";
+import { EditAppointmentPriceDialog } from "@/components/admin/edit-appointment-price-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { CopyLinkButton } from "@/components/ui/copy-link-button";
@@ -78,6 +84,7 @@ function getAppointmentActionFlags(appointment: AppointmentRow) {
         canGenerateLink: ["CONFIRMED", "COMPLETED", "NO_SHOW"].includes(
             appointment.status,
         ),
+        canChargeNoShowFee: appointment.status === "NO_SHOW",
         hasUsableLink: Boolean(
             appointment.payment?.stripeCheckoutUrl &&
                 appointment.payment.status === "PENDING",
@@ -121,10 +128,7 @@ function useAppointmentActions(
     function handleSendEmail() {
         if (!appointment.payment) return;
         startTransition(async () => {
-            const result = await sendPaymentLinkEmail(
-                appointment.id,
-                appointment.payment?.currency ?? "COP",
-            );
+            const result = await sendPaymentLinkEmail(appointment.id);
             if (result.success) {
                 toast.success("Correo enviado");
             } else {
@@ -133,13 +137,31 @@ function useAppointmentActions(
         });
     }
 
-    return { handleAction, handleGenerateLinkClick, handleSendEmail };
+    function handleNoShowFeeClick() {
+        startTransition(async () => {
+            const result = await createNoShowFeeCharge(appointment.id);
+            if (result.success) {
+                toast.success("Multa generada");
+            } else {
+                toast.error(result.error);
+            }
+        });
+    }
+
+    return {
+        handleAction,
+        handleGenerateLinkClick,
+        handleSendEmail,
+        handleNoShowFeeClick,
+    };
 }
 
 type AppointmentActionsProps = {
     appointment: AppointmentRow;
     hasAvailableCurrencies: boolean;
+    canEditPrice: boolean;
     onGenerateLink: (appointment: AppointmentRow) => void;
+    onEditPrice: (appointment: AppointmentRow) => void;
     onDeleteClick: (appointment: AppointmentRow) => void;
     onRescheduleClick: (appointment: AppointmentRow) => void;
     onNotesClick: (appointment: AppointmentRow) => void;
@@ -148,17 +170,23 @@ type AppointmentActionsProps = {
 function AppointmentActionsMenu({
     appointment,
     hasAvailableCurrencies,
+    canEditPrice,
     onGenerateLink,
+    onEditPrice,
     onDeleteClick,
     onRescheduleClick,
     onNotesClick,
 }: AppointmentActionsProps) {
-    const { handleAction, handleGenerateLinkClick, handleSendEmail } =
-        useAppointmentActions(
-            appointment,
-            hasAvailableCurrencies,
-            onGenerateLink,
-        );
+    const {
+        handleAction,
+        handleGenerateLinkClick,
+        handleSendEmail,
+        handleNoShowFeeClick,
+    } = useAppointmentActions(
+        appointment,
+        hasAvailableCurrencies,
+        onGenerateLink,
+    );
     const {
         canComplete,
         canNoShow,
@@ -166,6 +194,7 @@ function AppointmentActionsMenu({
         canDelete,
         canReschedule,
         canGenerateLink,
+        canChargeNoShowFee,
         hasUsableLink,
     } = getAppointmentActionFlags(appointment);
 
@@ -216,6 +245,23 @@ function AppointmentActionsMenu({
                                 Enviar por correo
                             </DropdownMenuItem>
                         )}
+                        {canEditPrice && (
+                            <DropdownMenuItem
+                                onClick={() => onEditPrice(appointment)}
+                            >
+                                <Pencil />
+                                Editar precio de la sesión
+                            </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                    </>
+                )}
+                {canChargeNoShowFee && canEditPrice && (
+                    <>
+                        <DropdownMenuItem onClick={handleNoShowFeeClick}>
+                            <Receipt />
+                            Cobrar multa por inasistencia
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                     </>
                 )}
@@ -283,14 +329,8 @@ function AppointmentActionsMenu({
     );
 }
 
-function AppointmentRow({
-    appointment,
-    hasAvailableCurrencies,
-    onGenerateLink,
-    onDeleteClick,
-    onRescheduleClick,
-    onNotesClick,
-}: AppointmentActionsProps) {
+function AppointmentRow(props: AppointmentActionsProps) {
+    const { appointment } = props;
     const { hasUsableLink } = getAppointmentActionFlags(appointment);
 
     return (
@@ -405,14 +445,7 @@ function AppointmentRow({
                 )}
             </TableCell>
             <TableCell>
-                <AppointmentActionsMenu
-                    appointment={appointment}
-                    hasAvailableCurrencies={hasAvailableCurrencies}
-                    onGenerateLink={onGenerateLink}
-                    onDeleteClick={onDeleteClick}
-                    onRescheduleClick={onRescheduleClick}
-                    onNotesClick={onNotesClick}
-                />
+                <AppointmentActionsMenu {...props} />
             </TableCell>
         </TableRow>
     );
@@ -521,12 +554,20 @@ export function AppointmentsTable({
     appointments,
     availableCurrencies,
     commissionRates,
+    canEditPrice,
 }: {
     appointments: AppointmentRow[];
     availableCurrencies: string[];
     commissionRates: PayoutSettings;
+    /** payment.commission.write — admin/assistant, not psychologist. Gates
+     * "Editar precio de la sesión" and the no-show fee action so a
+     * psychologist can generate a link at the agreed price but can't
+     * change what that price is. */
+    canEditPrice: boolean;
 }) {
     const [activeAppointment, setActiveAppointment] =
+        useState<AppointmentRow | null>(null);
+    const [editingPriceAppointment, setEditingPriceAppointment] =
         useState<AppointmentRow | null>(null);
     const [deletingAppointment, setDeletingAppointment] =
         useState<AppointmentRow | null>(null);
@@ -548,7 +589,9 @@ export function AppointmentsTable({
     const rowProps = (a: AppointmentRow): AppointmentActionsProps => ({
         appointment: a,
         hasAvailableCurrencies: availableCurrencies.length > 0,
+        canEditPrice,
         onGenerateLink: setActiveAppointment,
+        onEditPrice: setEditingPriceAppointment,
         onDeleteClick: setDeletingAppointment,
         onRescheduleClick: setReschedulingAppointment,
         onNotesClick: setNotesAppointment,
@@ -595,11 +638,29 @@ export function AppointmentsTable({
             {activeAppointment && (
                 <GeneratePaymentLinkDialog
                     appointmentId={activeAppointment.id}
-                    patientCountry={activeAppointment.patientCountry}
-                    availableCurrencies={availableCurrencies}
+                    agreedAmount={activeAppointment.agreedAmount}
+                    agreedCurrency={activeAppointment.agreedCurrency}
+                    agreedPayoutType={activeAppointment.agreedPayoutType}
                     commissionRates={commissionRates}
+                    onEditPrice={() => {
+                        setEditingPriceAppointment(activeAppointment);
+                        setActiveAppointment(null);
+                    }}
                     open={!!activeAppointment}
                     onOpenChange={v => !v && setActiveAppointment(null)}
+                />
+            )}
+
+            {editingPriceAppointment && (
+                <EditAppointmentPriceDialog
+                    appointmentId={editingPriceAppointment.id}
+                    agreedAmount={editingPriceAppointment.agreedAmount}
+                    agreedCurrency={editingPriceAppointment.agreedCurrency}
+                    agreedPayoutType={editingPriceAppointment.agreedPayoutType}
+                    availableCurrencies={availableCurrencies}
+                    commissionRates={commissionRates}
+                    open={!!editingPriceAppointment}
+                    onOpenChange={v => !v && setEditingPriceAppointment(null)}
                 />
             )}
 

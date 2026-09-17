@@ -8,6 +8,7 @@ import {
     appointmentsToBusyPeriods,
     computeMonthAvailability,
     toCaracasDate,
+    getSessionDuration,
 } from "../availability";
 import type { Schedule } from "@/generated/prisma/client";
 
@@ -341,5 +342,17 @@ describe("computeMonthAvailability", () => {
         const result = computeMonthAvailability(schedules, [], year, month, 60);
         // July has 31 days
         expect(Object.keys(result)).toHaveLength(31);
+    });
+});
+
+describe("getSessionDuration", () => {
+    const psychologist = { sessionDuration: 60, coupleSessionDuration: 120 };
+
+    it("returns sessionDuration for INDIVIDUAL", () => {
+        expect(getSessionDuration(psychologist, "INDIVIDUAL")).toBe(60);
+    });
+
+    it("returns coupleSessionDuration for COUPLE", () => {
+        expect(getSessionDuration(psychologist, "COUPLE")).toBe(120);
     });
 });

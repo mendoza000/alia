@@ -7,10 +7,33 @@ import { createPaymentCheckoutSession, stripe } from "@/lib/stripe";
 import { sendPaymentRequestEmail } from "@/lib/email";
 import { getPayoutSettings } from "@/lib/admin/payout-settings-queries";
 import { getPayoutTypeRate } from "@/lib/payout-type";
+import { getRate } from "@/lib/admin/payment-rate-queries";
 import { getPaymentAmountUsd, getUsdRateMap } from "@/lib/exchange-rates";
-import type { PayoutType } from "@/generated/prisma/enums";
+import {
+    sessionTypeToRateKind,
+    resolvePaymentAmount,
+    resolvePayoutType,
+} from "@/lib/pricing";
+import type { PayoutType, RateKind } from "@/generated/prisma/enums";
 
 type ActionResult = { success: true } | { success: false; error: string };
+
+type CheckoutOverrides = {
+    /** Explicit currency override — falls back to the appointment's
+     * agreedCurrency. Required (one way or the other) since there's no
+     * sensible currency default. */
+    currency?: string;
+    /** Explicit commission override — falls back to agreedPayoutType. */
+    payoutType?: PayoutType;
+    /** Explicit amount override — falls back to agreedAmount, then to the
+     * matching tarifa. Used by the "editar precio" dialog and the no-show
+     * fee flow. */
+    customAmount?: number;
+    /** Forces the rate lookup to a specific kind instead of deriving it
+     * from the appointment's sessionType — the no-show fee is the only
+     * caller that needs this. */
+    kind?: RateKind;
+};
 
 function getBaseUrl() {
     return process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
@@ -18,14 +41,16 @@ function getBaseUrl() {
 
 async function resolveCheckoutUrl(
     appointmentId: string,
-    currency: string,
-    payoutType: PayoutType,
-    customAmount?: number,
+    overrides: CheckoutOverrides = {},
 ): Promise<{ success: true; url: string } | { success: false; error: string }> {
     const appointment = await prisma.appointment.findUnique({
         where: { id: appointmentId },
         select: {
             status: true,
+            sessionType: true,
+            agreedAmount: true,
+            agreedCurrency: true,
+            agreedPayoutType: true,
             user: { select: { email: true } },
             payment: true,
         },
@@ -44,17 +69,18 @@ async function resolveCheckoutUrl(
         return { success: false, error: "Esta sesión ya fue pagada" };
     }
 
-    const rate = await prisma.paymentRate.findUnique({ where: { currency } });
-    if (!rate) {
+    const currency = overrides.currency ?? appointment.agreedCurrency;
+    if (!currency) {
         return {
             success: false,
-            error: `No hay tarifa configurada para ${currency}. Configúrala en Tarifas.`,
+            error: "Esta cita no tiene una moneda acordada — indícala manualmente.",
         };
     }
 
     if (
-        customAmount !== undefined &&
-        (!Number.isFinite(customAmount) || customAmount <= 0)
+        overrides.customAmount !== undefined &&
+        (!Number.isFinite(overrides.customAmount) ||
+            overrides.customAmount <= 0)
     ) {
         return {
             success: false,
@@ -62,15 +88,43 @@ async function resolveCheckoutUrl(
         };
     }
 
-    const amount = customAmount ?? rate.amount;
+    const kind =
+        overrides.kind ?? sessionTypeToRateKind(appointment.sessionType);
+    const rate = await getRate(currency, kind);
+
+    const amount = resolvePaymentAmount({
+        customAmount: overrides.customAmount ?? null,
+        agreedAmount: appointment.agreedAmount,
+        fallbackRateAmount: rate?.amount ?? null,
+    });
+    if (amount == null) {
+        return {
+            success: false,
+            error: `No hay tarifa configurada para ${currency}. Configúrala en Tarifas.`,
+        };
+    }
+
     const payoutSettings = await getPayoutSettings();
+    const payoutType = resolvePayoutType({
+        requestedPayoutType: overrides.payoutType ?? null,
+        agreedPayoutType: appointment.agreedPayoutType,
+        fallback: null,
+    });
+    if (!payoutType) {
+        return {
+            success: false,
+            error: "Debes indicar la comisión antes de generar el link",
+        };
+    }
     const payoutRatePercent = getPayoutTypeRate(payoutSettings, payoutType);
+    const isNoShowFee = kind === "NO_SHOW_FEE";
 
     const existing = appointment.payment;
     if (
         existing?.status === "PENDING" &&
         existing.currency === currency &&
         existing.amount === amount &&
+        existing.isNoShowFee === isNoShowFee &&
         existing.stripeCheckoutSessionId
     ) {
         const session = await stripe.checkout.sessions.retrieve(
@@ -111,6 +165,7 @@ async function resolveCheckoutUrl(
             stripeCheckoutUrl: url,
             payoutType,
             payoutRatePercent,
+            isNoShowFee,
         },
         update: {
             currency,
@@ -123,6 +178,7 @@ async function resolveCheckoutUrl(
             couponId: null,
             payoutType,
             payoutRatePercent,
+            isNoShowFee,
         },
     });
 
@@ -131,20 +187,13 @@ async function resolveCheckoutUrl(
 
 export async function generatePaymentLink(
     appointmentId: string,
-    currency: string,
-    payoutType: PayoutType,
-    customAmount?: number,
+    overrides: CheckoutOverrides = {},
 ): Promise<ActionResult & { url?: string }> {
     try {
         const actor = await requirePermission("payment.link.create");
         await requireOwnAppointment(actor, appointmentId);
 
-        const result = await resolveCheckoutUrl(
-            appointmentId,
-            currency,
-            payoutType,
-            customAmount,
-        );
+        const result = await resolveCheckoutUrl(appointmentId, overrides);
         if (!result.success) return result;
 
         revalidatePath("/admin/citas", "layout");
@@ -156,37 +205,41 @@ export async function generatePaymentLink(
     }
 }
 
+/** Charges a no-show fee for an appointment: upserts the same Payment row
+ * (a session never has two payments — Payment.appointmentId is unique) with
+ * kind NO_SHOW_FEE, overwriting whatever charge, if any, existed for it. If
+ * the session never happened, it shouldn't also be billed for the session
+ * itself. */
+export async function createNoShowFeeCharge(
+    appointmentId: string,
+): Promise<ActionResult & { url?: string }> {
+    try {
+        const actor = await requirePermission("payment.link.create");
+        await requireOwnAppointment(actor, appointmentId);
+
+        const result = await resolveCheckoutUrl(appointmentId, {
+            kind: "NO_SHOW_FEE",
+        });
+        if (!result.success) return result;
+
+        revalidatePath("/admin/citas", "layout");
+        revalidatePath("/admin/pagos", "layout");
+        return { success: true, url: result.url };
+    } catch (err) {
+        if (err instanceof Error) return { success: false, error: err.message };
+        return { success: false, error: "Error al generar la multa" };
+    }
+}
+
 export async function sendPaymentLinkEmail(
     appointmentId: string,
-    currency: string,
-    payoutType?: PayoutType,
-    customAmount?: number,
+    overrides: CheckoutOverrides = {},
 ): Promise<ActionResult> {
     try {
         const actor = await requirePermission("payment.link.create");
         await requireOwnAppointment(actor, appointmentId);
 
-        let effectivePayoutType = payoutType;
-        if (!effectivePayoutType) {
-            const existing = await prisma.payment.findUnique({
-                where: { appointmentId },
-                select: { payoutType: true },
-            });
-            if (!existing?.payoutType) {
-                return {
-                    success: false,
-                    error: "Debes elegir la comisión antes de generar el link",
-                };
-            }
-            effectivePayoutType = existing.payoutType;
-        }
-
-        const result = await resolveCheckoutUrl(
-            appointmentId,
-            currency,
-            effectivePayoutType,
-            customAmount,
-        );
+        const result = await resolveCheckoutUrl(appointmentId, overrides);
         if (!result.success) return result;
 
         const payment = await prisma.payment.findUnique({
@@ -277,5 +330,68 @@ export async function updatePaymentCommission(
     } catch (err) {
         if (err instanceof Error) return { success: false, error: err.message };
         return { success: false, error: "No se pudo actualizar la comisión" };
+    }
+}
+
+/**
+ * "Editar precio de la sesión" — changes the price agreed for the
+ * appointment (not a Payment record directly). A Stripe Checkout Session
+ * is immutable once created, so mutating an existing Payment row's
+ * amount/currency in place would leave a stale link showing the patient
+ * the old price. Updating the agreed fields and regenerating through
+ * resolveCheckoutUrl (via generatePaymentLink) is what actually produces a
+ * link with the new amount.
+ */
+export async function updateAgreedPrice(
+    appointmentId: string,
+    input: { amount: number; currency: string; payoutType: PayoutType },
+): Promise<ActionResult & { url?: string }> {
+    try {
+        const actor = await requirePermission("payment.commission.write");
+        await requireOwnAppointment(actor, appointmentId);
+
+        if (!Number.isFinite(input.amount) || input.amount <= 0) {
+            return { success: false, error: "El monto debe ser mayor a 0" };
+        }
+
+        const appointment = await prisma.appointment.findUnique({
+            where: { id: appointmentId },
+            select: { payment: { select: { status: true } } },
+        });
+        if (!appointment)
+            return { success: false, error: "Sesión no encontrada" };
+        if (appointment.payment?.status === "APPROVED") {
+            return {
+                success: false,
+                error: "No se puede editar el precio de una sesión ya pagada",
+            };
+        }
+
+        await prisma.appointment.update({
+            where: { id: appointmentId },
+            data: {
+                agreedAmount: input.amount,
+                agreedCurrency: input.currency,
+                agreedPayoutType: input.payoutType,
+            },
+        });
+
+        // Only regenerate an existing link — editing the agreed price
+        // shouldn't be what triggers creating the first Stripe session for
+        // a session nobody has tried to charge yet.
+        if (appointment.payment) {
+            const result = await resolveCheckoutUrl(appointmentId);
+            if (!result.success) return result;
+            revalidatePath("/admin/pagos", "layout");
+            revalidatePath("/admin/citas", "layout");
+            return { success: true, url: result.url };
+        }
+
+        revalidatePath("/admin/pagos", "layout");
+        revalidatePath("/admin/citas", "layout");
+        return { success: true };
+    } catch (err) {
+        if (err instanceof Error) return { success: false, error: err.message };
+        return { success: false, error: "No se pudo actualizar el precio" };
     }
 }

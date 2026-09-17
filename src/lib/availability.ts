@@ -1,4 +1,5 @@
-import type { Schedule } from "@/generated/prisma/client";
+import type { Psychologist, Schedule } from "@/generated/prisma/client";
+import type { SessionType } from "@/generated/prisma/enums";
 import {
     startOfMonth,
     endOfMonth,
@@ -65,6 +66,22 @@ export function generateTimeSlots(
     }
 
     return slots;
+}
+
+/** Single source of truth for 60 vs 120 minutes — every caller that needs a
+ * session's duration goes through this instead of reading
+ * `psychologist.sessionDuration` directly, since which field applies
+ * depends on the modality. */
+export function getSessionDuration(
+    psychologist: Pick<
+        Psychologist,
+        "sessionDuration" | "coupleSessionDuration"
+    >,
+    sessionType: SessionType,
+): number {
+    return sessionType === "COUPLE"
+        ? psychologist.coupleSessionDuration
+        : psychologist.sessionDuration;
 }
 
 export function appointmentsToBusyPeriods(
@@ -167,7 +184,10 @@ export function computeMonthAvailability(
             continue;
         }
 
-        if ((confirmedCountByDate[dateStr] ?? 0) >= DAILY_CONFIRMED_APPOINTMENT_CAP) {
+        if (
+            (confirmedCountByDate[dateStr] ?? 0) >=
+            DAILY_CONFIRMED_APPOINTMENT_CAP
+        ) {
             result[dateStr] = {
                 date: dateStr,
                 status: "fully_booked",

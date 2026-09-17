@@ -17,6 +17,8 @@ import {
     resolveDateRange,
     type DateFilterPeriod,
 } from "@/lib/admin/date-range";
+import { can } from "@/lib/auth/permissions";
+import { requireActor } from "@/lib/auth/require";
 
 const VALID_PERIODS: DateFilterPeriod[] = [
     "today",
@@ -38,6 +40,7 @@ type Props = {
 };
 
 export default async function CitasPage({ searchParams }: Props) {
+    const actor = await requireActor();
     const params = await searchParams;
 
     const period: DateFilterPeriod = VALID_PERIODS.includes(
@@ -65,7 +68,9 @@ export default async function CitasPage({ searchParams }: Props) {
         id: p.id,
         name: p.name,
     }));
-    const availableCurrencies = rates.map(r => r.currency);
+    // Rates now have one row per (currency, kind) — dedupe to the distinct
+    // currencies for the pricing selects.
+    const availableCurrencies = [...new Set(rates.map(r => r.currency))];
 
     return (
         <div className="space-y-6">
@@ -92,6 +97,7 @@ export default async function CitasPage({ searchParams }: Props) {
                 appointments={appointments}
                 availableCurrencies={availableCurrencies}
                 commissionRates={commissionRates}
+                canEditPrice={can(actor.role, "payment.commission.write")}
             />
         </div>
     );

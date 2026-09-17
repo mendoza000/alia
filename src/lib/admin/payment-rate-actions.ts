@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { requirePermission } from "@/lib/auth/require";
 import { paymentRateSchema } from "@/lib/validators/payment-rate";
 import type { PaymentRateFormData } from "@/lib/validators/payment-rate";
+import type { RateKind } from "@/generated/prisma/enums";
 
 type ActionResult = { success: true } | { success: false; error: string };
 
@@ -17,20 +18,22 @@ export async function createRate(
         const validated = await paymentRateSchema.validate(data, {
             abortEarly: false,
         });
+        const kind = validated.kind as RateKind;
 
         const existing = await prisma.paymentRate.findUnique({
-            where: { currency: validated.currency },
+            where: { currency_kind: { currency: validated.currency, kind } },
         });
         if (existing) {
             return {
                 success: false,
-                error: "Ya existe una tarifa para esa moneda",
+                error: "Ya existe una tarifa de este tipo para esa moneda",
             };
         }
 
         await prisma.paymentRate.create({
             data: {
                 currency: validated.currency,
+                kind,
                 amount: validated.amount,
             },
         });
@@ -53,14 +56,15 @@ export async function updateRate(
         const validated = await paymentRateSchema.validate(data, {
             abortEarly: false,
         });
+        const kind = validated.kind as RateKind;
 
         const existing = await prisma.paymentRate.findFirst({
-            where: { currency: validated.currency, NOT: { id } },
+            where: { currency: validated.currency, kind, NOT: { id } },
         });
         if (existing) {
             return {
                 success: false,
-                error: "Ya existe una tarifa para esa moneda",
+                error: "Ya existe una tarifa de este tipo para esa moneda",
             };
         }
 
@@ -68,6 +72,7 @@ export async function updateRate(
             where: { id },
             data: {
                 currency: validated.currency,
+                kind,
                 amount: validated.amount,
             },
         });
