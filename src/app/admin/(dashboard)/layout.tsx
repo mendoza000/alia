@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Toaster } from "@/components/ui/sonner";
 import { auth } from "@/lib/auth";
-import { requireActor } from "@/lib/auth/require";
+import { requireActor, type Actor } from "@/lib/auth/require";
 import { getAdminAlerts } from "@/lib/admin/alerts-queries";
 
 export default async function AdminDashboardLayout({
@@ -14,8 +14,9 @@ export default async function AdminDashboardLayout({
     // `src/proxy.ts` already gates every /admin/** request to a staff role —
     // this is defense in depth, not the primary check, so a missing/invalid
     // session here redirects rather than throwing.
+    let actor: Actor;
     try {
-        await requireActor();
+        actor = await requireActor();
     } catch {
         redirect("/admin/login");
     }
@@ -32,11 +33,16 @@ export default async function AdminDashboardLayout({
         .join("")
         .toUpperCase();
 
-    const alerts = await getAdminAlerts();
+    const alerts = await getAdminAlerts(actor);
 
     return (
         <>
-            <AdminShell userName={userName} initials={initials} alerts={alerts}>
+            <AdminShell
+                userName={userName}
+                initials={initials}
+                role={actor.role}
+                alerts={alerts}
+            >
                 {children}
             </AdminShell>
             <Toaster position="top-right" richColors />
