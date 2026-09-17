@@ -24,10 +24,11 @@ model User {
   banReason     String?
   banExpires    DateTime?
 
-  sessions     Session[]
-  accounts     Account[]
-  appointments Appointment[]
-  intakeForm   IntakeForm?
+  sessions            Session[]
+  accounts            Account[]
+  appointments        Appointment[]
+  intakeForm          IntakeForm?
+  psychologistProfile Psychologist?
 
   @@map("user")
 }
@@ -86,6 +87,7 @@ model Verification {
 model Psychologist {
   id              String   @id @default(cuid())
   userId          String?  @unique
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   name            String
   slug            String   @unique
   email           String   @unique
