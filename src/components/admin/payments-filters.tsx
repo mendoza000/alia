@@ -20,7 +20,9 @@ const STATUS_OPTIONS = [
 ];
 
 type PaymentsFiltersProps = {
-    psychologists: { id: string; name: string }[];
+    /** Omitted for a psychologist actor — see the equivalent note in
+     * appointments-filters.tsx. */
+    psychologists?: { id: string; name: string }[];
 };
 
 export function PaymentsFilters({ psychologists }: PaymentsFiltersProps) {
@@ -59,26 +61,35 @@ export function PaymentsFilters({ psychologists }: PaymentsFiltersProps) {
                 </SelectContent>
             </Select>
 
-            <Select
-                items={[
-                    { value: "all", label: "Todos los psicólogos" },
-                    ...psychologists.map(p => ({ value: p.id, label: p.name })),
-                ]}
-                value={searchParams.get("psychologistId") ?? "all"}
-                onValueChange={v => updateParam("psychologistId", v ?? "all")}
-            >
-                <SelectTrigger className="h-9 w-full sm:w-52">
-                    <SelectValue placeholder="Psicólogo" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">Todos los psicólogos</SelectItem>
-                    {psychologists.map(p => (
-                        <SelectItem key={p.id} value={p.id}>
-                            {p.name}
+            {psychologists && (
+                <Select
+                    items={[
+                        { value: "all", label: "Todos los psicólogos" },
+                        ...psychologists.map(p => ({
+                            value: p.id,
+                            label: p.name,
+                        })),
+                    ]}
+                    value={searchParams.get("psychologistId") ?? "all"}
+                    onValueChange={v =>
+                        updateParam("psychologistId", v ?? "all")
+                    }
+                >
+                    <SelectTrigger className="h-9 w-full sm:w-52">
+                        <SelectValue placeholder="Psicólogo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">
+                            Todos los psicólogos
                         </SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
+                        {psychologists.map(p => (
+                            <SelectItem key={p.id} value={p.id}>
+                                {p.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            )}
 
             <PeriodFilter />
         </div>

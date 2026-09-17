@@ -256,7 +256,7 @@ function AppointmentActionsMenu({
                         <DropdownMenuSeparator />
                     </>
                 )}
-                {canChargeNoShowFee && canEditPrice && (
+                {canChargeNoShowFee && (
                     <>
                         <DropdownMenuItem onClick={handleNoShowFeeClick}>
                             <Receipt />

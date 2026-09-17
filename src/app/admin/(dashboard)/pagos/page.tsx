@@ -21,6 +21,8 @@ import {
     resolveDateRange,
     type DateFilterPeriod,
 } from "@/lib/admin/date-range";
+import { can } from "@/lib/auth/permissions";
+import { requireActor, resolvePsychologistScope } from "@/lib/auth/require";
 
 const VALID_PERIODS: DateFilterPeriod[] = [
     "today",
@@ -42,6 +44,7 @@ type Props = {
 };
 
 export default async function PagosPage({ searchParams }: Props) {
+    const actor = await requireActor();
     const params = await searchParams;
 
     const period: DateFilterPeriod = VALID_PERIODS.includes(
@@ -53,7 +56,7 @@ export default async function PagosPage({ searchParams }: Props) {
 
     const filters: PaymentFilters = {
         status: params.status as PaymentStatus | undefined,
-        psychologistId: params.psychologistId,
+        psychologistId: resolvePsychologistScope(actor, params.psychologistId),
         range,
     };
 
@@ -190,7 +193,13 @@ export default async function PagosPage({ searchParams }: Props) {
             </p>
 
             <Suspense fallback={<Skeleton className="h-9 w-full sm:w-96" />}>
-                <PaymentsFilters psychologists={psychologistOptions} />
+                <PaymentsFilters
+                    psychologists={
+                        can(actor.role, "appointment.read.all")
+                            ? psychologistOptions
+                            : undefined
+                    }
+                />
             </Suspense>
 
             <PaymentTable

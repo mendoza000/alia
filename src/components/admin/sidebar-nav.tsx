@@ -39,17 +39,15 @@ const navSections: { label: string; items: NavItem[] }[] = [
                 icon: Users,
                 permission: "psychologist.write",
             },
-            // Read-scoping for a psychologist actor (own sessions/payments
-            // only) is Fase 4.3 work, not built yet — until then these stay
-            // hidden from `psychologist` even though it holds
-            // `appointment.write`/`payment.link.create`, so an account
-            // created in Fase 1.2 can't browse every patient's data through
-            // pages whose queries aren't scoped yet.
+            // /admin/citas and /admin/pagos are read-scoped by actor since
+            // Fase 4.0 (resolvePsychologistScope) — a psychologist only ever
+            // sees their own sessions/payments there, so these are safe to
+            // show them now on the permission they actually hold.
             {
                 href: "/admin/citas",
                 label: "Sesiones",
                 icon: Calendar,
-                permission: "appointment.read.all",
+                permission: "appointment.write",
             },
             {
                 href: "/admin/formularios",
@@ -61,7 +59,7 @@ const navSections: { label: string; items: NavItem[] }[] = [
                 href: "/admin/pagos",
                 label: "Pagos",
                 icon: CreditCard,
-                permission: "payment.commission.write",
+                permission: "payment.link.create",
             },
             {
                 href: "/admin/finanzas",

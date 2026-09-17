@@ -18,7 +18,7 @@ import {
     type DateFilterPeriod,
 } from "@/lib/admin/date-range";
 import { can } from "@/lib/auth/permissions";
-import { requireActor } from "@/lib/auth/require";
+import { requireActor, resolvePsychologistScope } from "@/lib/auth/require";
 
 const VALID_PERIODS: DateFilterPeriod[] = [
     "today",
@@ -52,7 +52,7 @@ export default async function CitasPage({ searchParams }: Props) {
 
     const filters: AppointmentFilters = {
         status: params.status as AppointmentStatus | undefined,
-        psychologistId: params.psychologistId,
+        psychologistId: resolvePsychologistScope(actor, params.psychologistId),
         range,
     };
 
@@ -97,7 +97,13 @@ export default async function CitasPage({ searchParams }: Props) {
             />
 
             <Suspense fallback={<Skeleton className="h-9 w-full sm:w-96" />}>
-                <AppointmentsFilters psychologists={psychologistOptions} />
+                <AppointmentsFilters
+                    psychologists={
+                        can(actor.role, "appointment.read.all")
+                            ? psychologistOptions
+                            : undefined
+                    }
+                />
             </Suspense>
 
             <AppointmentsTable
