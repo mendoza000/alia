@@ -144,8 +144,8 @@ Permisos forward-declared (no consumidos aún, para que la matriz y su test qued
 - [x] `sidebar-nav.tsx` recibe `role` y filtra cada ítem con `can(role, item.permission)`.
 - [x] Ítem nuevo: `Equipo` (`staff.write`).
 - [ ] **Diferido a Fase 5**: ítem `Aprobaciones` — la página no existe todavía, así que no se agrega un link muerto.
-- [ ] **Diferido a Fase 4.3**: `Sesiones` y `Pagos` se ocultan del rol `psychologist` aunque ya tiene los permisos `appointment.write`/`payment.link.create` — sus queries de listado (`/admin/citas`, `/admin/pagos`) no están scoped por `psychologistId` todavía. Mostrar el link antes de esa fase dejaría a un psicólogo ver las citas y pagos de todos los pacientes.
-- [ ] **Diferido a Fase 4.2**: el ítem `Formularios` **no** se renombra a `Clientes` todavía — esa página tampoco filtra por rol y `/admin/clientes` no existe. Sigue visible solo para admin/asistente (`intake.write`), sin cambios de comportamiento.
+- [x] **Completado en la Fase 4.0**: `Sesiones` y `Pagos` ya se muestran también al rol `psychologist` — sus queries de listado (`/admin/citas`, `/admin/pagos`) quedaron scoped por `psychologistId` en esa fase.
+- [x] **Completado en la Fase 4.2**: el ítem `Formularios` se renombró a `Clientes` (`/admin/clientes`), visible también para psicólogo vía `anyPermission: ["intake.read.all", "intake.read.own"]`.
 - [x] `admin-shell.tsx`: subtítulo derivado del rol (`ROLE_LABELS`).
 - [x] `page.tsx` bifurca por actor: `StaffDashboard` (admin ve todo; asistente igual pero sin tarjeta/gráfico de ingresos, gateado en `finance.read`) y `PsychologistDashboard` (nuevo, 100% scoped a su propio `psychologistId`: sus sesiones, sus pacientes, su comisión — nunca cifras de otros ni totales de plataforma). Nuevas queries en `dashboard-queries.ts`: `getPsychologistDashboardStats/*Trend`.
 - [x] `alerts-queries.ts` (`getAdminAlerts(actor)`): devuelve `[]` para `psychologist` en vez de enlazar a páginas que su nav no muestra y cuyas queries no están scoped — su propio dashboard ya cubre "sesiones de hoy" directamente. Admin/asistente sin cambios.
@@ -179,67 +179,79 @@ Se hizo antes de construir pantallas nuevas, como estaba planeado.
 
 ---
 
-## Fase 3 — Modelo de precios de la cita
+## Fase 3 — Modelo de precios de la cita ✅ implementada
 
-Va antes del portal del cliente y del panel del especialista porque los dos dependen de que el precio viva en la cita.
+Implementada según el plan corregido (`vamos-a-desarrollar-la-reflective-tulip.md`, escrito tras dos exploraciones exhaustivas del código real). Dos desviaciones deliberadas: `resolveCheckoutUrl` conserva moneda/comisión como *overrides* opcionales (los necesitan la multa de no-show y el diálogo de editar precio) en vez de eliminarlos por completo, y "editar precio" se resolvió con una acción nueva (`updateAgreedPrice`) en vez de extender `updatePaymentCommission`, por la inmutabilidad de las Checkout Sessions de Stripe.
 
-Hoy el precio y la comisión se eligen al **generar el link** (`resolveCheckoutUrl` en `src/lib/admin/payment-actions.ts` lee `PaymentRate` por moneda y el admin elige `payoutType` en el diálogo). El cliente quiere que se definan al **agendar**.
+### 3.1 Schema — hecho
+- [x] Enum `SessionType { INDIVIDUAL COUPLE }` y enum `RateKind { INDIVIDUAL COUPLE NO_SHOW_FEE }`.
+- [x] `Appointment`: `sessionType SessionType @default(INDIVIDUAL)`, `agreedAmount Int?`, `agreedCurrency String?`, `agreedPayoutType PayoutType?`.
+- [x] `Psychologist`: `offeredSessionTypes SessionType[] @default([INDIVIDUAL])` y `coupleSessionDuration Int @default(120)` junto al `sessionDuration` existente.
+- [x] `PaymentRate`: `currency String @unique` → `kind RateKind @default(INDIVIDUAL)` + `@@unique([currency, kind])`.
+- [x] `Payment`: `isNoShowFee Boolean @default(false)`.
+- [x] `getSessionDuration(psychologist, sessionType)` en `src/lib/availability.ts` — TDD primero, test en `availability.test.ts`.
+- Migración `20260918000000_add_session_pricing_model` — escrita a mano y aplicada con `prisma migrate deploy` (mismo motivo que las Fases 0/1: la tabla `_intake_form_dedup_backup` fuera de schema hace que `migrate dev` detecte drift). El drop del unique constraint viejo de `PaymentRate.currency` no se hardcodeó por nombre: la migración lo busca dinámicamente vía `pg_constraint` antes de borrarlo, por si el nombre real no coincidía con el supuesto.
+- **En el mismo commit**: `payment-rate-actions.ts` (`createRate`/`updateRate`) actualizado a `findUnique({ currency_kind: { currency, kind } })` / `findFirst({ currency, kind, NOT: { id } })`.
 
-### 3.1 Schema
-- [ ] Enum `SessionType { INDIVIDUAL COUPLE }` y enum `RateKind { INDIVIDUAL COUPLE NO_SHOW_FEE }`.
-- [ ] `Appointment`: `sessionType SessionType @default(INDIVIDUAL)`, `agreedAmount Int?`, `agreedCurrency String?`, `agreedPayoutType PayoutType?`.
-- [ ] `Psychologist`: `offeredSessionTypes SessionType[] @default([INDIVIDUAL])` (define quién es candidato para pareja) y `coupleSessionDuration Int @default(120)` junto al `sessionDuration Int @default(60)` que ya existe.
-- [ ] `PaymentRate`: cambiar `currency String @unique` por `kind RateKind @default(INDIVIDUAL)` + `@@unique([currency, kind])`. Migración con backfill de las filas existentes a `INDIVIDUAL`.
-- [ ] `Payment`: `isNoShowFee Boolean @default(false)`.
-- [ ] Helper `getSessionDuration(psychologist, sessionType)` en `src/lib/availability.ts` — único punto que decide 60 vs 120. Test primero.
+### 3.2 Lógica — hecho (TDD)
+- [x] `payment-rate-queries.ts`: `getRateByCurrency` renombrado a `getRate(currency, kind = "INDIVIDUAL")`; `getAllRates()` ordena por `[kind, currency]`; `getPublicDisplayRate` filtra `kind: "INDIVIDUAL"` explícito.
+- [x] `src/lib/pricing.ts` (nuevo, mismo patrón sin DB que `payment-math.ts`): `sessionTypeToRateKind`, `resolvePaymentAmount({ customAmount, agreedAmount, fallbackRateAmount })`, `resolvePayoutType({ requestedPayoutType, agreedPayoutType, fallback })` — precedencia `override > agreed > fallback`. Test primero en `pricing.test.ts`, 10 casos.
+- [x] **Desviación**: `resolveCheckoutUrl` no eliminó moneda/comisión como parámetros — pasaron a `overrides` opcionales (`{ currency?, payoutType?, customAmount?, kind? }`), porque la multa de no-show y "editar precio" sí necesitan forzar un valor explícito por encima del acordado. La aritmética se delegó a las funciones puras de `pricing.ts`.
+- [x] `createNoShowFeeCharge(appointmentId)` (nueva acción en `payment-actions.ts`, separada de `markNoShow` — una acción, una responsabilidad): llama a `resolveCheckoutUrl` con `kind: "NO_SHOW_FEE"`; el `upsert` existente sobre `appointmentId` sobreescribe la misma fila `Payment` con `isNoShowFee: true`.
+- [x] `updateAgreedPrice(appointmentId, { amount, currency, payoutType })` (nueva acción, no extiende `updatePaymentCommission`): escribe en los campos de `Appointment` y regenera el checkout solo si ya existe un pago; bloquea la edición si el pago ya está `APPROVED`. **Desviación explícita del plan original**, motivada porque las Checkout Sessions de Stripe son inmutables — mutar `Payment` directo habría dejado links viejos sirviendo un monto desactualizado.
 
-### 3.2 Lógica
-- [ ] `src/lib/admin/payment-rate-queries.ts`: `getRate(currency, kind)`, `getAllRates()` agrupado por kind; `getPublicDisplayRate(country)` sigue usando `INDIVIDUAL`.
-- [ ] `resolveCheckoutUrl`: dejar de preguntar moneda/comisión. Nuevo orden de resolución del monto: `appointment.agreedAmount` → si no existe, `getRate(currency, kindDe(appointment))`. La comisión sale de `appointment.agreedPayoutType`.
-- [ ] Test primero en `src/lib/__tests__/pricing.test.ts` para el resolutor de monto/comisión/kind (individual, pareja, multa, monto acordado, fallback a tarifa).
+### 3.3 UI — hecho
+- [x] `new-manual-appointment-dialog.tsx`: selects de tipo de sesión, moneda, monto (prellenado desde `getRate`) y comisión; el selector de psicólogo filtra pareja según `offeredSessionTypes`.
+- [x] `generate-payment-link-dialog.tsx`: reescrito como confirmación de solo lectura (monto/comisión ya acordados) + enlace a "Editar precio de esta sesión".
+- [x] `edit-appointment-price-dialog.tsx` (nuevo) + menú "Editar precio de la sesión" en `appointments-table.tsx`, gateado con `canEditPrice` (`payment.commission.write`).
+- [x] `/admin/tarifas`: `kind` como select/columna en `rate-form.tsx`/`rate-sheet.tsx`/`rate-table.tsx`.
+- [x] "Cobrar multa por inasistencia" en `appointments-table.tsx`, gateado solo por `canChargeNoShowFee` (`status === "NO_SHOW"`) — **corrección propia durante la implementación**: al principio también exigía `canEditPrice`, pero cobrar la tarifa fija de multa equivale a generar cualquier link de pago (`payment.link.create`, que el psicólogo sí tiene), no una decisión de precio.
+- [x] `psychologist-form.tsx`: checkboxes de `offeredSessionTypes` + `coupleSessionDuration` con su **propio** array de opciones (`[90, 120, 150]`, default 120), sin tocar el array de `sessionDuration` individual.
+- [ ] **Sin cambios, diferido a Fase 7.2**: la modalidad sigue sin preguntarse en `/agendar` público (todavía no existe el paso 0 de elegir modalidad) — el autoagendado sigue creando siempre `sessionType: INDIVIDUAL` por default hasta esa fase.
 
-### 3.3 UI
-- [ ] `new-manual-appointment-dialog.tsx`: agregar selects de tipo de sesión, moneda, monto (prellenado con la tarifa) y comisión. Es donde el cliente pidió "establecer cuánto se cobrará y qué comisión".
-- [ ] `generate-payment-link-dialog.tsx`: pasa a ser confirmación (muestra monto/comisión ya acordados) con un enlace "editar precio de esta sesión" para admin.
-- [ ] Nuevo diálogo "Editar precio de la sesión" (`appointments-table.tsx`): permite cambiar monto/comisión de una cita autoagendada — requisito explícito del cliente.
-- [ ] `/admin/tarifas`: tabs o columna por `kind` para administrar tarifa individual, de pareja y multa de no-show.
-- [ ] Multa: en `markNoShow` (`appointment-actions.ts:108`), ofrecer generar un cobro con `kind: NO_SHOW_FEE` e `isNoShowFee: true`.
-- [ ] `/admin/psicologos`: en `psychologist-form.tsx`, checkboxes de modalidades atendidas y campo de duración de pareja.
-- [ ] La modalidad **no** se pregunta en el formulario de intake — se elige al inicio de `/agendar` (Fase 7.2) y en el diálogo de agendamiento manual. En el formulario aparece solo como dato de contexto de solo lectura.
+### 3.4 Dominio propio de Stripe Checkout — explícitamente fuera de alcance
+- [x] Documentado con un comentario/TODO en el punto de integración (`payment-actions.ts`, junto a `createPaymentCheckoutSession`) — requiere configuración externa en Stripe y confirmación de subdominio con el cliente, fuera de esta sesión.
 
-### 3.4 Dominio propio de Stripe Checkout (PRD §6.7, nuevo en v1.1)
-- [ ] Configurar y verificar (DNS) un dominio personalizado (p. ej. `pagos.<dominio-cliente>`) en el dashboard de Stripe para Checkout. Confirmar con el cliente el subdominio exacto y quién gestiona el DNS (ver riesgos).
-- [ ] Ajustar `resolveCheckoutUrl`/creación de la Checkout Session para que sirva bajo ese dominio en vez de `checkout.stripe.com`.
-- [ ] Verificar que el webhook (`/api/webhook`) y los parámetros de retorno `?pago=exitoso|cancelado` (Fase 6.2) siguen funcionando igual con el dominio nuevo — no es un cambio de lógica de negocio, solo de configuración.
-
-**Verificación 3**: `bun test`; agendar manualmente una sesión de pareja con monto y comisión, confirmar que ocupa 2 horas en el calendario y que Stripe recibe el monto de la tarifa de pareja; marcar un no-show y generar la multa; abrir un link de pago y confirmar que la URL usa el dominio propio configurado, no `stripe.com`.
+**Verificación 3**: `bunx tsc --noEmit` limpio, `bunx biome check` limpio en los archivos tocados, `bun test` sin regresiones (mismos 4 fallos preexistentes de siempre). Pendiente la verificación manual real contra la base de prod (agendar pareja con monto y comisión, marcar no-show y cobrar la multa, editar el precio de una cita autoagendada) — con el mismo cuidado de no tocar sesiones/pagos reales salvo que sea explícitamente para probar.
 
 ---
 
-## Fase 4 — Panel del especialista
+## Fase 4 — Panel del especialista ✅ implementada
 
-### 4.1 Horarios y días libres
-- [ ] Schema: modelo `TimeOff { id, psychologistId, startsAt, endsAt, reason String?, createdAt }` con índice por `psychologistId`. Migración.
-- [ ] `src/lib/availability.ts`: `computeMonthAvailability` recibe los `TimeOff` como periodos ocupados extra (se suman a `busyPeriods` antes de `subtractBusyPeriods`). Test primero en `availability.test.ts`.
-- [ ] Página `/admin/mi-calendario` (permiso `schedule.write.own`): reusar `src/components/admin/schedule-editor.tsx` (ya responsive) scoped al `psychologistId` del actor + nueva sección de días libres (crear/eliminar rango).
-- [ ] Vista de agenda: reusar el calendario de `/admin/citas` filtrado a sus citas.
+Implementada según el plan corregido. El hallazgo más importante de la etapa de planificación se confirmó en el código real: `/admin/citas` y `/admin/pagos` leían `psychologistId` directo de la URL sin pasar por `resolvePsychologistScope` — un hueco de seguridad real (un psicólogo podía ver citas y pagos de cualquier colega cambiando el query param) — así que se adelantó como Fase 4.0 antes de construir nada nuevo.
 
-### 4.2 Sección Clientes — reemplaza "Formularios" (PRD §6.8, nuevo en v1.1)
-El scope creció respecto al plan original: ya no es solo "sus clientes" del psicólogo — `/admin/formularios` evoluciona a `/admin/clientes` como punto de entrada compartido por los tres roles de staff, con datos filtrados por permiso.
-- [ ] Query `getPatientsByPsychologist(psychologistId)` en `src/lib/admin/patient-queries.ts` (scope psicólogo) y `getAllPatients(filters)` (scope admin/asistente): usuarios con al menos una cita, conteo de citas pasadas/próximas y último formulario.
-- [ ] `/admin/clientes`: listado con filtros — nombre, fecha de ingreso al servicio, psicólogo asignado, modalidad, estado de la sesión más reciente. Permiso `intake.read.all` (admin/asistente, filtro libre) / `intake.read.own` (psicólogo, forzado a lo propio — reusa `resolvePsychologistScope` como en `report-actions.ts`).
-- [ ] `/admin/clientes/[userId]`: datos básicos, notas, formulario (reusar `intake-form-detail.tsx`), historial de citas (pasadas y próximas) **por modalidad**, y **historial de pagos** del cliente.
-- [ ] Notas por paciente: reusar `Appointment.internalNotes` para notas de sesión y agregar `PatientNote { id, userId, psychologistId, body, createdAt }` para notas de paciente. Migración.
-- [ ] Edición de datos básicos del paciente: nueva action `updatePatientProfile({ userId, name, email?, phone?, dateOfBirth? })` que escribe `User.name` y los campos correspondientes dentro de `IntakeForm.data` (validar con `intakeFormAdminUpdateSchema`). Cubre el pedido de "cambiar el nombre de un cliente ya registrado".
-- [ ] Retirar la vista vieja de `/admin/formularios` (o dejarla como redirect a `/admin/clientes`) una vez migrada — decidir al implementar.
-- [ ] (Pendiente confirmar alcance con el cliente — PRD §6.9, decisión abierta) Si se confirma el alcance acotado de paquetes de sesiones: agregar seguimiento simple (`SessionPackage { id, userId, sessionType, totalSessions, usedSessions, discountApplied, createdAt }`) y mostrar "sesiones restantes" en la ficha de Clientes. No implementar sin confirmación explícita — ver riesgos.
+### 4.0 Scoping real de `/admin/citas` y `/admin/pagos` (adelantado) — hecho
+- [x] Ambas páginas resuelven el filtro con `resolvePsychologistScope(actor, params.psychologistId)` (mismo patrón que `report-actions.ts`) en vez de leer el query param crudo.
+- [x] El dropdown de filtro por psicólogo se oculta por completo para un actor psicólogo (`appointments-filters.tsx`/`payments-filters.tsx`, prop `psychologists` ahora opcional) en vez de mostrarlo poblado con nombres de colegas.
+- [x] `sidebar-nav.tsx`: "Sesiones" y "Pagos" pasan a mostrarse también al rol `psychologist` (gates ajustados a `appointment.write` / `payment.link.create`), ya que ahora sí están scoped — cierra el diferimiento anotado en la Fase 1.3.
 
-### 4.3 Agendar y cobrar
-- [ ] `manual-booking-actions.ts`: cuando el actor es psicólogo, forzar `psychologistId = actor.psychologistId` y permitir el switch `isException`.
-- [ ] `/admin/citas` y `/admin/pagos` filtrados por `psychologistId` del actor.
-- [ ] Generar link de pago: permitido con monto de tarifa. **Monto personalizado**: el psicólogo no lo aplica directo, crea una solicitud (Fase 5).
+### 4.1 Horarios y días libres — hecho (TDD)
+- [x] Schema `TimeOff { id, psychologistId, startsAt, endsAt, reason?, createdAt }` — migración `20260918010000_add_time_off`.
+- [x] `timeOffToBusyPeriods(timeOffs)` en `availability.ts` (espejo de `appointmentsToBusyPeriods`), test en `availability.test.ts`.
+- [x] **Confirmado sin cambios** (como anticipaba el plan corregido): `computeMonthAvailability` ya es genérica sobre `busyPeriods` — no necesitó tocarse. El trabajo real fue en los 3 call sites reales de `computeMonthAvailability(` (grepeados, no supuestos): `psicologos/[slug]/actions.ts`, `psicologos/[slug]/page.tsx` y `agendar/[slug]/page.tsx`, cada uno sumando `getTimeOffOverlapping` + `timeOffToBusyPeriods` al array de periodos ocupados.
+- [x] `getTimeOffForPsychologist`, `getTimeOffOverlapping`, `createTimeOff`, `deleteTimeOff` en `time-off-actions.ts`, gateadas con `requireScheduleAccess`. **Corrección de seguridad propia**: `deleteTimeOff(id)` resuelve el ownership contra el `psychologistId` real de la fila en la base, no contra un parámetro que mandara el cliente.
+- [x] `/admin/mi-calendario` (permiso `schedule.write.own`): reusa `schedule-editor.tsx` sin cambios + `TimeOffEditor` nuevo (listar/crear/borrar días libres). `saveSchedules` ahora también revalida esta ruta.
+- [x] **Desviación**: no se construyó una vista de agenda nueva — al quedar `/admin/citas` scoped por la Fase 4.0, el propio menú lateral ya cumple ese rol para el psicólogo.
+- [x] `sidebar-nav.tsx`: ítem "Mi calendario" con `roles: ["psychologist"]` (gate por rol exacto, no por permiso) para que admin, que tiene todos los permisos, no lo vea también.
 
-**Verificación 4**: con usuario psicólogo, editar horario, crear un día libre y comprobar que esos slots desaparecen del calendario público; ver solo sus pacientes y sus citas; generar un link de pago con tarifa.
+### 4.2 Sección Clientes — reemplaza "Formularios" — hecho (TDD)
+- [x] **Desviación**: en vez de `getPatientsByPsychologist` + `getAllPatients` (dos funciones), una sola `getPatients(filters)` en `src/lib/admin/patient-queries.ts` — el scoping se resuelve a nivel de página con `resolvePsychologistScope`, mismo patrón que `getAllAppointments`/`getAllPayments`, en vez de duplicar la misma query de Prisma.
+- [x] `/admin/clientes`: listado con búsqueda por nombre/correo, filtro de psicólogo (oculto para actor psicólogo, igual que 4.0) y rango de fecha de ingreso. **Alcance recortado respecto al plan**: no se expuso filtro de modalidad ni de "estado de la sesión más reciente" en la UI — `getPatients` ya acepta `sessionType` como filtro interno, queda listo para sumarlo a `client-filters.tsx` si hace falta.
+- [x] `/admin/clientes/[userId]`: datos básicos (ver/editar), notas, historial de citas con el pago inline por cita (badge de modalidad + estado). **Desviación**: no se separaron citas y pagos en dos historiales ni se agrupó por modalidad — cada fila de cita ya muestra su `sessionType` y su pago juntos, ahorrando una sección redundante.
+- [x] `PatientNote { id, userId, psychologistId, body, createdAt }` — migración `20260918020000_add_patient_note`. `Appointment.internalNotes` (ya existente) se deja intacto para notas de sesión; `patient-notes.tsx` es un feed cronológico inverso, sin edición/borrado en v1.
+- [x] `updatePatientProfile(userId, { name, phone?, dateOfBirth? })` — validador propio y angosto (`validators/patient.ts`), **no reusa `intakeFormAdminUpdateSchema`** (bloquearía un cambio simple de nombre por datos viejos incompletos del formulario). **Desviación deliberada del plan**: `email` queda completamente fuera de los campos editables (el plan lo listaba como opcional) — es el identificador de login de better-auth, y cambiarlo a mano podría desincronizar la sesión/cuenta de Google.
+- [x] `/admin/formularios` pasa a `redirect("/admin/clientes")`. La ruta de detalle `/admin/formularios/[appointmentId]` se deja **sin tocar** — el link del evento de Google Calendar (`calendar-events.ts`) apunta ahí. `intake-form-actions.ts` ahora también revalida `/admin/clientes`.
+- [x] `intake-form-table.tsx` eliminado (confirmado huérfano por grep, reemplazado por `patient-table.tsx`).
+- [x] `alerts-queries.ts`: reactivadas y scoped las alertas para actor psicólogo (antes devolvía `[]` con un comentario que decía "Fase 4 no está lista" — con citas/pagos/clientes ya scoped, esa premisa quedó obsoleta) — corrección propia, cierra el diferimiento anotado en la Fase 1.3.
+- [ ] **No implementado, por decisión abierta con el cliente**: paquetes de sesiones con descuento (PRD §6.9) — sigue fuera de alcance hasta confirmar el modelo exacto.
+
+### 4.3 Agendar y cobrar — hecho, confirmado sin cambios de código
+- [x] Confirmado en el código (no solo en el plan): `createManualAppointment` ya forzaba `psychologistId = actor.psychologistId` para un psicólogo y `isException` ya era un switch sin restricción de rol, visible incondicionalmente en `new-manual-appointment-dialog.tsx` — nada que agregar ahí.
+- [x] `/admin/citas` y `/admin/pagos` filtrados por `psychologistId` del actor — cubierto por la Fase 4.0.
+- [x] "Generar link con tarifa" — cubierto por la Fase 3.
+- [x] Monto personalizado (depende de Fase 5): solo se dejó el gancho — un comentario TODO en `edit-appointment-price-dialog.tsx` señalando dónde integrará la aprobación cuando exista. No se construyó el flujo de aprobación.
+
+**Verificación 4**: `bunx tsc --noEmit` limpio, `bunx biome check` limpio, `bun test` sin regresiones (60 pass, 4 fallos preexistentes de siempre). Pendiente la verificación manual real contra la base de prod: como psicólogo, confirmar que `/admin/citas`/`/admin/pagos` muestran solo lo propio sin el filtro de psicólogo visible; editar horario propio y crear un día libre en `/admin/mi-calendario`, confirmando que esos bloques desaparecen del calendario público; entrar a `/admin/clientes`, filtrar, abrir una ficha, agregar una nota y editar nombre/teléfono — todo con el mismo cuidado de no tocar sesiones/pagos reales salvo que sea explícitamente para probar.
 
 ---
 
@@ -379,7 +391,7 @@ Hoy `src/lib/email.ts` es un singleton de Resend sin try/catch, sin inspeccionar
 | Embudo | `src/app/(landing)/agendar/**`, `src/components/booking/**`, `src/components/landing/**` |
 | Portal cliente | `src/app/mi-cuenta/**`, `src/lib/patient/appointment-actions.ts` |
 | Correo | `src/lib/email.ts`, `src/lib/email/**` (nuevo), `emails/**` |
-| Clientes (nuevo, reemplaza Formularios) | `src/app/admin/clientes/**` (antes `formularios`), `src/lib/admin/patient-queries.ts` |
+| Clientes (nuevo, reemplaza Formularios) | `src/app/admin/(dashboard)/clientes/**` (antes `formularios`), `src/lib/admin/patient-queries.ts` |
 | Aprobaciones y reembolsos | `src/lib/admin/approval-actions.ts` (nuevo), `emails/refund-*` (nuevo) |
 | Dominio Stripe Checkout | `src/lib/admin/payment-actions.ts` (`resolveCheckoutUrl`), configuración en el dashboard de Stripe (fuera del repo) |
 
