@@ -68,6 +68,11 @@ export default async function CitasPage({ searchParams }: Props) {
         id: p.id,
         name: p.name,
     }));
+    const psychologistPricingOptions = psychologists.map(p => ({
+        id: p.id,
+        name: p.name,
+        offeredSessionTypes: p.offeredSessionTypes,
+    }));
     // Rates now have one row per (currency, kind) — dedupe to the distinct
     // currencies for the pricing selects.
     const availableCurrencies = [...new Set(rates.map(r => r.currency))];
@@ -83,7 +88,9 @@ export default async function CitasPage({ searchParams }: Props) {
                             psychologists={psychologistOptions}
                         />
                         <NewManualAppointmentDialog
-                            psychologists={psychologistOptions}
+                            psychologists={psychologistPricingOptions}
+                            rates={rates}
+                            commissionRates={commissionRates}
                         />
                     </>
                 }

@@ -12,6 +12,17 @@ import { getMonthAvailability } from "@/app/(landing)/psicologos/[slug]/actions"
 import type { MonthAvailability } from "@/lib/availability";
 import { TIMEZONE_OPTIONS, formatInTimezone } from "@/lib/timezones";
 import { AvailabilityCalendar } from "@/components/availability/availability-calendar";
+import {
+    PAYOUT_TYPES,
+    PAYOUT_TYPE_LABELS,
+    getPayoutTypeRate,
+} from "@/lib/payout-type";
+import type { PayoutSettings } from "@/lib/admin/payout-settings-queries";
+import type {
+    PayoutType,
+    RateKind,
+    SessionType,
+} from "@/generated/prisma/enums";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,12 +56,26 @@ type FormValues = {
     notes: string;
     internalNotes: string;
     isException: boolean;
+    sessionType: SessionType;
+    currency: string;
+    amount: string;
+    payoutType: PayoutType | "";
+};
+
+type PsychologistOption = {
+    id: string;
+    name: string;
+    offeredSessionTypes: SessionType[];
 };
 
 export function NewManualAppointmentDialog({
     psychologists,
+    rates,
+    commissionRates,
 }: {
-    psychologists: { id: string; name: string }[];
+    psychologists: PsychologistOption[];
+    rates: { currency: string; kind: RateKind; amount: number }[];
+    commissionRates: PayoutSettings;
 }) {
     const router = useRouter();
     const [open, setOpen] = useState(false);
@@ -82,6 +107,10 @@ export function NewManualAppointmentDialog({
             notes: "",
             internalNotes: "",
             isException: false,
+            sessionType: "INDIVIDUAL",
+            currency: "",
+            amount: "",
+            payoutType: "",
         },
     });
 
@@ -89,6 +118,26 @@ export function NewManualAppointmentDialog({
     const selectedTime = watch("time");
     const selectedTimezone = watch("timezone");
     const isException = watch("isException");
+    const selectedPsychologistId = watch("psychologistId");
+    const selectedSessionType = watch("sessionType");
+    const selectedCurrency = watch("currency");
+
+    const selectedPsychologist = psychologists.find(
+        p => p.id === selectedPsychologistId,
+    );
+    const availableSessionTypes = selectedPsychologist?.offeredSessionTypes ?? [
+        "INDIVIDUAL",
+    ];
+    const availableCurrencies = [...new Set(rates.map(r => r.currency))];
+
+    function prefillAmount(sessionType: SessionType, currency: string) {
+        const kind: RateKind =
+            sessionType === "COUPLE" ? "COUPLE" : "INDIVIDUAL";
+        const rate = rates.find(
+            r => r.currency === currency && r.kind === kind,
+        );
+        setValue("amount", rate ? String(rate.amount) : "");
+    }
     const patientLocalTime =
         selectedDate && selectedTime && selectedTimezone
             ? formatInTimezone(selectedDate, selectedTime, selectedTimezone)
@@ -110,6 +159,7 @@ export function NewManualAppointmentDialog({
 
     async function onSubmit(values: FormValues) {
         setIsSubmitting(true);
+        const parsedAmount = Number(values.amount);
         const result = await createManualAppointment({
             psychologistId: values.psychologistId,
             patientName: values.patientName,
@@ -120,6 +170,12 @@ export function NewManualAppointmentDialog({
             notes: values.notes || undefined,
             internalNotes: values.internalNotes || undefined,
             isException: values.isException,
+            sessionType: values.sessionType,
+            agreedAmount: Number.isFinite(parsedAmount)
+                ? parsedAmount
+                : undefined,
+            agreedCurrency: values.currency || undefined,
+            agreedPayoutType: values.payoutType || undefined,
         });
         setIsSubmitting(false);
 
@@ -180,6 +236,20 @@ export function NewManualAppointmentDialog({
                                         field.onChange(value);
                                         setValue("date", "");
                                         setValue("time", "");
+                                        const next = psychologists.find(
+                                            p => p.id === value,
+                                        );
+                                        if (
+                                            next &&
+                                            !next.offeredSessionTypes.includes(
+                                                "COUPLE",
+                                            )
+                                        ) {
+                                            setValue(
+                                                "sessionType",
+                                                "INDIVIDUAL",
+                                            );
+                                        }
                                         if (value) loadAvailability(value);
                                     }}
                                 >
@@ -201,6 +271,159 @@ export function NewManualAppointmentDialog({
                                 Selecciona un psicólogo
                             </p>
                         )}
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div className="grid gap-1.5">
+                            <Label>Modalidad</Label>
+                            <Controller
+                                control={control}
+                                name="sessionType"
+                                render={({ field }) => (
+                                    <Select
+                                        items={[
+                                            {
+                                                value: "INDIVIDUAL",
+                                                label: "Individual",
+                                            },
+                                            {
+                                                value: "COUPLE",
+                                                label: "Pareja",
+                                            },
+                                        ]}
+                                        value={field.value}
+                                        onValueChange={value => {
+                                            if (!value) return;
+                                            field.onChange(value);
+                                            if (selectedCurrency) {
+                                                prefillAmount(
+                                                    value as SessionType,
+                                                    selectedCurrency,
+                                                );
+                                            }
+                                        }}
+                                    >
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="INDIVIDUAL">
+                                                Individual
+                                            </SelectItem>
+                                            <SelectItem
+                                                value="COUPLE"
+                                                disabled={
+                                                    !availableSessionTypes.includes(
+                                                        "COUPLE",
+                                                    )
+                                                }
+                                            >
+                                                Pareja
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            />
+                        </div>
+
+                        <div className="grid gap-1.5">
+                            <Label>Moneda</Label>
+                            <Controller
+                                control={control}
+                                name="currency"
+                                rules={{ required: true }}
+                                render={({ field }) => (
+                                    <Select
+                                        items={availableCurrencies.map(c => ({
+                                            value: c,
+                                            label: c,
+                                        }))}
+                                        value={field.value}
+                                        onValueChange={value => {
+                                            if (!value) return;
+                                            field.onChange(value);
+                                            prefillAmount(
+                                                selectedSessionType,
+                                                value,
+                                            );
+                                        }}
+                                    >
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue placeholder="Selecciona una moneda" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {availableCurrencies.map(c => (
+                                                <SelectItem key={c} value={c}>
+                                                    {c}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            />
+                            {errors.currency && (
+                                <p className="text-xs text-destructive">
+                                    Obligatorio
+                                </p>
+                            )}
+                        </div>
+
+                        <div className="grid gap-1.5">
+                            <Label htmlFor="amount">Monto</Label>
+                            <Input
+                                id="amount"
+                                type="number"
+                                min={1}
+                                {...register("amount", { required: true })}
+                            />
+                            {errors.amount && (
+                                <p className="text-xs text-destructive">
+                                    Obligatorio
+                                </p>
+                            )}
+                        </div>
+
+                        <div className="grid gap-1.5">
+                            <Label>Comisión</Label>
+                            <Controller
+                                control={control}
+                                name="payoutType"
+                                rules={{ required: true }}
+                                render={({ field }) => (
+                                    <Select
+                                        items={PAYOUT_TYPES.map(t => ({
+                                            value: t,
+                                            label: `${PAYOUT_TYPE_LABELS[t]} (${getPayoutTypeRate(commissionRates, t)}%)`,
+                                        }))}
+                                        value={field.value || undefined}
+                                        onValueChange={value =>
+                                            field.onChange(value ?? "")
+                                        }
+                                    >
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue placeholder="Selecciona qué comisión aplicar" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {PAYOUT_TYPES.map(t => (
+                                                <SelectItem key={t} value={t}>
+                                                    {PAYOUT_TYPE_LABELS[t]} (
+                                                    {getPayoutTypeRate(
+                                                        commissionRates,
+                                                        t,
+                                                    )}
+                                                    %)
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            />
+                            {errors.payoutType && (
+                                <p className="text-xs text-destructive">
+                                    Obligatorio
+                                </p>
+                            )}
+                        </div>
                     </div>
 
                     <div className="flex items-center gap-2 rounded-md border border-border bg-secondary/40 px-3 py-2">

@@ -19,6 +19,7 @@ type RateSheetProps = {
     rate?: {
         id: string;
         currency: string;
+        kind: string;
         amount: number;
     };
     trigger?: React.ReactNode;
@@ -47,6 +48,7 @@ export function RateSheet({
     const defaultValues: Partial<PaymentRateFormData> | undefined = rate
         ? {
               currency: rate.currency as PaymentRateFormData["currency"],
+              kind: rate.kind as PaymentRateFormData["kind"],
               amount: rate.amount,
           }
         : undefined;

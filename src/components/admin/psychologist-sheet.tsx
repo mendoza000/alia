@@ -24,6 +24,8 @@ type PsychologistSheetProps = {
         specialty: string;
         bio: string;
         sessionDuration: number;
+        coupleSessionDuration: number;
+        offeredSessionTypes: string[];
         calendarId: string | null;
         photoUrl: string | null;
         isActive: boolean;
@@ -59,6 +61,9 @@ export function PsychologistSheet({
               specialty: psychologist.specialty,
               bio: psychologist.bio,
               sessionDuration: psychologist.sessionDuration,
+              coupleSessionDuration: psychologist.coupleSessionDuration,
+              offeredSessionTypes:
+                  psychologist.offeredSessionTypes as PsychologistFormData["offeredSessionTypes"],
               calendarId: psychologist.calendarId ?? "",
               photoUrl: psychologist.photoUrl ?? "",
               isActive: psychologist.isActive,
