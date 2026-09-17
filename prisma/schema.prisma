@@ -30,6 +30,8 @@ model User {
   intakeForm          IntakeForm?
   psychologistProfile Psychologist?
   patientNotes        PatientNote[]
+  approvalsRequested  ApprovalRequest[] @relation("ApprovalRequestedBy")
+  approvalsDecided    ApprovalRequest[] @relation("ApprovalDecidedBy")
 
   @@map("user")
 }
@@ -245,6 +247,7 @@ model Payment {
   stripeFeeUsd               Float?
   stripeSettlementRate       Float?
   stripeSettlementCheckedAt  DateTime?
+  refundStatus               RefundStatus?
   createdAt                  DateTime      @default(now())
   updatedAt                  DateTime      @updatedAt
 
@@ -257,6 +260,49 @@ enum PaymentStatus {
   APPROVED
   REJECTED
   VOIDED
+}
+
+enum RefundStatus {
+  PENDING_EXECUTION
+  EXECUTED
+}
+
+/**
+ * Approval workflow (Fase 5): a psychologist requests something (a custom
+ * payment amount, or a refund correction on a wrongly-charged payment);
+ * admin/assistant decide it. `targetId` is deliberately not an FK — it's
+ * polymorphic (an appointmentId for CUSTOM_PAYMENT_AMOUNT, a paymentId for
+ * REFUND_REQUEST), resolved by type in application code.
+ */
+model ApprovalRequest {
+  id               String         @id @default(cuid())
+  type             ApprovalType
+  status           ApprovalStatus @default(PENDING)
+  requestedByUserId String
+  requestedBy      User           @relation("ApprovalRequestedBy", fields: [requestedByUserId], references: [id], onDelete: Cascade)
+  targetId         String
+  payload          Json
+  decidedByUserId  String?
+  decidedBy        User?          @relation("ApprovalDecidedBy", fields: [decidedByUserId], references: [id], onDelete: SetNull)
+  decidedAt        DateTime?
+  decisionNote     String?        @db.Text
+  createdAt        DateTime       @default(now())
+
+  @@index([requestedByUserId])
+  @@index([status])
+  @@index([targetId])
+  @@map("approval_request")
+}
+
+enum ApprovalType {
+  CUSTOM_PAYMENT_AMOUNT
+  REFUND_REQUEST
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum PayoutType {
