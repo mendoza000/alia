@@ -37,6 +37,10 @@ describe("can", () => {
             expect(can("assistant", "approval.decide")).toBe(true);
         });
 
+        it("can request approvals (e.g. a refund correction on a payment they can see)", () => {
+            expect(can("assistant", "approval.request")).toBe(true);
+        });
+
         it("can manage appointments and intake forms without ownership restriction", () => {
             expect(can("assistant", "appointment.write")).toBe(true);
             expect(can("assistant", "appointment.read.all")).toBe(true);

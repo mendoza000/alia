@@ -98,6 +98,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
         "intake.read.all",
         "schedule.write.all",
         "approval.decide",
+        "approval.request",
     ],
     psychologist: [
         "appointment.write",
