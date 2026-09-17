@@ -24,6 +24,11 @@ type NavItem = {
     icon: typeof LayoutDashboard;
     /** Omitted = visible to every staff role. */
     permission?: Permission;
+    /** Any-of alternative to `permission`, for items whose visibility
+     * comes from different permissions depending on role (e.g. Clientes:
+     * intake.read.all for admin/assistant, intake.read.own for
+     * psychologist — no single permission covers both). */
+    anyPermission?: Permission[];
     /** Restricts to specific roles regardless of permission — for pages
      * that are inherently "your own" (like Mi calendario) where admin
      * having every Permission via ALL_PERMISSIONS would otherwise also
@@ -64,10 +69,10 @@ const navSections: { label: string; items: NavItem[] }[] = [
                 permission: "appointment.write",
             },
             {
-                href: "/admin/formularios",
-                label: "Formularios",
+                href: "/admin/clientes",
+                label: "Clientes",
                 icon: FileText,
-                permission: "intake.write",
+                anyPermission: ["intake.read.all", "intake.read.own"],
             },
             {
                 href: "/admin/pagos",
@@ -129,6 +134,8 @@ export function SidebarNav({
                 const items = section.items.filter(
                     item =>
                         (!item.permission || can(role, item.permission)) &&
+                        (!item.anyPermission ||
+                            item.anyPermission.some(p => can(role, p))) &&
                         (!item.roles || item.roles.includes(role)),
                 );
                 if (items.length === 0) return null;

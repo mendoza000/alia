@@ -29,6 +29,7 @@ model User {
   appointments        Appointment[]
   intakeForm          IntakeForm?
   psychologistProfile Psychologist?
+  patientNotes        PatientNote[]
 
   @@map("user")
 }
@@ -106,6 +107,7 @@ model Psychologist {
   schedules    Schedule[]
   timeOffs     TimeOff[]
   appointments Appointment[]
+  patientNotes PatientNote[]
 
   @@map("psychologist")
 }
@@ -200,6 +202,19 @@ model IntakeForm {
   updatedAt                     DateTime     @updatedAt
 
   @@map("intake_form")
+}
+
+model PatientNote {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  psychologistId String
+  psychologist   Psychologist @relation(fields: [psychologistId], references: [id], onDelete: Cascade)
+  body           String       @db.Text
+  createdAt      DateTime     @default(now())
+
+  @@index([userId])
+  @@map("patient_note")
 }
 
 model Payment {

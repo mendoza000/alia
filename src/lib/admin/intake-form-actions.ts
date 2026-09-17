@@ -30,6 +30,7 @@ export async function updateIntakeForm(
 
     revalidatePath("/admin/formularios", "layout");
     revalidatePath(`/admin/formularios/${appointmentId}`);
+    revalidatePath("/admin/clientes", "layout");
 }
 
 export async function deleteIntakeForm(appointmentId: string) {
@@ -55,4 +56,5 @@ export async function deleteIntakeForm(appointmentId: string) {
 
     revalidatePath("/admin/formularios", "layout");
     revalidatePath("/admin/citas", "layout");
+    revalidatePath("/admin/clientes", "layout");
 }

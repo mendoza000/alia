@@ -1,6 +1,7 @@
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { prisma } from "@/lib/db";
+import { can } from "@/lib/auth/permissions";
 import type { Actor } from "@/lib/auth/require";
 
 export type AdminAlert = {
@@ -15,15 +16,14 @@ const STALE_PAYMENT_THRESHOLD_MS = 3 * 24 * 60 * 60 * 1000;
 const SELF_BOOKED_ALERT_WINDOW_MS = 5 * 24 * 60 * 60 * 1000;
 
 export async function getAdminAlerts(actor: Actor): Promise<AdminAlert[]> {
-    // Every alert here links to /admin/citas, /admin/pagos or
-    // /admin/formularios — pages whose list queries aren't ownership-scoped
-    // yet (that's Fase 4.3) and that a psychologist's sidebar deliberately
-    // doesn't show yet (Fase 1.3). Surfacing these to a psychologist today
-    // would either point at a page they can't reach or, worse, one that
-    // still renders every patient's data unfiltered. Their own dashboard
-    // already covers "sus sesiones de hoy" directly, so this defers to
-    // Fase 4 instead of half-wiring a broken/leaky notification.
-    if (actor.role === "psychologist") return [];
+    // /admin/citas, /admin/pagos and /admin/clientes are all
+    // ownership-scoped now (Fase 4.0/4.2) and shown in a psychologist's
+    // sidebar — these alerts can safely link there for them too, scoped to
+    // their own psychologistId the same way those pages' queries are.
+    const psychologistId = can(actor.role, "appointment.read.all")
+        ? undefined
+        : (actor.psychologistId ?? undefined);
+    if (!can(actor.role, "appointment.read.all") && !psychologistId) return [];
 
     const now = new Date();
     const expiringSoon = new Date(now.getTime() + FORM_EXPIRY_WINDOW_MS);
@@ -40,6 +40,7 @@ export async function getAdminAlerts(actor: Actor): Promise<AdminAlert[]> {
                 where: {
                     status: "PENDING_FORM",
                     expiresAt: { gt: now, lte: expiringSoon },
+                    ...(psychologistId ? { psychologistId } : {}),
                 },
                 select: {
                     id: true,
@@ -54,7 +55,10 @@ export async function getAdminAlerts(actor: Actor): Promise<AdminAlert[]> {
                 where: {
                     status: "PENDING",
                     createdAt: { lte: stalePaymentCutoff },
-                    appointment: { status: "CONFIRMED" },
+                    appointment: {
+                        status: "CONFIRMED",
+                        ...(psychologistId ? { psychologistId } : {}),
+                    },
                 },
                 select: {
                     id: true,
@@ -72,6 +76,7 @@ export async function getAdminAlerts(actor: Actor): Promise<AdminAlert[]> {
                 where: {
                     status: "CONFIRMED",
                     selfBookedAt: { gte: selfBookedCutoff },
+                    ...(psychologistId ? { psychologistId } : {}),
                 },
                 select: {
                     id: true,
@@ -120,7 +125,7 @@ export async function getAdminAlerts(actor: Actor): Promise<AdminAlert[]> {
             id: `self-booked-${appt.id}`,
             message: `Nuevo paciente agendado sin intervención — ${appt.user.name}`,
             detail: `Sesión con ${appt.psychologist.name} · ${format(appt.dateTime, "d MMM, HH:mm", { locale: es })}`,
-            href: "/admin/formularios",
+            href: "/admin/clientes",
         });
     }
 
