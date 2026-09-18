@@ -36,10 +36,18 @@ export async function getAllAppointments(filters: AppointmentFilters = {}) {
                     name: true,
                     email: true,
                     image: true,
-                    intakeForm: { select: { id: true } },
+                    intakeForm: { select: { id: true, data: true } },
                 },
             },
-            psychologist: { select: { id: true, name: true, photoUrl: true } },
+            psychologist: {
+                select: {
+                    id: true,
+                    name: true,
+                    photoUrl: true,
+                    whatsappReminderTemplate: true,
+                    whatsappTodaySessionTemplate: true,
+                },
+            },
             payment: {
                 select: {
                     id: true,

@@ -37,6 +37,9 @@ import {
 } from "@/lib/admin/payment-actions";
 import { formatCurrencyAmount } from "@/lib/currency";
 import { getPaymentActionFlags } from "@/lib/admin/payment-action-flags";
+import { getPatientPhoneFromIntakeFormData } from "@/lib/patient-phone";
+import { buildAppointmentWhatsappMessage } from "@/lib/whatsapp-templates";
+import { WhatsappReminderMenuItem } from "@/components/admin/whatsapp-reminder-action";
 import type { AppointmentRow } from "@/lib/admin/appointment-queries";
 import type { PayoutSettings } from "@/lib/admin/payout-settings-queries";
 import type { PayoutType } from "@/generated/prisma/enums";
@@ -89,6 +92,7 @@ function getAppointmentActionFlags(appointment: AppointmentRow) {
     return {
         canComplete: appointment.status === "CONFIRMED",
         canNoShow: appointment.status === "CONFIRMED",
+        canSendWhatsapp: appointment.status === "CONFIRMED",
         canCancel: !["CANCELLED", "COMPLETED", "NO_SHOW"].includes(
             appointment.status,
         ),
@@ -231,6 +235,7 @@ function AppointmentActionsMenu({
     const {
         canComplete,
         canNoShow,
+        canSendWhatsapp,
         canCancel,
         canDelete,
         canReschedule,
@@ -268,6 +273,25 @@ function AppointmentActionsMenu({
                         ? "Editar nota interna"
                         : "Agregar nota interna"}
                 </DropdownMenuItem>
+                {canSendWhatsapp && (
+                    <WhatsappReminderMenuItem
+                        phone={getPatientPhoneFromIntakeFormData(
+                            appointment.user.intakeForm?.data,
+                        )}
+                        message={buildAppointmentWhatsappMessage({
+                            dateTime: appointment.dateTime,
+                            timezone: appointment.timezone,
+                            patientName: appointment.user.name,
+                            psychologistName: appointment.psychologist.name,
+                            whatsappReminderTemplate:
+                                appointment.psychologist
+                                    .whatsappReminderTemplate,
+                            whatsappTodaySessionTemplate:
+                                appointment.psychologist
+                                    .whatsappTodaySessionTemplate,
+                        })}
+                    />
+                )}
                 {(canComplete ||
                     canNoShow ||
                     canCancel ||

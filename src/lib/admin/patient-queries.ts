@@ -133,7 +133,14 @@ export async function getPatientDetail(userId: string) {
             appointments: {
                 orderBy: { dateTime: "desc" },
                 include: {
-                    psychologist: { select: { id: true, name: true } },
+                    psychologist: {
+                        select: {
+                            id: true,
+                            name: true,
+                            whatsappReminderTemplate: true,
+                            whatsappTodaySessionTemplate: true,
+                        },
+                    },
                     payment: {
                         select: {
                             id: true,

@@ -6,10 +6,13 @@ import { ArrowLeft, FileText } from "lucide-react";
 import { getPatientDetail } from "@/lib/admin/patient-queries";
 import { can } from "@/lib/auth/permissions";
 import { requireActor } from "@/lib/auth/require";
+import { getPatientPhoneFromIntakeFormData } from "@/lib/patient-phone";
+import { buildAppointmentWhatsappMessage } from "@/lib/whatsapp-templates";
 import { PatientProfileEditor } from "@/components/admin/patient-profile-editor";
 import { PatientNotes } from "@/components/admin/patient-notes";
 import { AppointmentStatusBadge } from "@/components/admin/appointment-status-badge";
 import { PaymentStatusBadge } from "@/components/admin/payment-status-badge";
+import { WhatsappReminderButton } from "@/components/admin/whatsapp-reminder-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrencyAmount } from "@/lib/currency";
@@ -43,7 +46,7 @@ export default async function ClienteDetailPage({ params }: Props) {
     const formData = patient.intakeForm?.data as
         | Record<string, unknown>
         | undefined;
-    const phone = typeof formData?.phone === "string" ? formData.phone : "";
+    const phone = getPatientPhoneFromIntakeFormData(formData) ?? "";
     const dateOfBirth =
         typeof formData?.dateOfBirth === "string" ? formData.dateOfBirth : "";
 
@@ -139,23 +142,45 @@ export default async function ClienteDetailPage({ params }: Props) {
                                         />
                                     </div>
                                 </div>
-                                <div className="text-right">
-                                    {a.payment ? (
-                                        <>
-                                            <p className="font-medium">
-                                                {formatCurrencyAmount(
-                                                    a.payment.finalAmount,
-                                                    a.payment.currency,
-                                                )}
-                                            </p>
-                                            <PaymentStatusBadge
-                                                status={a.payment.status}
-                                            />
-                                        </>
-                                    ) : (
-                                        <span className="text-muted-foreground">
-                                            Sin pago
-                                        </span>
+                                <div className="flex items-center gap-3">
+                                    <div className="text-right">
+                                        {a.payment ? (
+                                            <>
+                                                <p className="font-medium">
+                                                    {formatCurrencyAmount(
+                                                        a.payment.finalAmount,
+                                                        a.payment.currency,
+                                                    )}
+                                                </p>
+                                                <PaymentStatusBadge
+                                                    status={a.payment.status}
+                                                />
+                                            </>
+                                        ) : (
+                                            <span className="text-muted-foreground">
+                                                Sin pago
+                                            </span>
+                                        )}
+                                    </div>
+                                    {a.status === "CONFIRMED" && (
+                                        <WhatsappReminderButton
+                                            phone={phone || null}
+                                            message={buildAppointmentWhatsappMessage(
+                                                {
+                                                    dateTime: a.dateTime,
+                                                    timezone: a.timezone,
+                                                    patientName: patient.name,
+                                                    psychologistName:
+                                                        a.psychologist.name,
+                                                    whatsappReminderTemplate:
+                                                        a.psychologist
+                                                            .whatsappReminderTemplate,
+                                                    whatsappTodaySessionTemplate:
+                                                        a.psychologist
+                                                            .whatsappTodaySessionTemplate,
+                                                },
+                                            )}
+                                        />
                                     )}
                                 </div>
                             </div>
