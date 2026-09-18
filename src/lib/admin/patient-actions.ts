@@ -30,49 +30,56 @@ async function requirePatientAccess(userId: string): Promise<Actor> {
     throw new ForbiddenError("No tienes permiso para ver este paciente");
 }
 
+/**
+ * Shared write core between the admin ("Clientes") and patient
+ * ("mi-cuenta/perfil") edit flows — permission/ownership checks stay in the
+ * callers, this only does the actual mutation.
+ */
+export async function updatePatientProfileCore(
+    userId: string,
+    input: { name: string; phone?: string; dateOfBirth?: string },
+): Promise<void> {
+    const validated = await patientProfileUpdateSchema.validate(input, {
+        abortEarly: false,
+    });
+
+    const existingForm = await prisma.intakeForm.findUnique({
+        where: { userId },
+    });
+
+    await prisma.$transaction([
+        prisma.user.update({
+            where: { id: userId },
+            data: { name: validated.name },
+        }),
+        ...(existingForm
+            ? [
+                  prisma.intakeForm.update({
+                      where: { userId },
+                      data: {
+                          data: {
+                              ...(existingForm.data as Record<string, unknown>),
+                              ...(validated.phone
+                                  ? { phone: validated.phone }
+                                  : {}),
+                              ...(validated.dateOfBirth
+                                  ? { dateOfBirth: validated.dateOfBirth }
+                                  : {}),
+                          },
+                      },
+                  }),
+              ]
+            : []),
+    ]);
+}
+
 export async function updatePatientProfile(
     userId: string,
     input: { name: string; phone?: string; dateOfBirth?: string },
 ): Promise<ActionResult> {
     try {
         await requirePatientAccess(userId);
-
-        const validated = await patientProfileUpdateSchema.validate(input, {
-            abortEarly: false,
-        });
-
-        const existingForm = await prisma.intakeForm.findUnique({
-            where: { userId },
-        });
-
-        await prisma.$transaction([
-            prisma.user.update({
-                where: { id: userId },
-                data: { name: validated.name },
-            }),
-            ...(existingForm
-                ? [
-                      prisma.intakeForm.update({
-                          where: { userId },
-                          data: {
-                              data: {
-                                  ...(existingForm.data as Record<
-                                      string,
-                                      unknown
-                                  >),
-                                  ...(validated.phone
-                                      ? { phone: validated.phone }
-                                      : {}),
-                                  ...(validated.dateOfBirth
-                                      ? { dateOfBirth: validated.dateOfBirth }
-                                      : {}),
-                              },
-                          },
-                      }),
-                  ]
-                : []),
-        ]);
-
+        await updatePatientProfileCore(userId, input);
         revalidatePath("/admin/clientes", "layout");
         return { success: true };
     } catch (err) {
