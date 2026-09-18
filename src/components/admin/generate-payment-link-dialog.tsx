@@ -36,7 +36,9 @@ export function GeneratePaymentLinkDialog({
     agreedCurrency,
     agreedPayoutType,
     commissionRates,
+    canEditPrice,
     onEditPrice,
+    onRequestApproval,
     open,
     onOpenChange,
 }: {
@@ -45,7 +47,13 @@ export function GeneratePaymentLinkDialog({
     agreedCurrency: string | null;
     agreedPayoutType: PayoutType | null;
     commissionRates: PayoutSettings;
+    /** payment.commission.write — admin/assistant, not psychologist. When
+     * false, the "editar precio" button below is replaced by "solicitar
+     * aprobación" instead of letting the actor hit updateAgreedPrice
+     * directly and bounce off a ForbiddenError toast. */
+    canEditPrice: boolean;
     onEditPrice: () => void;
+    onRequestApproval: () => void;
     open: boolean;
     onOpenChange: (open: boolean) => void;
 }) {
@@ -131,15 +139,27 @@ export function GeneratePaymentLinkDialog({
                     </div>
                 )}
 
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={onEditPrice}
-                    className="w-fit"
-                >
-                    <Pencil />
-                    Editar precio de esta sesión
-                </Button>
+                {canEditPrice ? (
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={onEditPrice}
+                        className="w-fit"
+                    >
+                        <Pencil />
+                        Editar precio de esta sesión
+                    </Button>
+                ) : (
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={onRequestApproval}
+                        className="w-fit"
+                    >
+                        <Pencil />
+                        Solicitar aprobación de monto
+                    </Button>
+                )}
 
                 {url && (
                     <div className="min-w-0 space-y-2">

@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Save } from "lucide-react";
+import { Send } from "lucide-react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
-import { updateAgreedPrice } from "@/lib/admin/payment-actions";
+import { requestApproval } from "@/lib/admin/approval-actions";
 import {
     PAYOUT_TYPES,
     PAYOUT_TYPE_LABELS,
@@ -31,11 +30,16 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 
-export function EditAppointmentPriceDialog({
+/**
+ * Psychologist-only counterpart to EditAppointmentPriceDialog: instead of
+ * writing the agreed price directly (payment.commission.write, which a
+ * psychologist doesn't hold), this submits an ApprovalRequest for
+ * admin/assistant to decide (Fase 5).
+ */
+export function RequestCustomAmountDialog({
     appointmentId,
     agreedAmount,
     agreedCurrency,
-    agreedPayoutType,
     availableCurrencies,
     commissionRates,
     open,
@@ -44,7 +48,6 @@ export function EditAppointmentPriceDialog({
     appointmentId: string;
     agreedAmount: number | null;
     agreedCurrency: string | null;
-    agreedPayoutType: PayoutType | null;
     availableCurrencies: string[];
     commissionRates: PayoutSettings;
     open: boolean;
@@ -56,11 +59,8 @@ export function EditAppointmentPriceDialog({
     const [currency, setCurrency] = useState(
         agreedCurrency ?? availableCurrencies[0] ?? "",
     );
-    const [payoutType, setPayoutType] = useState<PayoutType | undefined>(
-        agreedPayoutType ?? undefined,
-    );
+    const [payoutType, setPayoutType] = useState<PayoutType | undefined>();
     const [isPending, startTransition] = useTransition();
-    const router = useRouter();
 
     const parsedAmount = Number(amount);
     const isInvalid =
@@ -69,18 +69,19 @@ export function EditAppointmentPriceDialog({
         !Number.isFinite(parsedAmount) ||
         parsedAmount <= 0;
 
-    function handleSave() {
+    function handleSend() {
         if (isInvalid || !payoutType) return;
         startTransition(async () => {
-            const result = await updateAgreedPrice(appointmentId, {
-                amount: parsedAmount,
-                currency,
-                payoutType,
-            });
+            const result = await requestApproval(
+                "CUSTOM_PAYMENT_AMOUNT",
+                appointmentId,
+                { amount: parsedAmount, currency, payoutType },
+            );
             if (result.success) {
-                toast.success("Precio actualizado");
+                toast.success(
+                    "Solicitud enviada — un administrador la revisará",
+                );
                 onOpenChange(false);
-                router.refresh();
             } else {
                 toast.error(result.error);
             }
@@ -92,11 +93,11 @@ export function EditAppointmentPriceDialog({
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle className="font-bold text-xl">
-                        Editar precio de la sesión
+                        Solicitar aprobación de monto
                     </DialogTitle>
                     <DialogDescription>
-                        Cambia el monto o la comisión acordados para esta
-                        sesión.
+                        Un administrador o asistente revisará este monto antes
+                        de generar el link de pago.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -125,9 +126,9 @@ export function EditAppointmentPriceDialog({
                     </div>
 
                     <div className="grid gap-1.5">
-                        <Label htmlFor="edit-price-amount">Monto</Label>
+                        <Label htmlFor="request-amount">Monto</Label>
                         <Input
-                            id="edit-price-amount"
+                            id="request-amount"
                             type="number"
                             min={1}
                             value={amount}
@@ -163,11 +164,6 @@ export function EditAppointmentPriceDialog({
                     </div>
                 </div>
 
-                {/* Pending psychologist-requested custom amounts are decided
-                    from /admin/aprobaciones (Fase 5), not surfaced inline
-                    here — this dialog stays the direct-edit path for
-                    admin/assistant. */}
-
                 <DialogFooter>
                     <Button
                         variant="outline"
@@ -176,12 +172,12 @@ export function EditAppointmentPriceDialog({
                         Cancelar
                     </Button>
                     <Button
-                        onClick={handleSave}
+                        onClick={handleSend}
                         isLoading={isPending}
                         disabled={isInvalid}
                     >
-                        <Save />
-                        Guardar
+                        <Send />
+                        Enviar solicitud
                     </Button>
                 </DialogFooter>
             </DialogContent>

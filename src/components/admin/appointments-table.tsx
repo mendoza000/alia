@@ -43,6 +43,7 @@ import { Badge } from "@/components/ui/badge";
 import { PaymentStatusBadge } from "@/components/admin/payment-status-badge";
 import { GeneratePaymentLinkDialog } from "@/components/admin/generate-payment-link-dialog";
 import { EditAppointmentPriceDialog } from "@/components/admin/edit-appointment-price-dialog";
+import { RequestCustomAmountDialog } from "@/components/admin/request-custom-amount-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { CopyLinkButton } from "@/components/ui/copy-link-button";
@@ -555,6 +556,7 @@ export function AppointmentsTable({
     availableCurrencies,
     commissionRates,
     canEditPrice,
+    canRequestApproval,
 }: {
     appointments: AppointmentRow[];
     availableCurrencies: string[];
@@ -564,10 +566,16 @@ export function AppointmentsTable({
      * psychologist can generate a link at the agreed price but can't
      * change what that price is. */
     canEditPrice: boolean;
+    /** approval.request — psychologist. Gates "Solicitar aprobación de
+     * monto" inside GeneratePaymentLinkDialog, shown instead of "Editar
+     * precio" when canEditPrice is false. */
+    canRequestApproval: boolean;
 }) {
     const [activeAppointment, setActiveAppointment] =
         useState<AppointmentRow | null>(null);
     const [editingPriceAppointment, setEditingPriceAppointment] =
+        useState<AppointmentRow | null>(null);
+    const [requestingApprovalAppointment, setRequestingApprovalAppointment] =
         useState<AppointmentRow | null>(null);
     const [deletingAppointment, setDeletingAppointment] =
         useState<AppointmentRow | null>(null);
@@ -642,12 +650,33 @@ export function AppointmentsTable({
                     agreedCurrency={activeAppointment.agreedCurrency}
                     agreedPayoutType={activeAppointment.agreedPayoutType}
                     commissionRates={commissionRates}
+                    canEditPrice={canEditPrice}
                     onEditPrice={() => {
                         setEditingPriceAppointment(activeAppointment);
                         setActiveAppointment(null);
                     }}
+                    onRequestApproval={() => {
+                        setRequestingApprovalAppointment(activeAppointment);
+                        setActiveAppointment(null);
+                    }}
                     open={!!activeAppointment}
                     onOpenChange={v => !v && setActiveAppointment(null)}
+                />
+            )}
+
+            {requestingApprovalAppointment && canRequestApproval && (
+                <RequestCustomAmountDialog
+                    appointmentId={requestingApprovalAppointment.id}
+                    agreedAmount={requestingApprovalAppointment.agreedAmount}
+                    agreedCurrency={
+                        requestingApprovalAppointment.agreedCurrency
+                    }
+                    availableCurrencies={availableCurrencies}
+                    commissionRates={commissionRates}
+                    open={!!requestingApprovalAppointment}
+                    onOpenChange={v =>
+                        !v && setRequestingApprovalAppointment(null)
+                    }
                 />
             )}
 

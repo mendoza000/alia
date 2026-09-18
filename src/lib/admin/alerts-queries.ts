@@ -34,60 +34,73 @@ export async function getAdminAlerts(actor: Actor): Promise<AdminAlert[]> {
         now.getTime() - SELF_BOOKED_ALERT_WINDOW_MS,
     );
 
-    const [expiringForms, stalePayments, selfBookedAppointments] =
-        await Promise.all([
-            prisma.appointment.findMany({
-                where: {
-                    status: "PENDING_FORM",
-                    expiresAt: { gt: now, lte: expiringSoon },
-                    ...(psychologistId ? { psychologistId } : {}),
-                },
-                select: {
-                    id: true,
-                    expiresAt: true,
-                    dateTime: true,
-                    user: { select: { name: true } },
-                    psychologist: { select: { name: true } },
-                },
-                orderBy: { expiresAt: "asc" },
-            }),
-            prisma.payment.findMany({
-                where: {
-                    status: "PENDING",
-                    createdAt: { lte: stalePaymentCutoff },
-                    appointment: {
-                        status: "CONFIRMED",
-                        ...(psychologistId ? { psychologistId } : {}),
-                    },
-                },
-                select: {
-                    id: true,
-                    createdAt: true,
-                    appointment: {
-                        select: {
-                            dateTime: true,
-                            user: { select: { name: true } },
-                        },
-                    },
-                },
-                orderBy: { createdAt: "asc" },
-            }),
-            prisma.appointment.findMany({
-                where: {
+    // ApprovalRequest has no psychologistId column (its targetId is
+    // polymorphic, not a scoped FK) — a psychologist actor is scoped by
+    // requestedByUserId (their own requests) instead of psychologistId,
+    // unlike the other three alerts here.
+    const pendingApprovalsWhere = can(actor.role, "approval.decide")
+        ? { status: "PENDING" as const }
+        : { status: "PENDING" as const, requestedByUserId: actor.userId };
+
+    const [
+        expiringForms,
+        stalePayments,
+        selfBookedAppointments,
+        pendingApprovalsCount,
+    ] = await Promise.all([
+        prisma.appointment.findMany({
+            where: {
+                status: "PENDING_FORM",
+                expiresAt: { gt: now, lte: expiringSoon },
+                ...(psychologistId ? { psychologistId } : {}),
+            },
+            select: {
+                id: true,
+                expiresAt: true,
+                dateTime: true,
+                user: { select: { name: true } },
+                psychologist: { select: { name: true } },
+            },
+            orderBy: { expiresAt: "asc" },
+        }),
+        prisma.payment.findMany({
+            where: {
+                status: "PENDING",
+                createdAt: { lte: stalePaymentCutoff },
+                appointment: {
                     status: "CONFIRMED",
-                    selfBookedAt: { gte: selfBookedCutoff },
                     ...(psychologistId ? { psychologistId } : {}),
                 },
-                select: {
-                    id: true,
-                    selfBookedAt: true,
-                    dateTime: true,
-                    user: { select: { name: true } },
-                    psychologist: { select: { name: true } },
+            },
+            select: {
+                id: true,
+                createdAt: true,
+                appointment: {
+                    select: {
+                        dateTime: true,
+                        user: { select: { name: true } },
+                    },
                 },
-                orderBy: { selfBookedAt: "asc" },
-            }),
-        ]);
+            },
+            orderBy: { createdAt: "asc" },
+        }),
+        prisma.appointment.findMany({
+            where: {
+                status: "CONFIRMED",
+                selfBookedAt: { gte: selfBookedCutoff },
+                ...(psychologistId ? { psychologistId } : {}),
+            },
+            select: {
+                id: true,
+                selfBookedAt: true,
+                dateTime: true,
+                user: { select: { name: true } },
+                psychologist: { select: { name: true } },
+            },
+            orderBy: { selfBookedAt: "asc" },
+        }),
+        prisma.approvalRequest.count({ where: pendingApprovalsWhere }),
+    ]);
 
     const alerts: AdminAlert[] = expiringForms
         .filter(
@@ -126,6 +139,15 @@ export async function getAdminAlerts(actor: Actor): Promise<AdminAlert[]> {
             message: `Nuevo paciente agendado sin intervención — ${appt.user.name}`,
             detail: `Sesión con ${appt.psychologist.name} · ${format(appt.dateTime, "d MMM, HH:mm", { locale: es })}`,
             href: "/admin/clientes",
+        });
+    }
+
+    if (pendingApprovalsCount > 0) {
+        alerts.push({
+            id: "approvals-pending",
+            message: `${pendingApprovalsCount} solicitud${pendingApprovalsCount === 1 ? "" : "es"} pendiente${pendingApprovalsCount === 1 ? "" : "s"} de aprobación`,
+            detail: "Montos personalizados y reembolsos",
+            href: "/admin/aprobaciones",
         });
     }
 

@@ -111,6 +111,7 @@ export default async function CitasPage({ searchParams }: Props) {
                 availableCurrencies={availableCurrencies}
                 commissionRates={commissionRates}
                 canEditPrice={can(actor.role, "payment.commission.write")}
+                canRequestApproval={can(actor.role, "approval.request")}
             />
         </div>
     );
