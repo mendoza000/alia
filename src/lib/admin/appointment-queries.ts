@@ -88,9 +88,15 @@ export async function getAppointmentById(id: string) {
                     name: true,
                     photoUrl: true,
                     specialty: true,
+                    sessionDuration: true,
+                    coupleSessionDuration: true,
                 },
             },
-            payment: true,
+            payment: {
+                include: {
+                    coupon: { select: { code: true } },
+                },
+            },
         },
     });
 }

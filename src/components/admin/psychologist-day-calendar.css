@@ -6,6 +6,15 @@
 .sx-alia-theme {
     height: 100%;
 
+    /* Schedule-X's sticky week header defaults to z-index 100 (and its
+     * popups/event-modal to 101/102) — well above shadcn's Sheet overlay
+     * (z-50), so opening the appointment detail sheet left the sticky
+     * header visibly un-dimmed on top of it. Lowered below 50 here since
+     * nothing in this calendar needs to escape its own stacking context. */
+    --sx-z-index-week-header: 10;
+    --sx-z-index-event-modal: 11;
+    --sx-calendar-header-popup-z-index: 12;
+
     --sx-color-background: var(--card);
     --sx-color-on-background: var(--card-foreground);
     --sx-color-surface: var(--card);

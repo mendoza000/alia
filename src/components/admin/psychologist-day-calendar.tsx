@@ -12,6 +12,7 @@ import {
     createViewMonthGrid,
     type CalendarEvent,
 } from "@schedule-x/calendar";
+import { createCurrentTimePlugin } from "@schedule-x/current-time";
 import "@schedule-x/theme-default/dist/index.css";
 import "./psychologist-day-calendar.css";
 import { toast } from "sonner";
@@ -146,64 +147,70 @@ export function PsychologistDayCalendar({
         return data;
     }
 
-    const calendarApp = useCalendarApp({
-        views: [createViewWeek(), createViewDay(), createViewMonthGrid()],
-        defaultView: "week",
-        selectedDate: Temporal.PlainDate.from(caracasDateKey(new Date())),
-        locale: "es-ES",
-        firstDayOfWeek: 1,
-        timezone: CARACAS_TZ,
-        dayBoundaries: { start: "06:00", end: "22:00" },
-        // Explicit hour12 is required even in Spanish — Intl's es-ES default
-        // is 24h, and the library only auto-picks 12h for locale 'en-US'.
-        // gridHeight (default 1600px for the full 06:00-22:00 span) is
-        // lowered so the day fits with less scrolling inside the fixed-
-        // height wrapper below.
-        weekOptions: {
-            timeAxisFormatOptions: { hour: "numeric", hour12: true },
-            gridHeight: 900,
+    const calendarApp = useCalendarApp(
+        {
+            views: [createViewWeek(), createViewDay(), createViewMonthGrid()],
+            defaultView: "week",
+            selectedDate: Temporal.PlainDate.from(caracasDateKey(new Date())),
+            locale: "es-ES",
+            firstDayOfWeek: 1,
+            timezone: CARACAS_TZ,
+            dayBoundaries: { start: "06:00", end: "22:00" },
+            // Explicit hour12 is required even in Spanish — Intl's es-ES default
+            // is 24h, and the library only auto-picks 12h for locale 'en-US'.
+            // gridHeight (default 1600px for the full 06:00-22:00 span) is
+            // lowered so the day fits with less scrolling inside the fixed-
+            // height wrapper below.
+            weekOptions: {
+                timeAxisFormatOptions: { hour: "numeric", hour12: true },
+                gridHeight: 900,
+            },
+            /* Colors come purely from CSS (psychologist-day-calendar.css defines
+             * --sx-color-appointment and --sx-color-blocked directly) rather
+             * than lightColors/darkColors here — the library resolves those in
+             * JS to generate contrast-safe variants, which silently fails on a
+             * var(--accent)-style reference instead of a literal color. */
+            calendars: {
+                appointment: { colorName: "appointment" },
+                blocked: { colorName: "blocked" },
+            },
+            callbacks: {
+                fetchEvents: async ({ start, end }) => {
+                    const data = await loadRange(
+                        new Date(start.epochMilliseconds),
+                        new Date(end.epochMilliseconds),
+                    );
+                    return mapToCalendarEvents(data);
+                },
+                onClickDate: date => {
+                    setSelectedDateStr(date.toString());
+                },
+                onClickDateTime: dateTime => {
+                    setSelectedDateStr(dateTime.toPlainDate().toString());
+                },
+                onEventClick: event => {
+                    const id = String(event.id);
+                    if (id.startsWith("appt-")) {
+                        setSelectedAppointmentId(id.slice("appt-".length));
+                    }
+                },
+                // In day view the visible range IS a single day — select it
+                // automatically on navigation instead of requiring a click.
+                // Week/month ranges span more than a day and are left alone.
+                onRangeUpdate: range => {
+                    const spanMs =
+                        range.end.epochMilliseconds -
+                        range.start.epochMilliseconds;
+                    if (spanMs <= 24 * 60 * 60 * 1000) {
+                        setSelectedDateStr(
+                            range.start.toPlainDate().toString(),
+                        );
+                    }
+                },
+            },
         },
-        /* Colors come purely from CSS (psychologist-day-calendar.css defines
-         * --sx-color-appointment and --sx-color-blocked directly) rather
-         * than lightColors/darkColors here — the library resolves those in
-         * JS to generate contrast-safe variants, which silently fails on a
-         * var(--accent)-style reference instead of a literal color. */
-        calendars: {
-            appointment: { colorName: "appointment" },
-            blocked: { colorName: "blocked" },
-        },
-        callbacks: {
-            fetchEvents: async ({ start, end }) => {
-                const data = await loadRange(
-                    new Date(start.epochMilliseconds),
-                    new Date(end.epochMilliseconds),
-                );
-                return mapToCalendarEvents(data);
-            },
-            onClickDate: date => {
-                setSelectedDateStr(date.toString());
-            },
-            onClickDateTime: dateTime => {
-                setSelectedDateStr(dateTime.toPlainDate().toString());
-            },
-            onEventClick: event => {
-                const id = String(event.id);
-                if (id.startsWith("appt-")) {
-                    setSelectedAppointmentId(id.slice("appt-".length));
-                }
-            },
-            // In day view the visible range IS a single day — select it
-            // automatically on navigation instead of requiring a click.
-            // Week/month ranges span more than a day and are left alone.
-            onRangeUpdate: range => {
-                const spanMs =
-                    range.end.epochMilliseconds - range.start.epochMilliseconds;
-                if (spanMs <= 24 * 60 * 60 * 1000) {
-                    setSelectedDateStr(range.start.toPlainDate().toString());
-                }
-            },
-        },
-    });
+        [createCurrentTimePlugin()],
+    );
 
     const appointmentsByDate = useMemo(
         () => groupAppointmentsByDate(rangeData.appointments),
@@ -283,12 +290,15 @@ export function PsychologistDayCalendar({
     }
 
     return (
-        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1fr_320px]">
-            <div ref={calendarContainerRef} className="sx-alia-theme h-[620px]">
+        <div className="grid grid-cols-1 gap-4 lg:h-[calc(100vh-280px)] lg:min-h-[520px] lg:grid-cols-[1fr_320px]">
+            <div
+                ref={calendarContainerRef}
+                className="sx-alia-theme h-[620px] lg:h-full"
+            >
                 <ScheduleXCalendar calendarApp={calendarApp} />
             </div>
 
-            <div className="max-h-[620px] space-y-3 overflow-y-auto rounded-lg border border-border bg-card p-4">
+            <div className="space-y-3 overflow-y-auto rounded-lg border border-border bg-card p-4 lg:h-full">
                 <h3 className="font-heading text-sm font-semibold capitalize">
                     {selectedDateLabel}
                 </h3>

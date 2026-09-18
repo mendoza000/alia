@@ -13,6 +13,7 @@
         "@react-email/render": "^2.0.4",
         "@react-pdf/renderer": "^4.3.2",
         "@schedule-x/calendar": "^4.8.0",
+        "@schedule-x/current-time": "^4.8.0",
         "@schedule-x/events-service": "^4.8.0",
         "@schedule-x/react": "^4.1.0",
         "@schedule-x/theme-default": "^4.8.0",
@@ -510,6 +511,8 @@
     "@rolldown/pluginutils": ["@rolldown/pluginutils@1.0.0-rc.12", "", {}, "sha512-HHMwmarRKvoFsJorqYlFeFRzXZqCt2ETQlEDOb9aqssrnVBB1/+xgTGtuTrIk5vzLNX1MjMtTf7W9z3tsSbrxw=="],
 
     "@schedule-x/calendar": ["@schedule-x/calendar@4.8.0", "", { "peerDependencies": { "@preact/signals": "^2.0.2", "preact": "^10.19.2", "temporal-polyfill": "0.3.0" } }, "sha512-OuIQCmxe4p1XHkfNkmJTNeblOiNioUdBPs1tNd1NySj1PpDFtODFL9FsCfmtvSXbAQCfFYKrw8DyAGv2BbYS9w=="],
+
+    "@schedule-x/current-time": ["@schedule-x/current-time@4.8.0", "", {}, "sha512-v7VMC2h3yCflHSk5hDRaIjVmzrVkGtVwh8uzzFf2WayEzYjpDusDfevaEC0BhZ67lSZkH4u0Nxq0Ks0KQGEZwA=="],
 
     "@schedule-x/events-service": ["@schedule-x/events-service@4.8.0", "", {}, "sha512-pblGgyFHqJ4MVr0552vkTrWdoiXdmnWiIksp0IS2ARDq0m+FOzr4m8sYhoZ+C3T19QWUETtZIa273WKGZwEfeA=="],
 
