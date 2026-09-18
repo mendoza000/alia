@@ -32,8 +32,8 @@ export default async function HomePage() {
             />
             <HeroSection />
             <HowItWorksSection />
-            <FAQSection />
             <PsychologistSection />
+            <FAQSection />
         </>
     );
 }
