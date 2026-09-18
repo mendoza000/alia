@@ -370,6 +370,39 @@ Hoy `src/lib/email.ts` es un singleton de Resend sin try/catch, sin inspeccionar
 
 ---
 
+## Fase 10 — Calendario del psicólogo, bloqueo por horas y recordatorios de WhatsApp — hecho
+
+Los psicólogos no tenían forma de ver, día por día, qué citas tienen, ni de marcar un día libre o bloquear horas puntuales desde un calendario. Para recordarle a un paciente su sesión, el equipo tenía que abrir el formulario, copiar el número y escribirle a mano por WhatsApp.
+
+### 10.1 Base pura (TDD) — hecho
+- [x] `src/lib/whatsapp.ts`: `normalizeWhatsappPhone`, `buildWhatsappLink`.
+- [x] `src/lib/patient-phone.ts`: `getPatientPhoneFromIntakeFormData` (extraído de la lectura inline en `clientes/[userId]/page.tsx`).
+- [x] `src/lib/whatsapp-templates.ts`: plantillas por defecto, `renderWhatsappTemplate`, `isAppointmentToday`, `pickWhatsappTemplate`, `buildAppointmentWhatsappMessage`.
+
+### 10.2 Schema — plantillas de WhatsApp por psicólogo — hecho
+- [x] `Psychologist.whatsappReminderTemplate`/`whatsappTodaySessionTemplate` (`String? @db.Text`) — se descartó un modelo aparte: es un par fijo sin historial.
+- [x] Migración `20260919020000_add_psychologist_whatsapp_templates`, escrita a mano y aplicada con `migrate deploy` (mismo motivo que Fases 0/1/3: `_intake_form_dedup_backup` fuera de schema hace que `migrate dev` detecte drift y quiera borrarla).
+
+### 10.3 Editor de plantillas — hecho
+- [x] `updateWhatsappTemplates` (reutiliza `requireScheduleAccess`, misma frontera own/all que horarios) + `WhatsappTemplatesEditor`, visible en `/admin/mi-calendario/ajustes` (propio) y `/admin/psicologos/[id]` (en nombre de).
+
+### 10.4 Botón "Enviar recordatorio por WhatsApp" — hecho
+- [x] En `/admin/citas` (menú de acciones, solo citas `CONFIRMED`) y en `/admin/clientes/[userId]` (por cita `CONFIRMED`). Elige plantilla "hoy" vs "recordatorio" automáticamente. Teléfono inválido → toast, no bloquea el botón.
+
+### 10.5 Calendario del psicólogo y calendario global del admin — hecho
+Alcance ampliado en vivo durante la implementación, a pedido del cliente, sobre el plan original (que proponía un selector de mes tipo date-picker con panel lateral):
+- [x] Reemplazado por **Schedule-X** (`@schedule-x/react`), con vistas Día/Semana/Mes (semana por defecto), tema propio mapeado a los tokens de ALIA (`psychologist-day-calendar.css`) en vez del tema Material por defecto de la librería.
+- [x] **`/admin/mi-calendario`**: página dedicada solo al calendario del psicólogo (horario semanal, días libres y plantillas se movieron a `/admin/mi-calendario/ajustes`).
+- [x] **`/admin/psicologos/[id]/calendario`**: calendario de un psicólogo específico para el admin (la ficha del psicólogo ya no lo embebe; tiene un botón "Ver calendario").
+- [x] **`/admin/calendario`** (nuevo, `appointment.read.all`): calendario global de todos los psicólogos, cada uno con un color fijo distinto (paleta categórica de 8 tonos de la skill `dataviz`, validada con CVD y contraste contra la superficie real de ALIA en modo claro y oscuro) más una leyenda.
+- [x] "Marcar todo el día libre" y "Bloquear un horario" (14:00–16:00 por defecto) sobre `createTimeOff` sin cambios de schema — `TimeOff` ya soportaba rango horario exacto. Sin sincronización con Google Calendar (los días libres nunca se empujaron a Calendar).
+- [x] Panel del día a la derecha del calendario (~30% del ancho), responsive (una sola columna en pantallas chicas).
+- [x] Horas en formato 12h AM/PM: el eje de horas vía `weekOptions.timeAxisFormatOptions`; el texto de cada evento vía `_customContent` (Schedule-X solo usa 12h automáticamente si `locale === 'en-US'`), con escape de HTML porque el nombre del paciente es dato de usuario insertado con `dangerouslySetInnerHTML`.
+
+**Verificación 10**: `bun test` sin regresiones (incluye los casos puros de 10.1 y de `schedule-x-mapping`), `tsc --noEmit` y `biome check` limpios. Verificado manualmente en el navegador (Playwright) contra la base de datos real: crear y borrar un día libre y un bloqueo de horas parcial en `/admin/psicologos/[id]/calendario` (sin dejar datos de prueba), calendario global con colores y leyenda, responsive en 480px. **Pendiente**: no existe todavía ninguna cuenta de psicólogo vinculada (`Psychologist.userId`) en producción — el flujo para crearla ya existe desde la Fase 1.2 (`/admin/equipo` → "Agregar usuario" → rol "Psicólogo"), solo falta que el admin lo use; por eso `/admin/mi-calendario` no se probó end-to-end como psicólogo real, solo el fallback "cuenta no vinculada".
+
+---
+
 ## Archivos crítica­mente afectados
 
 | Área | Archivos |
