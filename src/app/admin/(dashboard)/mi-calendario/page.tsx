@@ -1,10 +1,14 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { TZDate } from "@date-fns/tz";
 import { prisma } from "@/lib/db";
 import { requirePermission } from "@/lib/auth/require";
+import { CARACAS_TZ } from "@/lib/availability";
 import { getTimeOffForPsychologist } from "@/lib/admin/time-off-actions";
+import { getPsychologistCalendarMonth } from "@/lib/admin/psychologist-calendar-queries";
 import { ScheduleEditor } from "@/components/admin/schedule-editor";
 import { TimeOffEditor } from "@/components/admin/time-off-editor";
+import { PsychologistDayCalendar } from "@/components/admin/psychologist-day-calendar";
 import { WhatsappTemplatesEditor } from "@/components/admin/whatsapp-templates-editor";
 import { PageHeader } from "@/components/admin/page-header";
 import { Button } from "@/components/ui/button";
@@ -26,12 +30,21 @@ export default async function MiCalendarioPage() {
         );
     }
 
-    const [psychologist, timeOffs] = await Promise.all([
+    const now = new TZDate(new Date(), CARACAS_TZ);
+    const initialYear = now.getFullYear();
+    const initialMonth = now.getMonth() + 1;
+
+    const [psychologist, timeOffs, calendarMonth] = await Promise.all([
         prisma.psychologist.findUnique({
             where: { id: actor.psychologistId },
             include: { schedules: true },
         }),
         getTimeOffForPsychologist(actor.psychologistId),
+        getPsychologistCalendarMonth(
+            actor.psychologistId,
+            initialYear,
+            initialMonth,
+        ),
     ]);
 
     if (!psychologist) redirect("/admin");
@@ -47,6 +60,18 @@ export default async function MiCalendarioPage() {
                     </Link>
                 }
             />
+
+            <div className="space-y-3">
+                <h2 className="font-heading text-lg font-semibold">
+                    Calendario
+                </h2>
+                <PsychologistDayCalendar
+                    psychologistId={psychologist.id}
+                    initialYear={initialYear}
+                    initialMonth={initialMonth}
+                    initialData={calendarMonth}
+                />
+            </div>
 
             <div className="space-y-3">
                 <h2 className="font-heading text-lg font-semibold">

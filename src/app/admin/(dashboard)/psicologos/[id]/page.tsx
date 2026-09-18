@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { ArrowLeft, Mail, Phone, Calendar, Clock, Link2 } from "lucide-react";
 import { notFound } from "next/navigation";
+import { TZDate } from "@date-fns/tz";
 import { getPsychologistById } from "@/lib/admin/psychologist-queries";
+import { CARACAS_TZ } from "@/lib/availability";
+import { getPsychologistCalendarMonth } from "@/lib/admin/psychologist-calendar-queries";
 import { PsychologistDetailHeader } from "@/components/admin/psychologist-detail-header";
 import { ScheduleEditor } from "@/components/admin/schedule-editor";
+import { PsychologistDayCalendar } from "@/components/admin/psychologist-day-calendar";
 import { WhatsappTemplatesEditor } from "@/components/admin/whatsapp-templates-editor";
 
 function formatDate(date: Date) {
@@ -23,6 +27,15 @@ export default async function PsychologistDetailPage({
   if (!psychologist) {
     notFound();
   }
+
+  const now = new TZDate(new Date(), CARACAS_TZ);
+  const initialYear = now.getFullYear();
+  const initialMonth = now.getMonth() + 1;
+  const calendarMonth = await getPsychologistCalendarMonth(
+    id,
+    initialYear,
+    initialMonth,
+  );
 
   return (
     <div className="space-y-6">
@@ -50,6 +63,24 @@ export default async function PsychologistDetailPage({
               </p>
             </div>
           )}
+
+          {/* Calendar */}
+          <div className="rounded-lg border border-border bg-card p-6">
+            <div className="mb-4">
+              <h2 className="font-heading text-lg font-semibold">
+                Calendario
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Citas por día, días libres y bloqueos de horario
+              </p>
+            </div>
+            <PsychologistDayCalendar
+              psychologistId={psychologist.id}
+              initialYear={initialYear}
+              initialMonth={initialMonth}
+              initialData={calendarMonth}
+            />
+          </div>
 
           {/* Schedule */}
           <div className="rounded-lg border border-border bg-card p-6">

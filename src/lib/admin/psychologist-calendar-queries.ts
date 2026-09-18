@@ -1,5 +1,6 @@
 import { TZDate } from "@date-fns/tz";
 import { prisma } from "@/lib/db";
+import type { AppointmentStatus } from "@/generated/prisma/enums";
 import { CARACAS_TZ } from "@/lib/availability";
 import { getTimeOffOverlapping } from "@/lib/admin/time-off-actions";
 
@@ -7,7 +8,7 @@ export type PsychologistCalendarAppointment = {
     id: string;
     dateTime: Date;
     endTime: Date;
-    status: string;
+    status: AppointmentStatus;
     patientName: string;
 };
 
