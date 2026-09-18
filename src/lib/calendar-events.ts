@@ -81,3 +81,44 @@ export async function updateAppointmentEvent(appointmentId: string): Promise<voi
     },
   );
 }
+
+export async function createTimeOffEvent(timeOffId: string): Promise<string | null> {
+  const timeOff = await prisma.timeOff.findUnique({
+    where: { id: timeOffId },
+    include: { psychologist: { select: { calendarId: true } } },
+  });
+
+  if (!timeOff || !timeOff.psychologist.calendarId) return null;
+
+  const summary = timeOff.reason ? `Bloqueado — ${timeOff.reason}` : "Bloqueado";
+
+  const eventId = await createCalendarEvent(timeOff.psychologist.calendarId, {
+    summary,
+    description: "Bloqueo de horario creado desde ALIA.",
+    startDateTime: timeOff.startsAt,
+    endDateTime: timeOff.endsAt,
+  });
+
+  if (eventId) {
+    await prisma.timeOff.update({
+      where: { id: timeOffId },
+      data: { googleEventId: eventId },
+    });
+  }
+
+  return eventId;
+}
+
+export async function deleteTimeOffEvent(timeOffId: string): Promise<void> {
+  const timeOff = await prisma.timeOff.findUnique({
+    where: { id: timeOffId },
+    select: {
+      googleEventId: true,
+      psychologist: { select: { calendarId: true } },
+    },
+  });
+
+  if (!timeOff?.googleEventId || !timeOff.psychologist.calendarId) return;
+
+  await deleteCalendarEvent(timeOff.psychologist.calendarId, timeOff.googleEventId);
+}

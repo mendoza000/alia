@@ -136,6 +136,7 @@ model TimeOff {
   startsAt       DateTime
   endsAt         DateTime
   reason         String?
+  googleEventId  String?
   createdAt      DateTime     @default(now())
 
   @@index([psychologistId])

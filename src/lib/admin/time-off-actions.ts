@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireActor, requireScheduleAccess } from "@/lib/auth/require";
+import { createTimeOffEvent, deleteTimeOffEvent } from "@/lib/calendar-events";
 
 export async function getTimeOffForPsychologist(psychologistId: string) {
     return prisma.timeOff.findMany({
@@ -39,7 +40,7 @@ export async function createTimeOff(
         throw new Error("La fecha de fin debe ser posterior a la de inicio");
     }
 
-    await prisma.timeOff.create({
+    const timeOff = await prisma.timeOff.create({
         data: {
             psychologistId,
             startsAt: input.startsAt,
@@ -47,6 +48,8 @@ export async function createTimeOff(
             reason: input.reason || null,
         },
     });
+
+    await createTimeOffEvent(timeOff.id);
 
     revalidatePath("/admin/mi-calendario");
 }
@@ -62,6 +65,7 @@ export async function deleteTimeOff(id: string): Promise<void> {
     if (!timeOff) return;
     await requireScheduleAccess(actor, timeOff.psychologistId);
 
+    await deleteTimeOffEvent(id);
     await prisma.timeOff.delete({ where: { id } });
 
     revalidatePath("/admin/mi-calendario");
