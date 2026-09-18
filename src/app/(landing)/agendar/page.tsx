@@ -3,7 +3,10 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { getActivePsychologists } from "@/lib/queries/psychologists";
 import { getPublicDisplayRate } from "@/lib/admin/payment-rate-queries";
-import { getActivePatientAppointment } from "@/lib/queries/patient-appointments";
+import {
+    getActivePatientAppointment,
+    hasUnpaidCompletedSession,
+} from "@/lib/queries/patient-appointments";
 import { BookingStepper } from "@/components/booking/booking-stepper";
 import { ActiveAppointmentNotice } from "@/components/booking/active-appointment-notice";
 import { PsychologistGrid } from "./psychologist-grid";
@@ -38,8 +41,19 @@ export default async function AgendarPage() {
                     <ActiveAppointmentNotice
                         psychologistName={activeAppointment.psychologist.name}
                         dateTime={activeAppointment.dateTime}
-                        patientTimezone={activeAppointment.timezone ?? undefined}
+                        patientTimezone={
+                            activeAppointment.timezone ?? undefined
+                        }
                     />
+                </section>
+            );
+        }
+
+        if (await hasUnpaidCompletedSession(session.user.id)) {
+            return (
+                <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
+                    <BookingStepper currentStep={1} />
+                    <ActiveAppointmentNotice variant="unpaid_session" />
                 </section>
             );
         }
@@ -59,7 +73,8 @@ export default async function AgendarPage() {
                     Elige a tu psicólogo
                 </h1>
                 <p className="mt-3 text-muted-foreground">
-                    Selecciona al profesional con el que deseas agendar tu sesión
+                    Selecciona al profesional con el que deseas agendar tu
+                    sesión
                 </p>
             </div>
 

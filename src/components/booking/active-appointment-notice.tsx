@@ -2,22 +2,49 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { TZDate } from "@date-fns/tz";
-import { CalendarClockIcon } from "lucide-react";
+import { CalendarClockIcon, ReceiptTextIcon } from "lucide-react";
 import { CARACAS_TZ } from "@/lib/availability";
 
 type ActiveAppointmentNoticeProps = {
-    psychologistName: string;
-    dateTime: Date;
+    /** Defaults to "active_appointment" (today's only behavior). */
+    variant?: "active_appointment" | "unpaid_session";
+    /** Required for "active_appointment", unused for "unpaid_session". */
+    psychologistName?: string;
+    dateTime?: Date;
     patientTimezone?: string;
 };
 
 export function ActiveAppointmentNotice({
+    variant = "active_appointment",
     psychologistName,
     dateTime,
     patientTimezone,
 }: ActiveAppointmentNoticeProps) {
+    if (variant === "unpaid_session") {
+        return (
+            <div className="mx-auto max-w-md rounded-lg bg-card p-8 text-center ring-1 ring-border/50">
+                <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-secondary">
+                    <ReceiptTextIcon className="size-8 text-muted-foreground" />
+                </div>
+                <h2 className="font-heading text-2xl font-bold">
+                    Tienes una sesión sin pagar
+                </h2>
+                <p className="mt-2 text-muted-foreground">
+                    Tienes una sesión ya realizada con un cobro pendiente. Paga
+                    esa sesión antes de agendar una nueva.
+                </p>
+                <Link
+                    href="/mi-cuenta/citas"
+                    className="mt-6 inline-flex items-center justify-center rounded-full bg-accent px-6 py-2.5 text-sm font-medium text-accent-foreground transition-all hover:scale-[1.02] hover:bg-accent/80"
+                >
+                    Pagar sesión pendiente
+                </Link>
+            </div>
+        );
+    }
+
     const dateTimeInPatientTz = new TZDate(
-        dateTime,
+        dateTime ?? new Date(),
         patientTimezone ?? CARACAS_TZ,
     );
     const formattedDate = format(

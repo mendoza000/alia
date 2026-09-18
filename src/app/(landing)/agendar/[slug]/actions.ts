@@ -9,7 +9,11 @@ import {
     getBlockingAppointments,
     getConfirmedCountsByDate,
 } from "@/lib/queries/appointments";
-import { getActivePatientAppointment } from "@/lib/queries/patient-appointments";
+import {
+    getActivePatientAppointment,
+    hasUnpaidCompletedSession,
+} from "@/lib/queries/patient-appointments";
+import { isBlockingUnpaidSession } from "@/lib/patient/unpaid-session";
 import { getCachedFreeBusyPeriods } from "@/lib/google-calendar";
 import { confirmAndNotifyAppointment } from "@/lib/appointments/confirm-and-notify";
 import {
@@ -52,6 +56,13 @@ export async function createAppointment(input: {
         return {
             success: false,
             error: "Ya tienes una sesión activa. Solo puedes tener una sesión pendiente o confirmada a la vez.",
+        };
+    }
+
+    if (await hasUnpaidCompletedSession(session.user.id)) {
+        return {
+            success: false,
+            error: "Tienes una sesión completada con un pago pendiente. Paga esa sesión antes de agendar una nueva.",
         };
     }
 
@@ -219,6 +230,21 @@ export async function createAppointment(input: {
                 throw new Error("PATIENT_HAS_ACTIVE_APPOINTMENT");
             }
 
+            const unpaidCandidates = await tx.appointment.findMany({
+                where: {
+                    userId: session.user.id,
+                    status: { in: ["COMPLETED", "NO_SHOW"] },
+                },
+                select: {
+                    status: true,
+                    finalizedAt: true,
+                    payment: { select: { status: true, refundStatus: true } },
+                },
+            });
+            if (unpaidCandidates.some(c => isBlockingUnpaidSession(c, now))) {
+                throw new Error("UNPAID_SESSION_PENDING");
+            }
+
             return tx.appointment.create({
                 data: {
                     userId: session.user.id,
@@ -283,6 +309,15 @@ export async function createAppointment(input: {
             return {
                 success: false,
                 error: "Ya tienes una sesión activa. Solo puedes tener una sesión pendiente o confirmada a la vez.",
+            };
+        }
+        if (
+            error instanceof Error &&
+            error.message === "UNPAID_SESSION_PENDING"
+        ) {
+            return {
+                success: false,
+                error: "Tienes una sesión completada con un pago pendiente. Paga esa sesión antes de agendar una nueva.",
             };
         }
         throw error;

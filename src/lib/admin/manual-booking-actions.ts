@@ -10,7 +10,10 @@ import {
     getBlockingAppointments,
     getConfirmedCountsByDate,
 } from "@/lib/queries/appointments";
-import { getActivePatientAppointment } from "@/lib/queries/patient-appointments";
+import {
+    getActivePatientAppointment,
+    hasUnpaidCompletedSession,
+} from "@/lib/queries/patient-appointments";
 import { getCachedFreeBusyPeriods } from "@/lib/google-calendar";
 import { confirmAndNotifyAppointment } from "@/lib/appointments/confirm-and-notify";
 import {
@@ -177,8 +180,25 @@ export async function createManualAppointment(
     const patientId = user.id;
 
     const activeAppointment = await getActivePatientAppointment(patientId);
-    const warning = activeAppointment
-        ? "Este paciente ya tenía una sesión activa. Se creó igual por ser un agendamiento manual."
+    const activeAppointmentWarning = activeAppointment
+        ? "Este paciente ya tenía una sesión activa."
+        : undefined;
+
+    // Soft warning, not a hard block — consistent with the active-appointment
+    // conflict above: manual booking by staff is the sanctioned override
+    // path for both. If the client actually wants staff hard-blocked instead
+    // for an unpaid session, this is a one-branch change (return an error
+    // instead of composing the warning string) — flagged for confirmation.
+    const hasUnpaid = await hasUnpaidCompletedSession(patientId);
+    const unpaidWarning = hasUnpaid
+        ? "Este paciente tiene una sesión completada sin pagar."
+        : undefined;
+
+    const combinedWarning = [activeAppointmentWarning, unpaidWarning]
+        .filter(Boolean)
+        .join(" ");
+    const warning = combinedWarning
+        ? `${combinedWarning} Se creó igual por ser un agendamiento manual.`
         : undefined;
 
     let appointmentId: string;

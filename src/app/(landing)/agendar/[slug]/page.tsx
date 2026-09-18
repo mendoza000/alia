@@ -16,7 +16,10 @@ import {
     getConfirmedCountsByDate,
 } from "@/lib/queries/appointments";
 import { getTimeOffOverlapping } from "@/lib/admin/time-off-actions";
-import { getActivePatientAppointment } from "@/lib/queries/patient-appointments";
+import {
+    getActivePatientAppointment,
+    hasUnpaidCompletedSession,
+} from "@/lib/queries/patient-appointments";
 import { TZDate } from "@date-fns/tz";
 import { startOfMonth, endOfMonth } from "date-fns";
 import { BookingStepper } from "@/components/booking/booking-stepper";
@@ -71,6 +74,15 @@ export default async function BookingPage({ params, searchParams }: Props) {
                             activeAppointment.timezone ?? undefined
                         }
                     />
+                </section>
+            );
+        }
+
+        if (await hasUnpaidCompletedSession(session.user.id)) {
+            return (
+                <section className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-16 mt-10 lg:mt-20">
+                    <BookingStepper currentStep={2} />
+                    <ActiveAppointmentNotice variant="unpaid_session" />
                 </section>
             );
         }
