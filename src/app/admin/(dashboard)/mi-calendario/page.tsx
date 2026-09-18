@@ -1,15 +1,12 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { Settings } from "lucide-react";
 import { TZDate } from "@date-fns/tz";
 import { prisma } from "@/lib/db";
 import { requirePermission } from "@/lib/auth/require";
 import { CARACAS_TZ } from "@/lib/availability";
-import { getTimeOffForPsychologist } from "@/lib/admin/time-off-actions";
-import { getPsychologistCalendarMonth } from "@/lib/admin/psychologist-calendar-queries";
-import { ScheduleEditor } from "@/components/admin/schedule-editor";
-import { TimeOffEditor } from "@/components/admin/time-off-editor";
+import { getPsychologistCalendarRange } from "@/lib/admin/psychologist-calendar-queries";
 import { PsychologistDayCalendar } from "@/components/admin/psychologist-day-calendar";
-import { WhatsappTemplatesEditor } from "@/components/admin/whatsapp-templates-editor";
 import { PageHeader } from "@/components/admin/page-header";
 import { Button } from "@/components/ui/button";
 
@@ -31,82 +28,52 @@ export default async function MiCalendarioPage() {
     }
 
     const now = new TZDate(new Date(), CARACAS_TZ);
-    const initialYear = now.getFullYear();
-    const initialMonth = now.getMonth() + 1;
+    const initialRangeStart = new TZDate(
+        now.getFullYear(),
+        now.getMonth(),
+        1,
+        CARACAS_TZ,
+    );
+    const initialRangeEnd = new TZDate(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        1,
+        CARACAS_TZ,
+    );
 
-    const [psychologist, timeOffs, calendarMonth] = await Promise.all([
-        prisma.psychologist.findUnique({
-            where: { id: actor.psychologistId },
-            include: { schedules: true },
-        }),
-        getTimeOffForPsychologist(actor.psychologistId),
-        getPsychologistCalendarMonth(
-            actor.psychologistId,
-            initialYear,
-            initialMonth,
-        ),
-    ]);
-
+    const psychologist = await prisma.psychologist.findUnique({
+        where: { id: actor.psychologistId },
+        select: { id: true },
+    });
     if (!psychologist) redirect("/admin");
 
+    const calendarRange = await getPsychologistCalendarRange(
+        psychologist.id,
+        initialRangeStart,
+        initialRangeEnd,
+    );
+
     return (
-        <div className="space-y-8">
+        <div className="space-y-6">
             <PageHeader
                 title="Mi calendario"
-                description="Gestiona tu horario semanal y tus días libres"
+                description="Tus citas, días libres y bloqueos de horario"
                 actions={
-                    <Link href="/admin/citas">
-                        <Button variant="outline">Ver mi agenda</Button>
+                    <Link href="/admin/mi-calendario/ajustes">
+                        <Button variant="outline">
+                            <Settings />
+                            Horario y plantillas
+                        </Button>
                     </Link>
                 }
             />
 
-            <div className="space-y-3">
-                <h2 className="font-heading text-lg font-semibold">
-                    Calendario
-                </h2>
-                <PsychologistDayCalendar
-                    psychologistId={psychologist.id}
-                    initialYear={initialYear}
-                    initialMonth={initialMonth}
-                    initialData={calendarMonth}
-                />
-            </div>
-
-            <div className="space-y-3">
-                <h2 className="font-heading text-lg font-semibold">
-                    Horario semanal
-                </h2>
-                <ScheduleEditor
-                    psychologistId={psychologist.id}
-                    initialSchedules={psychologist.schedules}
-                />
-            </div>
-
-            <div className="space-y-3">
-                <h2 className="font-heading text-lg font-semibold">
-                    Días libres
-                </h2>
-                <TimeOffEditor
-                    psychologistId={psychologist.id}
-                    initialTimeOffs={timeOffs}
-                />
-            </div>
-
-            <div className="space-y-3">
-                <h2 className="font-heading text-lg font-semibold">
-                    Plantillas de WhatsApp
-                </h2>
-                <WhatsappTemplatesEditor
-                    psychologistId={psychologist.id}
-                    initialReminderTemplate={
-                        psychologist.whatsappReminderTemplate
-                    }
-                    initialTodaySessionTemplate={
-                        psychologist.whatsappTodaySessionTemplate
-                    }
-                />
-            </div>
+            <PsychologistDayCalendar
+                psychologistId={psychologist.id}
+                initialRangeStart={initialRangeStart}
+                initialRangeEnd={initialRangeEnd}
+                initialData={calendarRange}
+            />
         </div>
     );
 }
