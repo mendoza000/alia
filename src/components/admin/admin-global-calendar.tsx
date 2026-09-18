@@ -2,6 +2,7 @@
 
 import "temporal-polyfill/global";
 import type {} from "temporal-spec/global";
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -16,6 +17,7 @@ import { createCurrentTimePlugin } from "@schedule-x/current-time";
 import "@schedule-x/theme-default/dist/index.css";
 import "./psychologist-day-calendar.css";
 import { CARACAS_TZ, toCaracasDate } from "@/lib/availability";
+import { cn } from "@/lib/utils";
 import {
     caracasDateKey,
     toZonedDateTime,
@@ -34,9 +36,16 @@ import { buildPsychologistCalendars } from "@/lib/admin/psychologist-color-slots
 
 type RangeData = { appointments: GlobalCalendarAppointment[] };
 
-function mapToCalendarEvents(data: RangeData): CalendarEvent[] {
+function mapToCalendarEvents(
+    data: RangeData,
+    hiddenPsychologistIds: Set<string>,
+): CalendarEvent[] {
     return data.appointments
-        .filter(a => a.status !== "CANCELLED")
+        .filter(
+            a =>
+                a.status !== "CANCELLED" &&
+                !hiddenPsychologistIds.has(a.psychologistId),
+        )
         .map(a => {
             const title = `${a.patientName} · ${a.psychologistName}`;
             return {
@@ -73,6 +82,28 @@ export function AdminGlobalCalendar({
     const [selectedAppointmentId, setSelectedAppointmentId] = useState<
         string | null
     >(null);
+    const [hiddenPsychologistIds, setHiddenPsychologistIds] = useState<
+        Set<string>
+    >(new Set());
+    // fetchEvents is captured once by useCalendarApp at mount, so it would
+    // otherwise always see the empty Set from that first render — this ref
+    // lets it read the current filter on every navigation.
+    const hiddenIdsRef = useRef<Set<string>>(new Set());
+    useEffect(() => {
+        hiddenIdsRef.current = hiddenPsychologistIds;
+    }, [hiddenPsychologistIds]);
+
+    function togglePsychologist(id: string) {
+        setHiddenPsychologistIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    }
 
     // See the same note in psychologist-day-calendar.tsx — Schedule-X
     // doesn't visually mark a clicked date itself, so we reapply our own
@@ -111,7 +142,7 @@ export function AdminGlobalCalendar({
                         new Date(end.epochMilliseconds),
                     );
                     setRangeData(data);
-                    return mapToCalendarEvents(data);
+                    return mapToCalendarEvents(data, hiddenIdsRef.current);
                 },
                 onClickDate: date => setSelectedDateStr(date.toString()),
                 onClickDateTime: dateTime =>
@@ -135,11 +166,21 @@ export function AdminGlobalCalendar({
         [createCurrentTimePlugin()],
     );
 
+    // Toggling the legend doesn't trigger a range fetch — push the
+    // re-filtered events straight to the calendar's own event list.
+    useEffect(() => {
+        calendarApp?.events.set(
+            mapToCalendarEvents(rangeData, hiddenPsychologistIds),
+        );
+    }, [calendarApp, rangeData, hiddenPsychologistIds]);
+
     const appointmentsByDate = useMemo(
         () => groupAppointmentsByDate(rangeData.appointments),
         [rangeData],
     );
-    const dayAppointments = appointmentsByDate[selectedDateStr] ?? [];
+    const dayAppointments = (appointmentsByDate[selectedDateStr] ?? []).filter(
+        a => !hiddenPsychologistIds.has(a.psychologistId),
+    );
     const selectedDateLabel = format(
         toCaracasDate(selectedDateStr, "00:00"),
         "EEEE d 'de' MMMM",
@@ -148,21 +189,48 @@ export function AdminGlobalCalendar({
 
     return (
         <div className="sx-alia-theme space-y-4">
-            <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-                {roster.map((p, index) => (
-                    <div
-                        key={p.id}
-                        className="flex items-center gap-1.5 text-xs text-muted-foreground"
-                    >
-                        <span
-                            className="size-2.5 rounded-full"
-                            style={{
-                                backgroundColor: `var(--sx-color-psy-${index % 8})`,
-                            }}
-                        />
-                        {p.name}
-                    </div>
-                ))}
+            <div>
+                <p className="mb-1.5 text-xs text-muted-foreground">
+                    Haz clic en el color para mostrar u ocultar sus citas, o en
+                    el nombre para ir a su calendario.
+                </p>
+                <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                    {roster.map((p, index) => {
+                        const isHidden = hiddenPsychologistIds.has(p.id);
+                        return (
+                            <div
+                                key={p.id}
+                                className="flex items-center gap-1.5 text-xs"
+                            >
+                                <button
+                                    type="button"
+                                    onClick={() => togglePsychologist(p.id)}
+                                    title={
+                                        isHidden
+                                            ? "Mostrar en el calendario"
+                                            : "Ocultar del calendario"
+                                    }
+                                    className="size-2.5 rounded-full transition-opacity"
+                                    style={{
+                                        backgroundColor: `var(--sx-color-psy-${index % 8})`,
+                                        opacity: isHidden ? 0.25 : 1,
+                                    }}
+                                />
+                                <Link
+                                    href={`/admin/psicologos/${p.id}/calendario`}
+                                    className={cn(
+                                        "hover:text-foreground hover:underline",
+                                        isHidden
+                                            ? "text-muted-foreground/50"
+                                            : "text-muted-foreground",
+                                    )}
+                                >
+                                    {p.name}
+                                </Link>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4 lg:h-[calc(100vh-330px)] lg:min-h-[520px] lg:grid-cols-[1fr_320px]">
