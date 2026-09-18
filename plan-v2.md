@@ -255,28 +255,29 @@ Implementada según el plan corregido. El hallazgo más importante de la etapa d
 
 ---
 
-## Fase 5 — Aprobaciones
+## Fase 5 — Aprobaciones ✅ implementada
 
-### 5.1 Schema y lógica
-- [ ] Modelo `ApprovalRequest { id, type ApprovalType, status ApprovalStatus @default(PENDING), requestedByUserId, targetId String?, payload Json, decidedByUserId String?, decidedAt DateTime?, decisionNote String?, createdAt }`; enums `ApprovalType { CUSTOM_PAYMENT_AMOUNT REFUND_REQUEST }` (extensible) y `ApprovalStatus { PENDING APPROVED REJECTED }`. Migración.
-- [ ] `src/lib/admin/approval-actions.ts`: `requestApproval(type, targetId, payload)` (permiso `approval.request`), `approveRequest(id, note?)` y `rejectRequest(id, note?)` (permiso `approval.decide`, **admin o asistente** — no solo admin; ver nota de negocio de la Fase 0 para el caso donde el payload fija un porcentaje de comisión arbitrario, que sigue exigiendo `settings.write`).
-- [ ] Al aprobar `CUSTOM_PAYMENT_AMOUNT`: escribir `Appointment.agreedAmount/agreedCurrency` y generar el link, reusando `resolveCheckoutUrl`.
+### 5.1 Schema y lógica — hecho
+- [x] Modelo `ApprovalRequest { id, type ApprovalType, status ApprovalStatus @default(PENDING), requestedByUserId, targetId, payload Json, decidedByUserId, decidedAt, decisionNote, createdAt }`; enums `ApprovalType { CUSTOM_PAYMENT_AMOUNT REFUND_REQUEST }` y `ApprovalStatus { PENDING APPROVED REJECTED }`. Migración `20260919000000_add_approvals_and_refund_status`. **Desviación menor**: `targetId` quedó `String` (no `String?`) — ambos tipos de solicitud siempre tienen un target real, no había caso de uso para dejarlo opcional.
+- [x] `src/lib/auth/permissions.ts`: `approval.request`/`approval.decide`/`settings.write` ya estaban forward-declared desde la Fase 0 — solo hizo falta un fix de una línea (`approval.request` faltaba en el array de `assistant`, necesario para que asistente pueda solicitar `REFUND_REQUEST`), con test primero en `permissions.test.ts`.
+- [x] `src/lib/approvals.ts` (TDD, puro): `requiresSettingsWriteEscalation(payoutType)` — el punto de aplicación de la regla de negocio de la Fase 0 (comisión arbitraria fuera de los 4 `PayoutType` exige `settings.write`).
+- [x] `src/lib/admin/approval-actions.ts`: `requestApproval(type, targetId, payload)` (permiso `approval.request`), `approveRequest(id, note?)` y `rejectRequest(id, note?)` (permiso `approval.decide`, admin o asistente).
+- [x] Al aprobar `CUSTOM_PAYMENT_AMOUNT`: escribe `Appointment.agreedAmount/agreedCurrency/agreedPayoutType` y solo regenera el link si ya existe un `Payment` (mismo precedente que `updateAgreedPrice`), reusando `resolveCheckoutUrl` (exportada desde `payment-actions.ts`, sin cambios de firma).
 
-### 5.1b `REFUND_REQUEST` (PRD §6.4/§9, nuevo en v1.1 — reemplaza el refund automático)
-El caso de uso no es "devolver un pago hecho por adelantado" (en ALIA el cobro es posterior a la sesión) sino corregir un cobro mal hecho: monto o moneda incorrecta, cobro duplicado. **Nunca se llama a la API de reembolso de Stripe.**
-- [ ] `requestApproval(REFUND_REQUEST, paymentId, { reason })`: permiso `approval.request` ampliado — a diferencia de `CUSTOM_PAYMENT_AMOUNT` (solo psicólogo sobre su propia cita), acá cualquier staff con acceso al pago puede solicitarlo (admin, asistente, psicólogo sobre lo propio).
-- [ ] Schema: agregar valores a `PaymentStatus` (o campo `refundStatus` aparte — decidir al escribir la migración, documentar en el commit) para distinguir "reembolso aprobado, pendiente de ejecución manual" de "reembolso ejecutado".
-- [ ] Al aprobar: marcar el `Payment` como reembolso aprobado — **no** dispara ninguna llamada a Stripe.
-- [ ] Nueva action `markRefundExecuted(paymentId)` (permiso `payment.commission.write`, solo admin, solo si está en estado "reembolso aprobado"): la usa el admin después de ejecutar el reembolso manualmente desde el dashboard de Stripe.
+### 5.1b `REFUND_REQUEST` — hecho
+- [x] `requestApproval(REFUND_REQUEST, paymentId, { reason })`: cualquier staff con acceso al pago (admin, asistente, psicólogo sobre lo propio vía `requireOwnAppointment`).
+- [x] **Decisión de schema**: `Payment.refundStatus RefundStatus? { PENDING_EXECUTION EXECUTED }` como campo nuevo, no valores nuevos de `PaymentStatus` — evita tocar los switches/`Record` existentes exhaustivos sobre `PaymentStatus` (p. ej. `statusConfig` de `payment-table.tsx`).
+- [x] Al aprobar: `Payment.refundStatus = "PENDING_EXECUTION"` — **no** dispara ninguna llamada a Stripe (verificado: `approveRequest` solo hace `prisma.payment.update`).
+- [x] `markRefundExecuted(paymentId)` (permiso `payment.commission.write` + chequeo explícito `actor.role === "admin"`, solo si `refundStatus === "PENDING_EXECUTION"`) — tampoco llama a Stripe.
 
-### 5.2 UI y avisos
-- [ ] Página `/admin/aprobaciones`: tabla de pendientes con detalle (quién, qué cita/pago, monto solicitado vs tarifa, o motivo del reembolso) y acciones aprobar/rechazar con nota.
-- [ ] `getAdminAlerts`: sumar "N solicitudes pendientes de aprobación" (monto + reembolso) con `href: "/admin/aprobaciones"`.
-- [ ] Correo al admin/asistente al crear la solicitud y al solicitante al resolverse (plantillas nuevas en `emails/`, una por tipo).
-- [ ] En el diálogo de link de pago, si el actor es psicólogo y pide monto distinto a la tarifa: el botón pasa a "Solicitar aprobación".
-- [ ] En `payment-table.tsx`/`appointments-table.tsx` (Fase 8): acción "Solicitar reembolso" visible para cualquier staff con acceso al pago; tras aprobarse, mostrar el estado "reembolso aprobado — pendiente de ejecución manual" y, para admin, el botón "Marcar reembolso ejecutado".
+### 5.2 UI y avisos — hecho
+- [x] Página `/admin/aprobaciones` (`approvals-table.tsx` + `decide-approval-dialog.tsx`): lista scoped (admin/asistente ven todas, psicólogo solo las propias, solo lectura), aprobar/rechazar con nota. `getApprovals` resuelve el contexto polimórfico de `targetId` (appointmentId vs paymentId) por lote, sin N+1.
+- [x] `getAdminAlerts`: alerta agregada "N solicitudes pendientes de aprobación", scoped por `requestedByUserId` para un psicólogo (no hay columna `psychologistId` en `ApprovalRequest`).
+- [x] Dos plantillas de correo (`approval-requested.tsx`, `approval-decided.tsx`), parametrizadas por tipo en vez de 4 plantillas separadas — el texto entre monto/reembolso se superpone demasiado como para justificar la duplicación.
+- [x] `generate-payment-link-dialog.tsx`: **bug real cerrado de paso** — el botón "Editar precio de esta sesión" se mostraba sin condición alguna, así que un psicólogo lo veía y al usarlo chocaba con el `ForbiddenError` de `updateAgreedPrice`. Ahora, con `canEditPrice=false`, el botón pasa a "Solicitar aprobación de monto" (`RequestCustomAmountDialog`, nuevo).
+- [ ] **Diferido a Fase 8** (como estaba previsto): acción "Solicitar reembolso" en `payment-table.tsx`/`appointments-table.tsx`, y el estado "reembolso aprobado — pendiente de ejecución" + botón "Marcar reembolso ejecutado" en esas tablas. El backend completo ya existe (`requestApproval("REFUND_REQUEST", ...)`, `approveRequest`, `markRefundExecuted`); solo falta el punto de entrada en la UI de pagos/citas.
 
-**Verificación 5**: como psicólogo, solicitar un monto personalizado; como admin **o como asistente**, verlo en aprobaciones, aprobarlo y confirmar que el link se genera con el monto aprobado. Generar una solicitud de reembolso sobre un pago mal cobrado, aprobarla y confirmar que el sistema **no** llama a la API de Stripe — solo la deja pendiente de ejecución manual.
+**Verificación 5**: `bunx tsc --noEmit` limpio, `bunx biome check` limpio en los archivos tocados, `bun test` sin regresiones (64 pass, mismos 4 fallos preexistentes). Pendiente la verificación manual real: como psicólogo, solicitar un monto personalizado; como admin **y** como asistente, verlo en aprobaciones, aprobarlo y confirmar que el link se genera con el monto aprobado; generar una solicitud de reembolso sobre un pago mal cobrado (sin botón dedicado todavía — invocar la action directo), aprobarla y confirmar que el sistema **no** llama a la API de Stripe.
 
 ---
 
