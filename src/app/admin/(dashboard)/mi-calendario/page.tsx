@@ -5,6 +5,7 @@ import { requirePermission } from "@/lib/auth/require";
 import { getTimeOffForPsychologist } from "@/lib/admin/time-off-actions";
 import { ScheduleEditor } from "@/components/admin/schedule-editor";
 import { TimeOffEditor } from "@/components/admin/time-off-editor";
+import { WhatsappTemplatesEditor } from "@/components/admin/whatsapp-templates-editor";
 import { PageHeader } from "@/components/admin/page-header";
 import { Button } from "@/components/ui/button";
 
@@ -64,6 +65,21 @@ export default async function MiCalendarioPage() {
                 <TimeOffEditor
                     psychologistId={psychologist.id}
                     initialTimeOffs={timeOffs}
+                />
+            </div>
+
+            <div className="space-y-3">
+                <h2 className="font-heading text-lg font-semibold">
+                    Plantillas de WhatsApp
+                </h2>
+                <WhatsappTemplatesEditor
+                    psychologistId={psychologist.id}
+                    initialReminderTemplate={
+                        psychologist.whatsappReminderTemplate
+                    }
+                    initialTodaySessionTemplate={
+                        psychologist.whatsappTodaySessionTemplate
+                    }
                 />
             </div>
         </div>

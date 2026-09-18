@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getPsychologistById } from "@/lib/admin/psychologist-queries";
 import { PsychologistDetailHeader } from "@/components/admin/psychologist-detail-header";
 import { ScheduleEditor } from "@/components/admin/schedule-editor";
+import { WhatsappTemplatesEditor } from "@/components/admin/whatsapp-templates-editor";
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("es-CO", {
@@ -63,6 +64,26 @@ export default async function PsychologistDetailPage({
             <ScheduleEditor
               psychologistId={psychologist.id}
               initialSchedules={psychologist.schedules}
+            />
+          </div>
+
+          {/* WhatsApp templates */}
+          <div className="rounded-lg border border-border bg-card p-6">
+            <div className="mb-4">
+              <h2 className="font-heading text-lg font-semibold">
+                Plantillas de WhatsApp
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Mensajes de recordatorio y de sesión del día para este
+                psicólogo
+              </p>
+            </div>
+            <WhatsappTemplatesEditor
+              psychologistId={psychologist.id}
+              initialReminderTemplate={psychologist.whatsappReminderTemplate}
+              initialTodaySessionTemplate={
+                psychologist.whatsappTodaySessionTemplate
+              }
             />
           </div>
         </div>
