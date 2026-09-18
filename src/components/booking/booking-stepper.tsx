@@ -5,7 +5,7 @@ import { ease } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 const STEPS = [
-    { label: "Psicólogo" },
+    { label: "Modalidad" },
     { label: "Horario" },
     { label: "Formulario" },
     { label: "Confirmación" },

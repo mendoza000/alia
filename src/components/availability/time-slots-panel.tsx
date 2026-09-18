@@ -11,7 +11,9 @@ import { formatInTimezone } from "@/lib/timezones";
 type TimeSlotsPanelProps = {
     date: Date | null;
     slots: TimeSlot[];
-    psychologistSlug: string;
+    /** Only read by the Link-fallback branch below, which never renders
+     * when onSlotSelect is supplied. */
+    psychologistSlug?: string;
     onSlotSelect?: (date: string, time: string) => void;
     patientTimezone?: string;
 };

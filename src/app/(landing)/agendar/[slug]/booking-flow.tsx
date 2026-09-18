@@ -4,7 +4,6 @@ import {
     useCallback,
     useEffect,
     useMemo,
-    useRef,
     useState,
     useTransition,
 } from "react";
@@ -21,26 +20,15 @@ import { trackInitiateCheckout } from "@/lib/analytics/events";
 import type { Psychologist, Schedule } from "@/generated/prisma/client";
 import type { MonthAvailability } from "@/lib/availability";
 import { CARACAS_TZ } from "@/lib/availability";
-import {
-    TIMEZONE_OPTIONS,
-    detectBrowserTimezone,
-    formatInTimezone,
-    matchTimezoneOption,
-} from "@/lib/timezones";
+import { detectBrowserTimezone, formatInTimezone } from "@/lib/timezones";
 import { AvailabilityCalendar } from "@/components/availability/availability-calendar";
-import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
-import { EmailSignInForm } from "@/components/auth/email-sign-in-form";
+import { getMonthAvailability } from "@/app/(landing)/psicologos/[slug]/actions";
 import { useSession, signOut } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
 import { BookingStepper } from "@/components/booking/booking-stepper";
+import { TimezoneConfirmStep } from "@/components/booking/timezone-confirm-step";
+import { AuthStep } from "@/components/booking/auth-step";
 import { CURRENT_TERMS_VERSION } from "@/lib/legal/terms";
 import { createAppointment } from "./actions";
 
@@ -165,7 +153,7 @@ export function BookingFlow({
     const callbackURL = `/agendar/${psychologist.slug}${
         selectedDate && selectedTime
             ? `?date=${encodeURIComponent(selectedDate)}&time=${encodeURIComponent(
-                  selectedTime
+                  selectedTime,
               )}${
                   confirmedTimezone
                       ? `&tz=${encodeURIComponent(confirmedTimezone)}`
@@ -232,7 +220,7 @@ export function BookingFlow({
                         transition={{ duration: 0.35, ease }}
                     >
                         <AuthStep
-                            psychologistName={psychologist.name}
+                            sessionLabel={psychologist.name}
                             selectedDate={selectedDate!}
                             selectedTime={selectedTime!}
                             patientTimezone={confirmedTimezone ?? CARACAS_TZ}
@@ -293,173 +281,16 @@ function CalendarStep({
                 Selecciona el día y horario que prefieras
             </p>
             <AvailabilityCalendar
-                psychologistId={psychologist.id}
+                fetchMonth={(y, m) =>
+                    getMonthAvailability(psychologist.id, y, m)
+                }
                 psychologistSlug={psychologist.slug}
-                schedules={psychologist.schedules}
-                sessionDuration={psychologist.sessionDuration}
                 initialAvailability={initialAvailability}
                 initialYear={initialYear}
                 initialMonth={initialMonth}
                 onSlotSelect={onSlotSelect}
                 patientTimezone={patientTimezone}
             />
-        </div>
-    );
-}
-
-// ---------- Auth Step ----------
-
-function AuthStep({
-    psychologistName,
-    selectedDate,
-    selectedTime,
-    patientTimezone,
-    callbackURL,
-    onChangeSlot,
-}: {
-    psychologistName: string;
-    selectedDate: string;
-    selectedTime: string;
-    patientTimezone: string;
-    callbackURL: string;
-    onChangeSlot: () => void;
-}) {
-    const formattedDate = format(
-        new Date(`${selectedDate}T12:00:00`),
-        "EEEE d 'de' MMMM, yyyy",
-        { locale: es },
-    );
-    const displayTime = formatInTimezone(
-        selectedDate,
-        selectedTime,
-        patientTimezone,
-    );
-
-    return (
-        <div className="mx-auto max-w-md">
-            <div className="rounded-lg bg-card p-6 ring-1 ring-border/50 sm:p-8">
-                {/* Appointment preview */}
-                <div className="mb-6 rounded-md bg-secondary/50 p-4 text-center">
-                    <p className="text-sm text-muted-foreground">Tu sesión</p>
-                    <p className="mt-1 font-medium">{psychologistName}</p>
-                    <p className="text-sm capitalize text-muted-foreground">
-                        {formattedDate} — {displayTime}
-                    </p>
-                </div>
-
-                <div className="text-center">
-                    <p className="mb-4 text-sm text-muted-foreground">
-                        Inicia sesión para continuar con tu agendamiento
-                    </p>
-                    <GoogleSignInButton callbackURL={callbackURL} />
-                </div>
-
-                <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
-                    <div className="h-px flex-1 bg-border" />o continúa con
-                    correo
-                    <div className="h-px flex-1 bg-border" />
-                </div>
-
-                <EmailSignInForm callbackURL={callbackURL} />
-
-                <p className="mt-6 text-center text-sm text-muted-foreground">
-                    ¿No tienes cuenta?{" "}
-                    <Link
-                        href={`/registro?callbackURL=${encodeURIComponent(callbackURL)}`}
-                        className="font-medium underline-offset-2 hover:underline"
-                    >
-                        Crea una
-                    </Link>
-                </p>
-
-                <button
-                    type="button"
-                    onClick={onChangeSlot}
-                    className="mt-4 block w-full text-center text-sm text-muted-foreground underline-offset-2 hover:underline"
-                >
-                    Cambiar horario
-                </button>
-            </div>
-        </div>
-    );
-}
-
-// ---------- Timezone Confirm Step ----------
-
-function TimezoneConfirmStep({
-    detectedTimezone,
-    onConfirm,
-}: {
-    detectedTimezone: string;
-    onConfirm: (timezone: string) => void;
-}) {
-    const detectedOption = useMemo(
-        () => matchTimezoneOption(detectedTimezone),
-        [detectedTimezone],
-    );
-    const [selected, setSelected] = useState(detectedOption.value);
-    const hasManualSelection = useRef(false);
-
-    // detectedTimezone starts as a hydration-safe placeholder and is
-    // corrected right after mount (see BookingFlow). Follow that correction
-    // until the patient picks a value themselves.
-    useEffect(() => {
-        if (!hasManualSelection.current) setSelected(detectedOption.value);
-    }, [detectedOption.value]);
-
-    const options = useMemo(() => {
-        const hasDetected = TIMEZONE_OPTIONS.some(
-            o => o.value === detectedOption.value,
-        );
-        return hasDetected
-            ? TIMEZONE_OPTIONS
-            : [detectedOption, ...TIMEZONE_OPTIONS];
-    }, [detectedOption]);
-
-    return (
-        <div className="mx-auto max-w-md">
-            <div className="rounded-lg bg-card p-6 ring-1 ring-border/50 sm:p-8 text-center">
-                <p className="text-sm text-muted-foreground">
-                    Detectamos que tu zona horaria es
-                </p>
-                <p className="mt-1 font-medium">{detectedOption.label}</p>
-                <p className="mt-3 text-sm text-muted-foreground">
-                    Tu sesión se mostrará en esta hora para evitar confusiones.
-                    ¿Es correcta?
-                </p>
-
-                <div className="mt-5 flex justify-center">
-                    <Select
-                        items={options}
-                        value={selected}
-                        onValueChange={value => {
-                            if (value) {
-                                hasManualSelection.current = true;
-                                setSelected(value);
-                            }
-                        }}
-                    >
-                        <SelectTrigger className="w-full">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {options.map(o => (
-                                <SelectItem key={o.value} value={o.value}>
-                                    {o.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-
-                <Button
-                    onClick={() => onConfirm(selected)}
-                    className="mt-6 w-full bg-accent text-accent-foreground hover:bg-accent/80"
-                    size="lg"
-                >
-                    Confirmar
-                </Button>
-            </div>
         </div>
     );
 }

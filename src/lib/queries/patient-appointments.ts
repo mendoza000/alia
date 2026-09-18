@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { isBlockingUnpaidSession } from "@/lib/patient/unpaid-session";
+import type { SessionType } from "@/generated/prisma/enums";
 
 export async function getPatientAppointments(userId: string) {
     return prisma.appointment.findMany({
@@ -72,12 +73,22 @@ export async function getBlockingUnpaidAppointment(userId: string) {
     return appointments.find(a => isBlockingUnpaidSession(a, now)) ?? null;
 }
 
-export async function getActivePatientAppointment(userId: string) {
+/**
+ * Per-modality (Fase 7.2) — individual and pareja are independent booking
+ * tracks (plan-v2.md's "Decisiones ya tomadas"), so a patient can have an
+ * active individual appointment and separately book pareja. Deliberately
+ * distinct from hasUnpaidCompletedSession, which stays global (Fase 6).
+ */
+export async function getActivePatientAppointment(
+    userId: string,
+    sessionType: SessionType,
+) {
     const now = new Date();
 
     return prisma.appointment.findFirst({
         where: {
             userId,
+            sessionType,
             OR: [
                 { status: "CONFIRMED", endTime: { gt: now } },
                 {
@@ -93,4 +104,26 @@ export async function getActivePatientAppointment(userId: string) {
         },
         orderBy: { dateTime: "asc" },
     });
+}
+
+/**
+ * The recurring-patient "always your assigned specialist, per modality"
+ * rule — derived from appointment history, no new column (same pattern as
+ * Fase 6's getPatientTracks). Returns null for a first-time patient in that
+ * modality, in which case the match engine picks by load instead.
+ */
+export async function getAssignedPsychologistForModality(
+    userId: string,
+    sessionType: SessionType,
+): Promise<string | null> {
+    const appointment = await prisma.appointment.findFirst({
+        where: {
+            userId,
+            sessionType,
+            status: { in: ["CONFIRMED", "COMPLETED"] },
+        },
+        orderBy: { dateTime: "desc" },
+        select: { psychologistId: true },
+    });
+    return appointment?.psychologistId ?? null;
 }

@@ -4,24 +4,26 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { es } from "date-fns/locale";
 import { format } from "date-fns";
-import type { Schedule } from "@/generated/prisma/client";
 import {
     CARACAS_TZ,
     type MonthAvailability,
     type TimeSlot,
 } from "@/lib/availability";
 import { detectBrowserTimezone } from "@/lib/timezones";
-import { getMonthAvailability } from "@/app/(landing)/psicologos/[slug]/actions";
 import { TimeSlotsPanel } from "./time-slots-panel";
 import { cn } from "@/lib/utils";
 import type { DayButton } from "react-day-picker";
 import { Button } from "@/components/ui/button";
 
 type AvailabilityCalendarProps = {
-    psychologistId: string;
-    psychologistSlug: string;
-    schedules: Schedule[];
-    sessionDuration: number;
+    /** Resolves a given month's availability — a single psychologist's
+     * (getMonthAvailability) or the Fase 7.1 aggregated one
+     * (getAggregatedMonthAvailability), depending on the caller. */
+    fetchMonth: (year: number, month: number) => Promise<MonthAvailability>;
+    /** Only read by TimeSlotsPanel's Link-fallback branch, which never
+     * applies when onSlotSelect is supplied (true for every current call
+     * site except the read-only profile view). */
+    psychologistSlug?: string;
     initialAvailability: MonthAvailability;
     initialYear: number;
     initialMonth: number;
@@ -30,7 +32,7 @@ type AvailabilityCalendarProps = {
 };
 
 export function AvailabilityCalendar({
-    psychologistId,
+    fetchMonth,
     psychologistSlug,
     initialAvailability,
     initialYear,
@@ -88,7 +90,7 @@ export function AvailabilityCalendar({
         }
 
         startTransition(async () => {
-            const data = await getMonthAvailability(psychologistId, year, m);
+            const data = await fetchMonth(year, m);
             cacheRef.current.set(key, data);
             setAvailability(data);
         });
@@ -109,7 +111,7 @@ export function AvailabilityCalendar({
         }
 
         startTransition(async () => {
-            const data = await getMonthAvailability(psychologistId, year, m);
+            const data = await fetchMonth(year, m);
             cacheRef.current.set(key, data);
             setSelectedMonthAvailability(data);
         });

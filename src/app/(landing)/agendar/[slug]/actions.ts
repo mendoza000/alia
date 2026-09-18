@@ -49,8 +49,11 @@ export async function createAppointment(input: {
         return { success: false, error: "Debes iniciar sesión para agendar" };
     }
 
+    // Direct-slug flow is INDIVIDUAL-only today (see page.tsx's comment) —
+    // the dual-modality addendum is a lower-priority follow-up.
     const activeAppointment = await getActivePatientAppointment(
         session.user.id,
+        "INDIVIDUAL",
     );
     if (activeAppointment) {
         return {
@@ -213,6 +216,7 @@ export async function createAppointment(input: {
             const patientConflicting = await tx.appointment.findFirst({
                 where: {
                     userId: session.user.id,
+                    sessionType: "INDIVIDUAL",
                     OR: [
                         { status: "CONFIRMED", endTime: { gt: now } },
                         {
@@ -249,6 +253,7 @@ export async function createAppointment(input: {
                 data: {
                     userId: session.user.id,
                     psychologistId: data.psychologistId,
+                    sessionType: "INDIVIDUAL",
                     dateTime: slotStart,
                     endTime: slotEnd,
                     status: "PENDING_FORM",

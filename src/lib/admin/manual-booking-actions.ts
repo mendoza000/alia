@@ -179,7 +179,10 @@ export async function createManualAppointment(
     }
     const patientId = user.id;
 
-    const activeAppointment = await getActivePatientAppointment(patientId);
+    const activeAppointment = await getActivePatientAppointment(
+        patientId,
+        sessionType,
+    );
     const activeAppointmentWarning = activeAppointment
         ? "Este paciente ya tenía una sesión activa."
         : undefined;

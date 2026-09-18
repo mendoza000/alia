@@ -562,10 +562,13 @@ export function NewManualAppointmentDialog({
                         ) : (
                             <AvailabilityCalendar
                                 key={availability.psychologistId}
-                                psychologistId={availability.psychologistId}
-                                psychologistSlug=""
-                                schedules={[]}
-                                sessionDuration={0}
+                                fetchMonth={(y, m) =>
+                                    getMonthAvailability(
+                                        availability.psychologistId,
+                                        y,
+                                        m,
+                                    )
+                                }
                                 initialAvailability={availability.data}
                                 initialYear={availability.year}
                                 initialMonth={availability.month}

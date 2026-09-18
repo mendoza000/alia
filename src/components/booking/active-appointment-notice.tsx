@@ -4,6 +4,12 @@ import { es } from "date-fns/locale";
 import { TZDate } from "@date-fns/tz";
 import { CalendarClockIcon, ReceiptTextIcon } from "lucide-react";
 import { CARACAS_TZ } from "@/lib/availability";
+import type { SessionType } from "@/generated/prisma/enums";
+
+const MODALITY_LABELS: Record<SessionType, string> = {
+    INDIVIDUAL: "individual",
+    COUPLE: "de pareja",
+};
 
 type ActiveAppointmentNoticeProps = {
     /** Defaults to "active_appointment" (today's only behavior). */
@@ -12,6 +18,10 @@ type ActiveAppointmentNoticeProps = {
     psychologistName?: string;
     dateTime?: Date;
     patientTimezone?: string;
+    /** Optional — when given, names which modality is active ("sesión
+     * individual activa" / "sesión de pareja activa"). Omitted keeps
+     * today's generic copy. */
+    sessionType?: SessionType;
 };
 
 export function ActiveAppointmentNotice({
@@ -19,6 +29,7 @@ export function ActiveAppointmentNotice({
     psychologistName,
     dateTime,
     patientTimezone,
+    sessionType,
 }: ActiveAppointmentNoticeProps) {
     if (variant === "unpaid_session") {
         return (
@@ -59,7 +70,8 @@ export function ActiveAppointmentNotice({
                 <CalendarClockIcon className="size-8 text-muted-foreground" />
             </div>
             <h2 className="font-heading text-2xl font-bold">
-                Ya tienes una sesión activa
+                Ya tienes una sesión
+                {sessionType ? ` ${MODALITY_LABELS[sessionType]}` : ""} activa
             </h2>
             <p className="mt-2 text-muted-foreground">
                 Solo puedes tener una sesión pendiente o confirmada a la vez.

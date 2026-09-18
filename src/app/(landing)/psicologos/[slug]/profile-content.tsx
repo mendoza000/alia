@@ -9,6 +9,7 @@ import { formatCurrencyAmount } from "@/lib/currency";
 import type { Psychologist, Schedule } from "@/generated/prisma/client";
 import type { MonthAvailability } from "@/lib/availability";
 import { AvailabilityCalendar } from "@/components/availability/availability-calendar";
+import { getMonthAvailability } from "@/app/(landing)/psicologos/[slug]/actions";
 
 function getInitials(name: string) {
     const parts = name.split(" ").filter(Boolean);
@@ -193,10 +194,10 @@ export function ProfileContent({
                             className="mt-6"
                         >
                             <AvailabilityCalendar
-                                psychologistId={psychologist.id}
+                                fetchMonth={(y, m) =>
+                                    getMonthAvailability(psychologist.id, y, m)
+                                }
                                 psychologistSlug={psychologist.slug}
-                                schedules={psychologist.schedules}
-                                sessionDuration={psychologist.sessionDuration}
                                 initialAvailability={initialAvailability}
                                 initialYear={initialYear}
                                 initialMonth={initialMonth}

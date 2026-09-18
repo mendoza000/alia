@@ -19,18 +19,20 @@ export async function getRate(currency: string, kind: RateKind = "INDIVIDUAL") {
 /**
  * Public-facing price display, geolocated by the visitor's country.
  * Falls back suggested currency -> USD -> COP (the business's home currency),
- * skipping whichever of those has no configured rate. Always the
- * INDIVIDUAL rate — the public landing shows one reference price, the
- * modality-specific price is resolved once the patient picks one in /agendar.
+ * skipping whichever of those has no configured rate. Defaults to the
+ * INDIVIDUAL rate (every existing call site keeps working unchanged); the
+ * modality-picker step (Fase 7.2) passes "COUPLE" explicitly once the
+ * patient picks that modality in /agendar.
  */
 export async function getPublicDisplayRate(
     country: string | null,
+    kind: RateKind = "INDIVIDUAL",
 ): Promise<{ amount: number; currency: string } | null> {
     const suggested = suggestCurrencyFromCountry(country);
     const candidates = [...new Set([suggested, "USD", "COP"])];
 
     const rates = await prisma.paymentRate.findMany({
-        where: { currency: { in: candidates }, kind: "INDIVIDUAL" },
+        where: { currency: { in: candidates }, kind },
     });
 
     for (const currency of candidates) {

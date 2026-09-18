@@ -60,8 +60,12 @@ export default async function BookingPage({ params, searchParams }: Props) {
 
     const session = await auth.api.getSession({ headers: await headers() });
     if (session?.user?.id) {
+        // The direct-slug flow only ever books INDIVIDUAL today (the
+        // dual-modality picker for psychologists offering both is a
+        // lower-priority addendum, not yet wired here).
         const activeAppointment = await getActivePatientAppointment(
             session.user.id,
+            "INDIVIDUAL",
         );
         if (activeAppointment) {
             return (
@@ -73,6 +77,7 @@ export default async function BookingPage({ params, searchParams }: Props) {
                         patientTimezone={
                             activeAppointment.timezone ?? undefined
                         }
+                        sessionType="INDIVIDUAL"
                     />
                 </section>
             );
