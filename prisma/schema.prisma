@@ -88,23 +88,25 @@ model Verification {
 // ==========================================
 
 model Psychologist {
-  id                    String        @id @default(cuid())
-  userId                String?       @unique
-  user                  User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
-  name                  String
-  slug                  String        @unique
-  email                 String        @unique
-  phone                 String?
-  photoUrl              String?
-  specialty             String
-  bio                   String        @db.Text
-  sessionDuration       Int           @default(60)
-  offeredSessionTypes   SessionType[] @default([INDIVIDUAL])
-  coupleSessionDuration Int           @default(120)
-  calendarId            String?
-  isActive              Boolean       @default(true)
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
+  id                           String        @id @default(cuid())
+  userId                       String?       @unique
+  user                         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name                         String
+  slug                         String        @unique
+  email                        String        @unique
+  phone                        String?
+  photoUrl                     String?
+  specialty                    String
+  bio                          String        @db.Text
+  sessionDuration              Int           @default(60)
+  offeredSessionTypes          SessionType[] @default([INDIVIDUAL])
+  coupleSessionDuration        Int           @default(120)
+  calendarId                   String?
+  whatsappReminderTemplate     String?       @db.Text
+  whatsappTodaySessionTemplate String?       @db.Text
+  isActive                     Boolean       @default(true)
+  createdAt                    DateTime      @default(now())
+  updatedAt                    DateTime      @updatedAt
 
   schedules    Schedule[]
   timeOffs     TimeOff[]
@@ -275,18 +277,18 @@ enum RefundStatus {
  * REFUND_REQUEST), resolved by type in application code.
  */
 model ApprovalRequest {
-  id               String         @id @default(cuid())
-  type             ApprovalType
-  status           ApprovalStatus @default(PENDING)
+  id                String         @id @default(cuid())
+  type              ApprovalType
+  status            ApprovalStatus @default(PENDING)
   requestedByUserId String
-  requestedBy      User           @relation("ApprovalRequestedBy", fields: [requestedByUserId], references: [id], onDelete: Cascade)
-  targetId         String
-  payload          Json
-  decidedByUserId  String?
-  decidedBy        User?          @relation("ApprovalDecidedBy", fields: [decidedByUserId], references: [id], onDelete: SetNull)
-  decidedAt        DateTime?
-  decisionNote     String?        @db.Text
-  createdAt        DateTime       @default(now())
+  requestedBy       User           @relation("ApprovalRequestedBy", fields: [requestedByUserId], references: [id], onDelete: Cascade)
+  targetId          String
+  payload           Json
+  decidedByUserId   String?
+  decidedBy         User?          @relation("ApprovalDecidedBy", fields: [decidedByUserId], references: [id], onDelete: SetNull)
+  decidedAt         DateTime?
+  decisionNote      String?        @db.Text
+  createdAt         DateTime       @default(now())
 
   @@index([requestedByUserId])
   @@index([status])
