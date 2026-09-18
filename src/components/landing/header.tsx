@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu } from "lucide-react";
+import { Menu, User } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -68,12 +68,23 @@ export function Header() {
                 </nav>
 
                 <div className="hidden items-center gap-4 md:flex">
-                    {session?.user && (
+                    {session?.user ? (
+                        <Button
+                            nativeButton={false}
+                            variant="outline"
+                            size="icon"
+                            className="rounded-full"
+                            render={<Link href="/mi-cuenta" />}
+                        >
+                            <User className="size-4" />
+                            <span className="sr-only">Mi cuenta</span>
+                        </Button>
+                    ) : (
                         <Link
-                            href="/mi-cuenta"
+                            href="/iniciar-sesion"
                             className="text-sm tracking-wide text-muted-foreground transition-colors hover:text-foreground"
                         >
-                            Mi cuenta
+                            Iniciar sesión
                         </Link>
                     )}
                     <Button
@@ -120,13 +131,23 @@ export function Header() {
                                     </a>
                                 </SheetClose>
                             ))}
-                            {session?.user && (
+                            {session?.user ? (
                                 <SheetClose>
                                     <Link
                                         href="/mi-cuenta"
+                                        className="flex items-center gap-2 text-base text-muted-foreground transition-all hover:text-foreground"
+                                    >
+                                        <User className="size-4" />
+                                        Mi cuenta
+                                    </Link>
+                                </SheetClose>
+                            ) : (
+                                <SheetClose>
+                                    <Link
+                                        href="/iniciar-sesion"
                                         className="relative text-base text-muted-foreground transition-all hover:text-foreground"
                                     >
-                                        Mi cuenta
+                                        Iniciar sesión
                                     </Link>
                                 </SheetClose>
                             )}
