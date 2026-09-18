@@ -72,7 +72,7 @@ export function HeroSection() {
                         nativeButton={false}
                         variant="outline"
                         className="h-11 rounded-xl px-6 text-base xl:h-12 xl:px-8 xl:text-sm"
-                        render={<Link href="#psicologos" />}
+                        render={<Link href="/psicologos" />}
                     >
                         Conoce a nuestros psicólogos
                     </Button>

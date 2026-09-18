@@ -6,37 +6,36 @@ import {
     CalendarCheck,
     ClipboardList,
     CreditCard,
-    MailCheck,
-    UserSearch,
+    UserCheck,
+    Users,
 } from "lucide-react";
 import { ease } from "@/lib/motion";
 
 const steps = [
     {
-        icon: UserSearch,
-        title: "Elige tu psicólogo",
-        description:
-            "Explora perfiles y encuentra al profesional ideal para ti.",
+        icon: Users,
+        title: "Elige la modalidad",
+        description: "Sesión individual o de pareja, tú decides qué necesitas.",
     },
     {
         icon: CalendarCheck,
-        title: "Agenda tu sesión",
+        title: "Elige fecha y hora",
         description: "Selecciona el horario que mejor se ajuste a tu rutina.",
     },
     {
         icon: ClipboardList,
-        title: "Completa tu formulario",
+        title: "Llena tu Inventario de Vida",
         description: "Cuéntanos sobre ti para personalizar tu experiencia.",
     },
     {
-        icon: MailCheck,
-        title: "Revisa tu sesión",
+        icon: UserCheck,
+        title: "Te asignamos tu especialista",
         description:
-            "Recibe la confirmación al instante con todos los detalles de tu sesión.",
+            "Al confirmar tu formulario, conocerás al profesional que te acompañará.",
     },
     {
         icon: CreditCard,
-        title: "Realiza tu pago",
+        title: "Sesión y pago",
         description:
             "Después de tu sesión, recibe el enlace de pago y confirma en línea.",
     },
