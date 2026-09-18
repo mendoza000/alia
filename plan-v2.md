@@ -312,48 +312,43 @@ Implementada según el plan corregido. El hallazgo más importante de la etapa d
 
 ---
 
-## Fase 7 — Landing y algoritmo de match
+## Fase 7 — Landing y algoritmo de match ✅ implementada (con un ítem diferido)
 
-### 7.1 Match automático (TDD)
-Todo el motor agregado es **por modalidad**: la duración del slot y el conjunto de candidatos cambian según `sessionType`.
+### 7.1 Match automático (TDD) — hecho
+- [x] `getBookablePsychologists(sessionType)` en `src/lib/queries/psychologists.ts`, exactamente como se describió.
+- [x] `src/lib/availability/multi-psychologist.ts`: `getAvailabilityForAllPsychologists`, `getAggregatedMonthAvailability`, `matchPsychologistForSlot` — todas reusando `src/lib/availability.ts` sin tocarlo. `getFreeBusyPeriodsForCalendars` en `google-calendar.ts` implementado como `Promise.all` sobre el cache single-calendar existente de 5 min (no un cache de lote nuevo — con TTL de 5 min y navegación mensual como patrón real, los hits dominan tras la primera carga).
+- [x] `src/lib/__tests__/match-psychologist.test.ts`: 21 casos, cubriendo todo lo pedido más límites de semana ISO en Caracas y unión de disponibilidad.
+- [x] Consultas en lote (`getConfirmedCountsByDateForPsychologists`, `getBlockingAppointmentsForPsychologists`, `getTimeOffOverlappingForPsychologists`) siguiendo el patrón de `approval-queries.ts` — sin N+1.
 
-- [ ] `src/lib/queries/psychologists.ts`: nuevo `getBookablePsychologists(sessionType)` que filtre por `offeredSessionTypes` y **sí** seleccione `calendarId`, `schedules`, `sessionDuration` y `coupleSessionDuration` (el actual `getActivePsychologists()` no trae ninguno de los cuatro).
-- [ ] `src/lib/availability/multi-psychologist.ts`:
-  - `getAvailabilityForAllPsychologists(sessionType, year, month)`: para cada candidato, `getScheduleForDay` + `TimeOff` + `getBlockingAppointments` + `getConfirmedCountsByDate` + freebusy, usando `getSessionDuration(psychologist, sessionType)`. Aprovechar que `freebusy.query` acepta varios calendarios en `items` (hoy `getFreeBusyPeriods` manda uno solo) → agregar `getFreeBusyPeriodsForCalendars(calendarIds, timeMin, timeMax)`.
-  - `getAggregatedMonthAvailability(sessionType, ...)`: unión de slots — un día/slot está disponible si **al menos un** candidato lo tiene. Con pareja los slots son de 120 min, así que el calendario agregado de pareja es visiblemente más escaso que el individual; es correcto, no es un bug.
-  - `matchPsychologistForSlot(sessionType, date, time)`: candidatos = los que atienden esa modalidad y tienen el bloque completo libre; ganador = el de menos citas `CONFIRMED` en la semana ISO de esa fecha; empate → menor carga total del mes; empate → aleatorio estable. **Criterio cerrado por el cliente (PRD §6.6/§9, v1.1)**: el balanceo es por **número de sesiones**, no por minutos — pocos especialistas atienden pareja, así que ponderar por duración no ayudaba al equipo. Ya no es una decisión abierta (ver riesgo #3 más abajo, marcado resuelto).
-- [ ] Test primero en `src/lib/__tests__/match-psychologist.test.ts`: sin candidatos; un candidato; empate; que un psicólogo sin `COUPLE` en `offeredSessionTypes` nunca sea candidato de pareja; que un slot de pareja que se solapa con una individual existente quede descartado; que respete `TimeOff` y el cap diario.
-- [ ] Cache: reusar el patrón de `getCachedFreeBusyPeriods` (Map + TTL 5 min) para que el calendario agregado no dispare N llamadas por navegación de mes.
+### 7.2 Nuevo flujo de agendamiento — hecho, con un ítem diferido
+- [x] `/agendar` reescrito: paso 0 modalidad → calendario agregado (`fetchMonth` genérico en `AvailabilityCalendar`, ya no atado a un solo psicólogo) → auth → resumen sin foto/nombre/especialidad (`AutoAssignSummaryStep`, componente nuevo, no el `SummaryStep` existente parametrizado — evita que ese componente crezca con dos responsabilidades divergentes).
+- [x] `/agendar/formulario` y `/agendar/confirmacion` nuevos (sin slug); `IntakeFormFlow` y `submitIntakeForm` reubicados a `src/components/booking/` y `src/lib/appointments/` con prop `basePath` genérico, compartidos con la vía `[slug]`.
+- [x] `createAutoAssignedAppointment` en `src/app/(landing)/agendar/actions.ts`: réplica de los pasos de `createAppointment`, resolviendo psicólogo vía `getAssignedPsychologistForModality` + `matchPsychologistForSlot({ preferredPsychologistId })`. **Precisión sobre lo escrito arriba**: no "salta" el match — `pickLeastLoadedPsychologist` sigue validando que el preferido esté entre los candidatos elegibles para ese slot (agenda, `TimeOff`, cupo); solo evita el desempate por carga si el preferido es elegible. Es más seguro que lo descrito originalmente (nunca asigna a un psicólogo sin cupo real).
+- [x] `getActivePatientAppointment(userId, sessionType)` y `getAssignedPsychologistForModality` actualizados; terminaron siendo **4 call sites**, no 3 (se sumó uno en `manual-booking-actions.ts` no anticipado en el plan original).
+- [x] `booking-stepper.tsx` ya tenía los 4 pasos correctos (Modalidad/Horario/Formulario/Confirmación); solo hizo falta el label del paso 0.
+- [x] `confirm-and-notify.ts`/plantillas: sin cambios necesarios — resuelven el psicólogo por la relación de `Appointment`, no por la URL, así que el flujo nuevo ya funcionaba.
+- [ ] **Diferido, no implementado**: el addendum de `/agendar/[slug]/**` para psicólogos que ofrecen ambas modalidades (mostrarles el `ModalityPickerStep` compartido antes de agendar). Casi todos los psicólogos activos hoy ofrecen solo `INDIVIDUAL`, así que el flujo `[slug]` sigue fijo a esa modalidad sin romper nada — pero si un psicólogo llega a ofrecer `COUPLE` también, ese caso no está cubierto todavía en la vía directa.
 
-### 7.2 Nuevo flujo de agendamiento
-Clave de diseño: **el appointment se crea con el psicólogo ya asignado, pero la UI no lo revela hasta que el formulario se envía.** Así el hold de slot (`PENDING_FORM` + `expiresAt` 60 min + follow-ups QStash) queda idéntico y `Appointment.psychologistId` sigue siendo obligatorio — cero cambios de schema.
+### 7.3 Reordenar el landing — hecho
+- [x] `psychologist-section-server.tsx` muestra el 100% de los activos (`shuffle` extraído a `src/lib/shuffle.ts`, compartido con la nueva página `/psicologos`), sección movida después de FAQ en `(landing)/page.tsx`.
+- [x] `/psicologos` (índice completo) creado y agregado a `sitemap.ts`.
+- [x] `how-it-works-section.tsx` reescrito con los 5 pasos nuevos.
+- [x] Anti-confusión del formulario (paso persistente, countdown siempre visible, `beforeunload`) — se hizo en el mismo commit que la reubicación de `IntakeFormFlow` (7.2), no como commit separado.
+- [x] `hero-section.tsx`: CTA secundario → `/psicologos`. **No se tocaron** los links a `/agendar` de header/footer/`psychologist-card.tsx` (correcto, siguen apuntando al flujo nuevo sin cambios) ni el link "Psicólogos" del header (sigue en `/#psicologos`, ancla válida a la sección que ahora vive al final de la home — se dejó así por no estar pedido explícitamente, pero es candidato a apuntar a `/psicologos` en un ajuste menor futuro).
 
-- [ ] `/agendar` pasa de grilla de psicólogos a: **paso 0 — elegir modalidad** (Individual 60 min / Pareja 120 min, con su precio desde `getPublicDisplayRate(country, kind)`), y luego selector de slot agregado para esa modalidad (reusar `src/components/availability/availability-calendar.tsx` con la fuente agregada).
-- [ ] Nuevas rutas sin slug: `/agendar/formulario` y `/agendar/confirmacion`. La confirmación es donde se revela el especialista.
-- [ ] Nueva action `createAutoAssignedAppointment({ sessionType, date, time, ... })`: replica los chequeos de `agendar/[slug]/actions.ts` (sesión, cita activa, términos, cap, freebusy, transacción con re-chequeo `SLOT_TAKEN`) pero resolviendo el psicólogo con `matchPsychologistForSlot(sessionType, ...)`. Si el paciente ya tiene especialista asignado **para esa modalidad**, se salta el match y se usa el asignado.
-- [ ] `getActivePatientAppointment(userId)` pasa a `getActivePatientAppointment(userId, sessionType)` y filtra por modalidad. Actualizar los 3 llamadores: `agendar/page.tsx`, `agendar/[slug]/page.tsx` y el guard dentro de la transacción de `createAppointment` (`PATIENT_HAS_ACTIVE_APPOINTMENT`). También `src/components/booking/active-appointment-notice.tsx`, que debe decir de qué modalidad es la cita activa.
-- [ ] Conservar `/agendar/[slug]/**` para agendar directo desde el perfil de un psicólogo y para pacientes recurrentes, respetando `offeredSessionTypes` de ese psicólogo.
-- [ ] `src/components/booking/booking-stepper.tsx`: pasos nuevos → Modalidad / Horario / Formulario / Confirmación (el paso "Psicólogo" se reemplaza, no se suma).
-- [ ] `confirm-and-notify.ts` y las plantillas de correo: verificar que el nombre del psicólogo se resuelva bien en el flujo nuevo.
-
-### 7.3 Reordenar el landing y matar la confusión
-- [ ] `src/components/landing/psychologist-section/psychologist-section-server.tsx`: `MAX_FEATURED = 3` con `pickRandom` es exactamente la fuente de la queja. **(PRD §6.6, actualizado en v1.1)** No basta con bajarla y linkear a "ver todos": la sección debe mostrar el **100% de los psicólogos activos**, en orden aleatorio en cada carga (shuffle sobre el array completo, no un subconjunto). Bajar igual la sección en `(landing)/page.tsx` (después de FAQ). Mantener además el CTA a una página `/psicologos` (índice completo, hoy no existe — solo hay `/psicologos/[slug]`) para navegación directa.
-- [ ] Crear `/psicologos` reusando `PsychologistCard` con todos los activos, e incluirla en `src/app/sitemap.ts`.
-- [ ] `how-it-works-section.tsx`: los 5 pasos hardcodeados arrancan con "Elige psicólogo" — reescribir a "Elige modalidad → Elige fecha y hora → Llena tu Inventario de Vida → Te asignamos tu especialista → Sesión y pago".
-- [ ] Anti-confusión en el formulario: barra de progreso persistente con "Paso X de 7 — tu sesión NO está confirmada hasta terminar", banner de advertencia visible con el countdown de `expiresAt` (ya existe el dato en `intake-form-flow.tsx`, hay que hacerlo mucho más prominente), y `beforeunload` al intentar salir a mitad del formulario.
-- [ ] Ajustar `hero-section.tsx:67` y los CTAs del header/footer al flujo nuevo.
-
-**Verificación 7**: `bun test`; agendar como paciente nuevo sin elegir psicólogo y confirmar que el match cae en el de menor carga semanal; repetir con paciente recurrente y confirmar que le toca su mismo especialista; agendar pareja con el mismo paciente y confirmar que le asigna **otro** especialista y que la cita ocupa 2 horas en Google Calendar; verificar que un `TimeOff` saca al psicólogo de los candidatos y que tener individual activa no bloquea agendar pareja; confirmar que el tope de 5 citas/día se respeta mezclando individuales y pareja; entrar a la home y confirmar que la sección de especialistas muestra a todos los activos (no solo 3) y que el orden cambia entre cargas.
+**Verificación 7**: `bunx tsc --noEmit` y `bunx biome check` limpios en cada lote, `bun test` sin regresiones (104 pass, mismos 4 fallos preexistentes). Verificado en el navegador (Playwright): `/`, `/psicologos` y `/agendar` cargan sin errores de consola, el orden de secciones y el conteo de psicólogos son correctos, y el picker de modalidad + paso de timezone del flujo nuevo funcionan. **Pendiente la verificación manual real de negocio** (no solo técnica): agendar de punta a punta como paciente nuevo y confirmar que el match cae en el de menor carga semanal; paciente recurrente → mismo especialista; pareja → especialista distinto y bloque de 2h en Google Calendar; `TimeOff`/tope diario en producción real; confirmar `hasUnpaidCompletedSession` sigue bloqueando ambas modalidades globalmente.
 
 ---
 
-## Fase 8 — Misceláneas de pagos
+## Fase 8 — Misceláneas de pagos ⚠️ implementada parcialmente
 
-- [ ] Llevar a `payment-table.tsx` las acciones que hoy solo están en `appointments-table.tsx`: **Generar/Regenerar link de pago** y **Enviar por correo** (el diálogo `GeneratePaymentLinkDialog` ya es reusable; hay que pasarle las props que hoy arma la página de citas). Mantenerlas también en sesiones, como pidió el cliente.
-- [ ] Uniformar el menú de acciones de ambas tablas extrayendo un `payment-actions-menu.tsx` compartido (evita que vuelvan a divergir: hoy pagos puede anular y cambiar comisión pero no generar link, y sesiones al revés).
-- [ ] Registrar la multa de no-show como un `Payment` con `isNoShowFee: true` y mostrarla diferenciada en la tabla y en finanzas.
+- [x] `payment-table.tsx` ganó generar/regenerar link y enviar por correo (antes solo en `appointments-table.tsx`), y de paso también editar precio y solicitar aprobación de monto (paridad completa, no solo lo mínimo descrito).
+- [x] `appointments-table.tsx` ganó anular pago y cambiar comisión (antes solo en `payment-table.tsx`).
+- [x] Menú de acciones unificado: `src/lib/admin/payment-action-flags.ts` (puro) + `src/components/admin/payment-actions-menu.tsx` (`PaymentActionsMenuItems` + `CommissionSelect` reubicado), usado por ambas tablas.
+- [x] Multa de no-show visible: badge "Multa" en ambas tablas, `getFinanceByPsychologist` ahora incluye `NO_SHOW` (antes lo excluía por completo — causa raíz real de que la multa nunca apareciera en finanzas), tarjeta resumen + línea por psicólogo en `/admin/finanzas` cuando hay multas cobradas. De paso se corrigió la misma exclusión en el resumen de `/admin/pagos` (mismo bug, mismo origen).
+- [ ] **No implementado — gap descubierto al escribir esta nota, no en el plan de ejecución de Fase 7/8**: la Fase 5 (línea 278 de este documento) había diferido explícitamente a Fase 8 la acción "Solicitar reembolso" en `payment-table.tsx`/`appointments-table.tsx` y el botón "Marcar reembolso ejecutado". El backend (`requestApproval("REFUND_REQUEST", ...)`, `approveRequest`, `markRefundExecuted`) ya existe desde la Fase 5, pero el plan de ejecución de esta sesión para Fase 7/8 no incluyó ese punto de entrada de UI — sigue pendiente.
 
-**Verificación 8**: generar, copiar y enviar un link desde `/admin/pagos` y desde `/admin/citas`, con el mismo resultado.
+**Verificación 8**: `bunx tsc --noEmit` y `bunx biome check` limpios, `bun test` sin regresiones. Generar/copiar/enviar un link desde `/admin/pagos` y desde `/admin/citas` no se probó en vivo en esta sesión (requiere sesión de admin autenticada, no disponible desde el navegador de verificación); sí se confirmó por tipos (`tsc`) que las props y las acciones del servidor están correctamente conectadas en ambas tablas. Pendiente: probar en vivo como admin, y decidir cuándo abordar el punto de reembolso pendiente de arriba.
 
 ---
 
