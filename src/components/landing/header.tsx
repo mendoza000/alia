@@ -17,9 +17,9 @@ import {
 
 const navLinks = [
     { label: "Inicio", href: "/" },
-    { label: "Cómo funciona", href: "#como-funciona" },
-    { label: "Psicólogos", href: "#psicologos" },
-    { label: "Preguntas frecuentes", href: "#faq" },
+    { label: "Cómo funciona", href: "/#como-funciona" },
+    { label: "Psicólogos", href: "/#psicologos" },
+    { label: "Preguntas frecuentes", href: "/#faq" },
 ];
 
 export function Header() {

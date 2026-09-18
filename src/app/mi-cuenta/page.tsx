@@ -2,9 +2,6 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Image from "next/image";
 import Link from "next/link";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
-import { TZDate } from "@date-fns/tz";
 import { auth } from "@/lib/auth";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { getLatestIntakeFormByUser } from "@/lib/queries/intake-forms";
@@ -13,8 +10,9 @@ import {
     getBlockingUnpaidAppointment,
 } from "@/lib/queries/patient-appointments";
 import { getPatientTracks } from "@/lib/queries/patient-assignment";
-import { CARACAS_TZ } from "@/lib/availability";
 import { PayPendingSessionButton } from "@/components/patient/pay-pending-session-button";
+import { AppointmentCard } from "@/components/patient/appointment-card";
+import { MyProfileForm } from "@/components/patient/my-profile-form";
 
 export const metadata: Metadata = {
     title: "Mi cuenta",
@@ -46,7 +44,9 @@ export default async function MiCuentaPage() {
         ]);
 
     const formData = latestForm?.data as Record<string, unknown> | null;
-    const phone = typeof formData?.phone === "string" ? formData.phone : null;
+    const phone = typeof formData?.phone === "string" ? formData.phone : "";
+    const dateOfBirth =
+        typeof formData?.dateOfBirth === "string" ? formData.dateOfBirth : "";
 
     const now = new Date();
     const upcoming = appointments
@@ -58,7 +58,6 @@ export default async function MiCuentaPage() {
                         (a.expiresAt === null || a.expiresAt > now))),
         )
         .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
-    const nextSession = upcoming[0] ?? null;
 
     const trackEntries = Object.entries(tracks) as [
         keyof typeof TRACK_LABELS,
@@ -87,39 +86,28 @@ export default async function MiCuentaPage() {
                             </div>
                         )}
                     </div>
-                    <div>
-                        <h2 className="text-lg font-semibold">{user.name}</h2>
-                        <p className="text-sm text-muted-foreground">
-                            {user.email}
-                        </p>
-                        {phone && (
-                            <p className="text-sm text-muted-foreground">
-                                {phone}
-                            </p>
-                        )}
-                    </div>
+                    <h2 className="text-lg font-semibold">
+                        Hola, {user.name.split(" ")[0]}
+                    </h2>
+                </div>
+
+                <div className="mt-6 border-t border-border pt-6">
+                    <MyProfileForm
+                        name={user.name}
+                        email={user.email}
+                        phone={phone}
+                        dateOfBirth={dateOfBirth}
+                    />
                 </div>
 
                 <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-border pt-6">
-                    <Link
-                        href="/mi-cuenta/citas"
-                        className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-                    >
-                        Mis sesiones
-                    </Link>
-                    <Link
-                        href="/mi-cuenta/perfil"
-                        className="inline-flex items-center justify-center rounded-md border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
-                    >
-                        Editar perfil
-                    </Link>
                     <Link
                         href="/mi-cuenta/formulario"
                         className="inline-flex items-center justify-center rounded-md border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
                     >
                         Editar mi formulario
                     </Link>
-                    <SignOutButton />
+                    <SignOutButton variant="outline" size="default" />
                 </div>
             </div>
 
@@ -173,26 +161,43 @@ export default async function MiCuentaPage() {
                 </div>
             )}
 
-            {nextSession && (
-                <div className="mt-6 rounded-lg bg-card p-6 ring-1 ring-border/50">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                        Próxima sesión
-                    </p>
-                    <p className="mt-1 font-medium">
-                        {nextSession.psychologist.name}
-                    </p>
-                    <p className="text-sm capitalize text-muted-foreground">
-                        {format(
-                            new TZDate(
-                                nextSession.dateTime,
-                                nextSession.timezone ?? CARACAS_TZ,
-                            ),
-                            "EEEE d 'de' MMMM, yyyy — HH:mm",
-                            { locale: es },
-                        )}
-                    </p>
+            <div className="mt-8">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                        Próximas sesiones
+                    </h2>
+                    <Link
+                        href="/mi-cuenta/citas"
+                        className="text-sm text-muted-foreground hover:underline"
+                    >
+                        Ver historial completo →
+                    </Link>
                 </div>
-            )}
+
+                {upcoming.length > 0 ? (
+                    <div className="mt-4 space-y-3">
+                        {upcoming.map(a => (
+                            <AppointmentCard
+                                key={a.id}
+                                appointment={a}
+                                cancellable
+                            />
+                        ))}
+                    </div>
+                ) : (
+                    <div className="mt-4 rounded-lg border border-dashed border-border p-6 text-center">
+                        <p className="text-sm text-muted-foreground">
+                            No tienes sesiones próximas.
+                        </p>
+                        <Link
+                            href="/agendar"
+                            className="mt-2 inline-block text-sm font-medium text-accent hover:underline"
+                        >
+                            Agendar una sesión
+                        </Link>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

@@ -29,7 +29,10 @@ export default async function PatientLayout({
     return (
         <div className="flex min-h-svh flex-col">
             <Header />
-            <main className="flex-1">{children}</main>
+            {/* Header is fixed — same top offset convention as the booking
+             * flow's pages (agendar/[slug]/page.tsx, confirmacion/page.tsx,
+             * etc.) so content doesn't render underneath it. */}
+            <main className="flex-1 mt-10 lg:mt-20">{children}</main>
             <Footer settings={settings} />
             <WhatsAppButton
                 whatsappNumber={settings.whatsappNumber}
