@@ -281,37 +281,34 @@ Implementada según el plan corregido. El hallazgo más importante de la etapa d
 
 ---
 
-## Fase 6 — Portal del cliente
+## Fase 6 — Portal del cliente ✅ implementada
 
-Hoy `/mi-cuenta` son 3 archivos: perfil de solo lectura y lista de sesiones con cancelar. Nunca lee `Payment` ni los params `?pago=exitoso|cancelado` que Stripe devuelve.
+**Dos decisiones de negocio confirmadas directamente con el usuario (no aún con el cliente final) que sobreescriben lo escrito abajo**: (1) el bloqueo de la 6.4 es **global**, no por modalidad — una sesión impaga en cualquier modalidad bloquea agendar cualquier modalidad nueva; (2) tiene un **período de gracia de 48h** después de `finalizedAt` antes de activarse (no existía en la redacción original). Ambas quedan pendientes de confirmación real con el cliente — ver nota en Verificación 6.
 
-### 6.1 Estructura
-- [ ] `src/app/mi-cuenta/layout.tsx`: agregar `requireActor()` (hoy no valida sesión; solo el proxy) y una nav propia del portal.
-- [ ] Agregar enlace a `/mi-cuenta` en `src/components/landing/header.tsx` cuando hay sesión (hoy no existe).
-- [ ] Nueva `/mi-cuenta` como dashboard: **una tarjeta de especialista asignado por modalidad activa** (foto, nombre, especialidad, link al perfil), próxima sesión con countdown, cobros pendientes, accesos a formulario y datos. Si el paciente lleva individual y pareja, ve dos tarjetas.
+### 6.1 Estructura — hecho
+- [x] `src/app/mi-cuenta/layout.tsx`: `requireActor()` + redirect a `/` en fallo (defensa en profundidad — `src/proxy.ts` ya gateaba `/mi-cuenta/**` a "tiene sesión", este chequeo es adicional, mismo razonamiento que el layout de `/admin`).
+- [x] Enlace a `/mi-cuenta` en `src/components/landing/header.tsx` (desktop + mobile) cuando hay sesión, vía el hook `useSession` de better-auth (el header no tenía ninguna noción de sesión antes de esto).
+- [x] `/mi-cuenta` reconstruido: tarjeta de especialista asignado por modalidad activa (`getPatientTracks`, una o dos tarjetas), próxima sesión, banner de sesión impaga con CTA de pago directo, accesos a formulario/perfil/citas. **Desviación menor**: sin countdown en la tarjeta de próxima sesión (se consideró ruido visual sin agregar valor real sobre la fecha ya mostrada).
 
-### 6.2 Acciones del paciente
-- [ ] `src/lib/patient/appointment-actions.ts`: agregar `rescheduleMyAppointment(appointmentId, date, time)` reusando la lógica de `rescheduleAppointment` extraída a un core compartido (`src/lib/appointments/reschedule-appointment.ts`), con ownership, respetando `MIN_BOOKING_LEAD_MINUTES`, el cap diario y una ventana mínima de aviso (definir: 24h) y **sin** permitir `isException`.
-- [ ] `updateMyIntakeForm(data)`: permitir editar el formulario ya enviado (hoy es imposible; `formulario/page.tsx` redirige si la cita está `CONFIRMED`). Nueva ruta `/mi-cuenta/formulario` que reusa `intake-form-flow.tsx` en modo edición con `intakeFormAdminUpdateSchema`.
-- [ ] `updateMyProfile({ name, dateOfBirth, phone, ... })`: escribe `User.name` + campos en `IntakeForm.data`. Nueva ruta `/mi-cuenta/perfil`.
-- [ ] `createMyPaymentLink(appointmentId)`: para citas `COMPLETED`/`NO_SHOW` con `Payment` `PENDING` o sin pago, genera el link con el monto ya acordado (Fase 3) y redirige a Stripe. Nunca acepta monto del cliente.
-- [ ] `/mi-cuenta/citas`: leer `?pago=exitoso|cancelado` y mostrar el toast correspondiente (hoy se ignora).
+### 6.2 Acciones del paciente — hecho
+- [x] `rescheduleMyAppointment(appointmentId, date, time)` en `src/lib/patient/appointment-actions.ts`, reusando `rescheduleAppointmentCore` (extraído a `src/lib/appointments/reschedule-appointment.ts`, mismo patrón core/wrapper que `cancel-appointment.ts`). Ventana mínima de aviso: `MIN_RESCHEDULE_NOTICE_MINUTES = 24h` (propuesta propia del plan, nunca confirmada — se implementó igual, señalada en el commit). **Nunca** acepta `isException`.
+- [x] `updateMyIntakeForm(data)`: nueva ruta `/mi-cuenta/formulario`, reusando `intakeFormAdminUpdateSchema`. Las 7 secciones del formulario se extrajeron a `src/components/intake-form/intake-form-sections.tsx` (compartidas con el flujo de agendamiento, que no cambió de comportamiento) en vez de parametrizar `intake-form-flow.tsx` in situ — el stepper/countdown/redirect de esa pantalla son específicos del agendamiento y mezclarlos con un `mode` prop habría sido más frágil que un componente nuevo y delgado.
+- [x] `updateMyProfile({ name, phone, dateOfBirth })`: extraído `updatePatientProfileCore` de la acción admin existente (`patient-actions.ts`) para que ambos flujos compartan la escritura. Nueva ruta `/mi-cuenta/perfil`.
+- [x] `createMyPaymentLink(appointmentId)`: reusa `resolveCheckoutUrl` (ya exportada en la Fase 5) sin overrides — el paciente nunca controla el monto. Devuelve la URL en vez de redirigir server-side (`redirect()` de Next lanza `NEXT_REDIRECT`, que el patrón try/catch de estas acciones absorbería silenciosamente); la navegación es client-side (`window.location.href`).
+- [x] `/mi-cuenta/citas`: lee `?pago=exitoso|cancelado` y muestra el toast correspondiente vía un pequeño componente cliente.
 
-### 6.3 Especialista asignado por modalidad
-- [ ] `src/lib/queries/patient-assignment.ts`:
-  - `getAssignedPsychologistId(userId, sessionType)` = psicólogo de la cita más reciente en `CONFIRMED`/`COMPLETED` **con esa `sessionType`**.
-  - `getPatientTracks(userId)` → `{ INDIVIDUAL?: Psychologist, COUPLE?: Psychologist }` para el dashboard.
-  - **Derivado, sin columna nueva** — un `assignedPsychologistId` por modalidad en `User` sería estado duplicado que se desincroniza con el historial real. Test primero: sin historial, solo individual, solo pareja, ambas con psicólogos distintos, y que una cita `CANCELLED` no cuente.
+### 6.3 Especialista asignado por modalidad — hecho (TDD)
+- [x] `src/lib/queries/patient-assignment.ts`: `getAssignedPsychologistId(userId, sessionType)`, `getPatientTracks(userId)` — derivado de historial de citas, sin columna nueva, mismo patrón que el campo `tracks` ya usado en `patient-queries.ts`. Reducción pura extraída como `deriveTracksFromAppointments` (7 casos de test): sin historial, solo individual, solo pareja, ambas con psicólogos distintos, que una cita `CANCELLED` más reciente no sobreescriba una `CONFIRMED` anterior, que `PENDING_FORM`/`NO_SHOW` nunca cuenten.
 
-### 6.4 Bloqueo por sesión impaga (PRD §6.5/§6.6, nuevo en v1.1)
-Nueva regla de negocio del cliente: como el cobro se hace después de la sesión, hay que frenar la acumulación de sesiones sin pagar antes de dejar agendar una nueva. El PRD asume que el bloqueo es **por modalidad** (coherente con "una cita activa por modalidad" de la Fase 3), pero recomienda confirmarlo con el cliente — ver riesgos.
-- [ ] `hasUnpaidCompletedSession(userId, sessionType)` en `src/lib/queries/patient-appointments.ts`: `true` si existe una cita `COMPLETED`/`NO_SHOW` en esa modalidad con un `Payment` que no está `APPROVED`, ni `VOIDED`, ni con reembolso ejecutado (Fase 5.1b). Test primero.
-- [ ] `createAutoAssignedAppointment` (Fase 7.2), `createManualAppointment` y el guard de `createAppointment` (`agendar/[slug]/actions.ts`): rechazar con un código nuevo (`UNPAID_SESSION_PENDING`) si `hasUnpaidCompletedSession` es `true` para esa modalidad.
-- [ ] `/mi-cuenta`: banner explícito "tenés una sesión pendiente de pago" con acceso directo a `createMyPaymentLink` cuando el bloqueo aplica.
-- [ ] `/agendar`: mismo bloqueo antes de dejar avanzar al paso de horario, con mensaje explicando por qué.
-- [ ] `active-appointment-notice.tsx`: cubrir también este caso (hoy solo cubre "ya tenés una cita activa").
+### 6.4 Bloqueo por sesión impaga — hecho (TDD), con las decisiones de negocio de arriba
+- [x] `isBlockingUnpaidSession` (puro, `src/lib/patient/unpaid-session.ts`, 12 casos de test) + `hasUnpaidCompletedSession`/`getBlockingUnpaidAppointment` (`patient-appointments.ts`): **global**, no acepta `sessionType`. Compone con el `refundStatus` de la Fase 5.1b: `PENDING_EXECUTION` sigue bloqueando, `EXECUTED` libera, igual que `VOIDED`.
+- [x] Migración de backfill (`20260919010000_backfill_appointment_finalized_at`, solo datos) para filas con `finalizedAt` histórico en `NULL` — el predicado ya maneja `null` a la defensiva (falla hacia bloquear), pero esto lo vuelve la excepción en vez de la norma.
+- [x] Guard en `createAppointment` (`agendar/[slug]/actions.ts`): chequeo temprano + re-chequeo dentro de la transacción (paralelo a `SLOT_TAKEN`/`PATIENT_HAS_ACTIVE_APPOINTMENT`), código `UNPAID_SESSION_PENDING`.
+- [x] `agendar/page.tsx` y `agendar/[slug]/page.tsx`: nuevo `ActiveAppointmentNotice` `variant="unpaid_session"`.
+- [x] `/mi-cuenta`: banner con `PayPendingSessionButton` apuntando a la cita bloqueante específica.
+- [x] `createManualAppointment`: **advertencia no bloqueante** (combinada con la advertencia existente de "cita activa"), no rechazo duro — consistente con que el agendamiento manual ya es la vía de excepción sancionada del staff para ese mismo tipo de conflicto. Señalado explícitamente para confirmar con el cliente si en realidad se quiere un bloqueo duro aquí.
 
-**Verificación 6**: con un paciente real, ver su especialista y próxima sesión, reagendar, editar formulario y nombre, y pagar un cobro pendiente end-to-end (Stripe test mode + webhook local). Con un paciente que tiene una sesión `COMPLETED` sin pagar: confirmar que no puede agendar de nuevo en esa modalidad, que el portal le explica por qué, y que pagar el cobro libera el bloqueo.
+**Verificación 6**: `bunx tsc --noEmit` limpio, `bunx biome check` limpio en los archivos tocados, `bun test` sin regresiones (83 pass, mismos 4 fallos preexistentes — incluye los 12 casos de `unpaid-session.test.ts` y los 7 de `patient-assignment.test.ts`). **Pendiente confirmar con el cliente real** (no solo con quien pidió esta sesión de trabajo): el bloqueo global vs. por modalidad, el período de gracia de 48h, la ventana de 24h para reagendar, y si el agendamiento manual debería bloquear duro en vez de advertir. Pendiente la verificación manual real: especialista y próxima sesión visibles, reagendar respetando 24h/tope diario, editar formulario y perfil, pagar un cobro pendiente end-to-end (Stripe test mode + webhook local); paciente con sesión impaga >48h bloqueado en ambas modalidades, <48h no bloqueado, se libera al pagar o al ejecutar un reembolso.
 
 ---
 
