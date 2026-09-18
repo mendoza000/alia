@@ -10,9 +10,7 @@ import {
     AlertTriangle,
     CalendarClock,
     CheckCircle2,
-    CreditCard,
     FileText,
-    Mail,
     MoreHorizontal,
     Pencil,
     Receipt,
@@ -34,14 +32,22 @@ import { RescheduleAppointmentDialog } from "@/components/admin/reschedule-appoi
 import {
     createNoShowFeeCharge,
     sendPaymentLinkEmail,
+    updatePaymentCommission,
+    voidPayment,
 } from "@/lib/admin/payment-actions";
 import { formatCurrencyAmount } from "@/lib/currency";
+import { getPaymentActionFlags } from "@/lib/admin/payment-action-flags";
 import type { AppointmentRow } from "@/lib/admin/appointment-queries";
 import type { PayoutSettings } from "@/lib/admin/payout-settings-queries";
+import type { PayoutType } from "@/generated/prisma/enums";
 import { AppointmentStatusBadge } from "@/components/admin/appointment-status-badge";
 import { Badge } from "@/components/ui/badge";
 import { PaymentStatusBadge } from "@/components/admin/payment-status-badge";
 import { GeneratePaymentLinkDialog } from "@/components/admin/generate-payment-link-dialog";
+import {
+    CommissionSelect,
+    PaymentActionsMenuItems,
+} from "@/components/admin/payment-actions-menu";
 import { EditAppointmentPriceDialog } from "@/components/admin/edit-appointment-price-dialog";
 import { RequestCustomAmountDialog } from "@/components/admin/request-custom-amount-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -74,6 +80,12 @@ function getInitials(name: string) {
 }
 
 function getAppointmentActionFlags(appointment: AppointmentRow) {
+    const { canGenerateLink, hasUsableLink, canVoid } = getPaymentActionFlags({
+        appointmentStatus: appointment.status,
+        paymentStatus: appointment.payment?.status ?? null,
+        stripeCheckoutUrl: appointment.payment?.stripeCheckoutUrl ?? null,
+    });
+
     return {
         canComplete: appointment.status === "CONFIRMED",
         canNoShow: appointment.status === "CONFIRMED",
@@ -82,14 +94,10 @@ function getAppointmentActionFlags(appointment: AppointmentRow) {
         ),
         canDelete: appointment.status === "CANCELLED",
         canReschedule: appointment.status === "CONFIRMED",
-        canGenerateLink: ["CONFIRMED", "COMPLETED", "NO_SHOW"].includes(
-            appointment.status,
-        ),
+        canGenerateLink,
         canChargeNoShowFee: appointment.status === "NO_SHOW",
-        hasUsableLink: Boolean(
-            appointment.payment?.stripeCheckoutUrl &&
-                appointment.payment.status === "PENDING",
-        ),
+        hasUsableLink,
+        canVoid,
     };
 }
 
@@ -101,6 +109,7 @@ function useAppointmentActions(
     onGenerateLink: (appointment: AppointmentRow) => void,
 ) {
     const [, startTransition] = useTransition();
+    const [isSavingCommission, startCommissionTransition] = useTransition();
 
     function handleAction(
         action: (id: string) => Promise<{ success: boolean; error?: string }>,
@@ -149,11 +158,40 @@ function useAppointmentActions(
         });
     }
 
+    function handleVoid() {
+        if (!appointment.payment) return;
+        const paymentId = appointment.payment.id;
+        startTransition(async () => {
+            const result = await voidPayment(paymentId);
+            if (result.success) {
+                toast.success("Pago anulado");
+            } else {
+                toast.error(result.error);
+            }
+        });
+    }
+
+    function handleCommissionChange(payoutType: PayoutType) {
+        if (!appointment.payment) return;
+        const paymentId = appointment.payment.id;
+        startCommissionTransition(async () => {
+            const result = await updatePaymentCommission(paymentId, payoutType);
+            if (result.success) {
+                toast.success("Comisión actualizada");
+            } else {
+                toast.error(result.error);
+            }
+        });
+    }
+
     return {
+        isSavingCommission,
         handleAction,
         handleGenerateLinkClick,
         handleSendEmail,
         handleNoShowFeeClick,
+        handleVoid,
+        handleCommissionChange,
     };
 }
 
@@ -161,6 +199,7 @@ type AppointmentActionsProps = {
     appointment: AppointmentRow;
     hasAvailableCurrencies: boolean;
     canEditPrice: boolean;
+    commissionRates: PayoutSettings;
     onGenerateLink: (appointment: AppointmentRow) => void;
     onEditPrice: (appointment: AppointmentRow) => void;
     onDeleteClick: (appointment: AppointmentRow) => void;
@@ -183,6 +222,7 @@ function AppointmentActionsMenu({
         handleGenerateLinkClick,
         handleSendEmail,
         handleNoShowFeeClick,
+        handleVoid,
     } = useAppointmentActions(
         appointment,
         hasAvailableCurrencies,
@@ -197,6 +237,7 @@ function AppointmentActionsMenu({
         canGenerateLink,
         canChargeNoShowFee,
         hasUsableLink,
+        canVoid,
     } = getAppointmentActionFlags(appointment);
 
     return (
@@ -231,22 +272,19 @@ function AppointmentActionsMenu({
                     canNoShow ||
                     canCancel ||
                     canDelete ||
-                    canGenerateLink) && <DropdownMenuSeparator />}
-                {canGenerateLink && (
+                    canGenerateLink ||
+                    canVoid) && <DropdownMenuSeparator />}
+                {(canGenerateLink || canEditPrice) && (
                     <>
-                        <DropdownMenuItem onClick={handleGenerateLinkClick}>
-                            <CreditCard />
-                            {hasUsableLink
-                                ? "Regenerar link de pago"
-                                : "Generar link de pago"}
-                        </DropdownMenuItem>
-                        {hasUsableLink && (
-                            <DropdownMenuItem onClick={handleSendEmail}>
-                                <Mail />
-                                Enviar por correo
-                            </DropdownMenuItem>
-                        )}
-                        {canEditPrice && (
+                        <PaymentActionsMenuItems
+                            canGenerateLink={canGenerateLink}
+                            hasUsableLink={hasUsableLink}
+                            canVoid={false}
+                            onGenerateLinkClick={handleGenerateLinkClick}
+                            onSendEmail={handleSendEmail}
+                            onVoid={() => {}}
+                        />
+                        {canGenerateLink && canEditPrice && (
                             <DropdownMenuItem
                                 onClick={() => onEditPrice(appointment)}
                             >
@@ -263,6 +301,19 @@ function AppointmentActionsMenu({
                             <Receipt />
                             Cobrar multa por inasistencia
                         </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                    </>
+                )}
+                {canVoid && (
+                    <>
+                        <PaymentActionsMenuItems
+                            canGenerateLink={false}
+                            hasUsableLink={false}
+                            canVoid={canVoid}
+                            onGenerateLinkClick={() => {}}
+                            onSendEmail={() => {}}
+                            onVoid={handleVoid}
+                        />
                         <DropdownMenuSeparator />
                     </>
                 )}
@@ -331,8 +382,14 @@ function AppointmentActionsMenu({
 }
 
 function AppointmentRow(props: AppointmentActionsProps) {
-    const { appointment } = props;
+    const { appointment, commissionRates } = props;
     const { hasUsableLink } = getAppointmentActionFlags(appointment);
+    const { isSavingCommission, handleCommissionChange } =
+        useAppointmentActions(
+            appointment,
+            props.hasAvailableCurrencies,
+            props.onGenerateLink,
+        );
 
     return (
         <TableRow>
@@ -422,25 +479,50 @@ function AppointmentRow(props: AppointmentActionsProps) {
                 </div>
             </TableCell>
             <TableCell className="text-sm">
-                <div className="flex items-center gap-1">
-                    <span>
-                        {appointment.payment
-                            ? formatCurrencyAmount(
-                                  appointment.payment.finalAmount,
-                                  appointment.payment.currency,
-                              )
-                            : "—"}
-                    </span>
-                    {hasUsableLink && (
-                        <CopyLinkButton
-                            text={appointment.payment?.stripeCheckoutUrl ?? ""}
+                <div className="space-y-1">
+                    <div className="flex items-center gap-1">
+                        <span>
+                            {appointment.payment
+                                ? formatCurrencyAmount(
+                                      appointment.payment.finalAmount,
+                                      appointment.payment.currency,
+                                  )
+                                : "—"}
+                        </span>
+                        {hasUsableLink && (
+                            <CopyLinkButton
+                                text={
+                                    appointment.payment?.stripeCheckoutUrl ?? ""
+                                }
+                            />
+                        )}
+                    </div>
+                    {appointment.payment && (
+                        <CommissionSelect
+                            payoutType={appointment.payment.payoutType}
+                            commissionRates={commissionRates}
+                            disabled={isSavingCommission}
+                            onChange={handleCommissionChange}
+                            className="h-7 w-32 text-xs"
                         />
                     )}
                 </div>
             </TableCell>
             <TableCell>
                 {appointment.payment ? (
-                    <PaymentStatusBadge status={appointment.payment.status} />
+                    <div className="flex flex-wrap items-center gap-1">
+                        <PaymentStatusBadge
+                            status={appointment.payment.status}
+                        />
+                        {appointment.payment.isNoShowFee && (
+                            <Badge
+                                variant="outline"
+                                className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                            >
+                                Multa
+                            </Badge>
+                        )}
+                    </div>
                 ) : (
                     <span className="text-sm text-muted-foreground">—</span>
                 )}
@@ -456,8 +538,14 @@ function AppointmentRow(props: AppointmentActionsProps) {
  * when and payment status, with the same actions menu instead of the row's
  * dropdown-only affordance getting cramped into a table cell. */
 function AppointmentCard(props: AppointmentActionsProps) {
-    const { appointment } = props;
+    const { appointment, commissionRates } = props;
     const { hasUsableLink } = getAppointmentActionFlags(appointment);
+    const { isSavingCommission, handleCommissionChange } =
+        useAppointmentActions(
+            appointment,
+            props.hasAvailableCurrencies,
+            props.onGenerateLink,
+        );
 
     return (
         <div className="rounded-lg border border-border bg-card p-4">
@@ -488,6 +576,14 @@ function AppointmentCard(props: AppointmentActionsProps) {
                 {appointment.payment ? (
                     <PaymentStatusBadge status={appointment.payment.status} />
                 ) : null}
+                {appointment.payment?.isNoShowFee && (
+                    <Badge
+                        variant="outline"
+                        className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                    >
+                        Multa
+                    </Badge>
+                )}
                 {appointment.status === "CONFIRMED" &&
                     !appointment.googleEventId && (
                         <Badge
@@ -546,6 +642,20 @@ function AppointmentCard(props: AppointmentActionsProps) {
                         )}
                     </dd>
                 </div>
+                {appointment.payment && (
+                    <div className="col-span-2">
+                        <dt className="text-muted-foreground">Comisión</dt>
+                        <dd>
+                            <CommissionSelect
+                                payoutType={appointment.payment.payoutType}
+                                commissionRates={commissionRates}
+                                disabled={isSavingCommission}
+                                onChange={handleCommissionChange}
+                                className="h-8 w-full text-xs"
+                            />
+                        </dd>
+                    </div>
+                )}
             </dl>
         </div>
     );
@@ -598,6 +708,7 @@ export function AppointmentsTable({
         appointment: a,
         hasAvailableCurrencies: availableCurrencies.length > 0,
         canEditPrice,
+        commissionRates,
         onGenerateLink: setActiveAppointment,
         onEditPrice: setEditingPriceAppointment,
         onDeleteClick: setDeletingAppointment,

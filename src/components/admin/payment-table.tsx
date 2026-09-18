@@ -1,9 +1,9 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Mail, MoreHorizontal, XCircle } from "lucide-react";
+import { Mail, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import {
     sendPaymentLinkEmail,
@@ -12,11 +12,7 @@ import {
 } from "@/lib/admin/payment-actions";
 import { formatCurrencyAmount, formatUSD } from "@/lib/currency";
 import { getPsychologistShareUsd } from "@/lib/payment-math";
-import {
-    PAYOUT_TYPES,
-    PAYOUT_TYPE_LABELS,
-    getPayoutTypeRate,
-} from "@/lib/payout-type";
+import { getPaymentActionFlags } from "@/lib/admin/payment-action-flags";
 import type { PayoutSettings } from "@/lib/admin/payout-settings-queries";
 import type { PaymentRow } from "@/lib/admin/payment-queries";
 import { Badge } from "@/components/ui/badge";
@@ -25,16 +21,15 @@ import { CopyLinkButton } from "@/components/ui/copy-link-button";
 import {
     DropdownMenu,
     DropdownMenuContent,
-    DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
+    CommissionSelect,
+    PaymentActionsMenuItems,
+} from "@/components/admin/payment-actions-menu";
+import { GeneratePaymentLinkDialog } from "@/components/admin/generate-payment-link-dialog";
+import { EditAppointmentPriceDialog } from "@/components/admin/edit-appointment-price-dialog";
+import { RequestCustomAmountDialog } from "@/components/admin/request-custom-amount-dialog";
 import {
     Table,
     TableBody,
@@ -73,17 +68,38 @@ const statusConfig: Record<
     },
 };
 
+type PaymentActionsProps = {
+    payment: PaymentRowWithUsd;
+    commissionRates: PayoutSettings;
+    hasAvailableCurrencies: boolean;
+    onGenerateLink: (payment: PaymentRowWithUsd) => void;
+};
+
 /** Shared by the desktop row and the mobile card — each mounts its own
  * instance (only one is visible per breakpoint via CSS), so they can't
  * share a single hook call, but the handler logic itself stays in one
  * place. */
-function usePaymentRowActions(p: PaymentRowWithUsd) {
+function usePaymentRowActions(
+    p: PaymentRowWithUsd,
+    hasAvailableCurrencies: boolean,
+    onGenerateLink: (payment: PaymentRowWithUsd) => void,
+) {
     const [isPending, startTransition] = useTransition();
     const [isSavingCommission, startCommissionTransition] = useTransition();
 
-    function handleResend() {
+    function handleGenerateLinkClick() {
+        if (!hasAvailableCurrencies) {
+            toast.error(
+                "Configura al menos una tarifa en /admin/tarifas primero",
+            );
+            return;
+        }
+        onGenerateLink(p);
+    }
+
+    function handleSendEmail() {
         startTransition(async () => {
-            const result = await sendPaymentLinkEmail(p.appointmentId);
+            const result = await sendPaymentLinkEmail(p.appointment.id);
             if (result.success) {
                 toast.success("Correo enviado");
             } else {
@@ -117,66 +133,33 @@ function usePaymentRowActions(p: PaymentRowWithUsd) {
     return {
         isPending,
         isSavingCommission,
-        handleResend,
+        handleGenerateLinkClick,
+        handleSendEmail,
         handleVoid,
         handleCommissionChange,
     };
 }
 
-function CommissionSelect({
-    payment: p,
-    commissionRates,
-    disabled,
-    onChange,
-    className,
-}: {
-    payment: PaymentRowWithUsd;
-    commissionRates: PayoutSettings;
-    disabled: boolean;
-    onChange: (payoutType: PayoutType) => void;
-    className?: string;
-}) {
-    return (
-        <Select
-            items={PAYOUT_TYPES.map(t => ({
-                value: t,
-                label: `${PAYOUT_TYPE_LABELS[t]} (${getPayoutTypeRate(commissionRates, t)}%)`,
-            }))}
-            value={p.payoutType ?? undefined}
-            onValueChange={value => value && onChange(value as PayoutType)}
-            disabled={disabled}
-        >
-            <SelectTrigger className={className ?? "h-7 w-full text-xs"}>
-                <SelectValue placeholder="Sin comisión" />
-            </SelectTrigger>
-            <SelectContent>
-                {PAYOUT_TYPES.map(t => (
-                    <SelectItem key={t} value={t}>
-                        {PAYOUT_TYPE_LABELS[t]} (
-                        {getPayoutTypeRate(commissionRates, t)}%)
-                    </SelectItem>
-                ))}
-            </SelectContent>
-        </Select>
-    );
-}
-
 function PaymentTableRow({
     payment: p,
     commissionRates,
-}: {
-    payment: PaymentRowWithUsd;
-    commissionRates: PayoutSettings;
-}) {
+    hasAvailableCurrencies,
+    onGenerateLink,
+}: PaymentActionsProps) {
     const {
         isPending,
         isSavingCommission,
-        handleResend,
+        handleGenerateLinkClick,
+        handleSendEmail,
         handleVoid,
         handleCommissionChange,
-    } = usePaymentRowActions(p);
+    } = usePaymentRowActions(p, hasAvailableCurrencies, onGenerateLink);
     const config = statusConfig[p.status];
-    const hasUsableLink = p.status === "PENDING" && p.stripeCheckoutUrl;
+    const { canGenerateLink, hasUsableLink, canVoid } = getPaymentActionFlags({
+        appointmentStatus: p.appointment.status,
+        paymentStatus: p.status,
+        stripeCheckoutUrl: p.stripeCheckoutUrl,
+    });
 
     const psychologistShareUsd = getPsychologistShareUsd(p, p.finalAmountUsd);
     const companyShareUsd =
@@ -186,7 +169,8 @@ function PaymentTableRow({
     const countsAsRevenue =
         p.status === "APPROVED" &&
         (p.appointment.status === "CONFIRMED" ||
-            p.appointment.status === "COMPLETED");
+            p.appointment.status === "COMPLETED" ||
+            p.appointment.status === "NO_SHOW");
 
     return (
         <TableRow>
@@ -248,7 +232,7 @@ function PaymentTableRow({
                             : "—"}
                     </p>
                     <CommissionSelect
-                        payment={p}
+                        payoutType={p.payoutType}
                         commissionRates={commissionRates}
                         disabled={isSavingCommission}
                         onChange={handleCommissionChange}
@@ -279,9 +263,19 @@ function PaymentTableRow({
                 )}
             </TableCell>
             <TableCell>
-                <Badge variant="outline" className={config.className}>
-                    {config.label}
-                </Badge>
+                <div className="flex flex-wrap items-center gap-1">
+                    <Badge variant="outline" className={config.className}>
+                        {config.label}
+                    </Badge>
+                    {p.isNoShowFee && (
+                        <Badge
+                            variant="outline"
+                            className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                        >
+                            Multa
+                        </Badge>
+                    )}
+                </div>
             </TableCell>
             <TableCell className="text-sm text-muted-foreground">
                 {p.paidAt
@@ -298,7 +292,7 @@ function PaymentTableRow({
                             <Button
                                 variant="ghost"
                                 size="icon-sm"
-                                onClick={handleResend}
+                                onClick={handleSendEmail}
                                 disabled={isPending}
                                 title="Reenviar por correo"
                             >
@@ -306,7 +300,7 @@ function PaymentTableRow({
                             </Button>
                         </>
                     )}
-                    {p.status === "PENDING" && (
+                    {(canGenerateLink || canVoid) && (
                         <DropdownMenu>
                             <DropdownMenuTrigger
                                 render={
@@ -320,13 +314,16 @@ function PaymentTableRow({
                                 }
                             />
                             <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                    variant="destructive"
-                                    onClick={handleVoid}
-                                >
-                                    <XCircle />
-                                    Anular pago
-                                </DropdownMenuItem>
+                                <PaymentActionsMenuItems
+                                    canGenerateLink={canGenerateLink}
+                                    hasUsableLink={hasUsableLink}
+                                    canVoid={canVoid}
+                                    onGenerateLinkClick={
+                                        handleGenerateLinkClick
+                                    }
+                                    onSendEmail={handleSendEmail}
+                                    onVoid={handleVoid}
+                                />
                             </DropdownMenuContent>
                         </DropdownMenu>
                     )}
@@ -343,19 +340,23 @@ function PaymentTableRow({
 function PaymentCard({
     payment: p,
     commissionRates,
-}: {
-    payment: PaymentRowWithUsd;
-    commissionRates: PayoutSettings;
-}) {
+    hasAvailableCurrencies,
+    onGenerateLink,
+}: PaymentActionsProps) {
     const {
         isPending,
         isSavingCommission,
-        handleResend,
+        handleGenerateLinkClick,
+        handleSendEmail,
         handleVoid,
         handleCommissionChange,
-    } = usePaymentRowActions(p);
+    } = usePaymentRowActions(p, hasAvailableCurrencies, onGenerateLink);
     const config = statusConfig[p.status];
-    const hasUsableLink = p.status === "PENDING" && p.stripeCheckoutUrl;
+    const { canGenerateLink, hasUsableLink, canVoid } = getPaymentActionFlags({
+        appointmentStatus: p.appointment.status,
+        paymentStatus: p.status,
+        stripeCheckoutUrl: p.stripeCheckoutUrl,
+    });
     const psychologistShareUsd = getPsychologistShareUsd(p, p.finalAmountUsd);
 
     return (
@@ -369,9 +370,19 @@ function PaymentCard({
                         {p.appointment.user.email}
                     </p>
                 </div>
-                <Badge variant="outline" className={config.className}>
-                    {config.label}
-                </Badge>
+                <div className="flex flex-wrap items-center gap-1">
+                    <Badge variant="outline" className={config.className}>
+                        {config.label}
+                    </Badge>
+                    {p.isNoShowFee && (
+                        <Badge
+                            variant="outline"
+                            className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                        >
+                            Multa
+                        </Badge>
+                    )}
+                </div>
             </div>
 
             <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
@@ -441,7 +452,7 @@ function PaymentCard({
                     </span>
                 </p>
                 <CommissionSelect
-                    payment={p}
+                    payoutType={p.payoutType}
                     commissionRates={commissionRates}
                     disabled={isSavingCommission}
                     onChange={handleCommissionChange}
@@ -449,15 +460,15 @@ function PaymentCard({
                 />
             </div>
 
-            {(hasUsableLink || p.status === "PENDING") && (
-                <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
+            {(hasUsableLink || canGenerateLink || canVoid) && (
+                <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
                     {hasUsableLink && (
                         <>
                             <CopyLinkButton text={p.stripeCheckoutUrl ?? ""} />
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={handleResend}
+                                onClick={handleSendEmail}
                                 disabled={isPending}
                             >
                                 <Mail />
@@ -465,7 +476,17 @@ function PaymentCard({
                             </Button>
                         </>
                     )}
-                    {p.status === "PENDING" && (
+                    {canGenerateLink && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleGenerateLinkClick}
+                            disabled={isPending}
+                        >
+                            {hasUsableLink ? "Regenerar link" : "Generar link"}
+                        </Button>
+                    )}
+                    {canVoid && (
                         <Button
                             variant="outline"
                             size="sm"
@@ -473,7 +494,6 @@ function PaymentCard({
                             onClick={handleVoid}
                             disabled={isPending}
                         >
-                            <XCircle />
                             Anular
                         </Button>
                     )}
@@ -486,10 +506,25 @@ function PaymentCard({
 export function PaymentTable({
     payments,
     commissionRates,
+    availableCurrencies,
+    canEditPrice,
+    canRequestApproval,
 }: {
     payments: PaymentRowWithUsd[];
     commissionRates: PayoutSettings;
+    availableCurrencies: string[];
+    /** payment.commission.write — admin/assistant, not psychologist. */
+    canEditPrice: boolean;
+    /** approval.request — psychologist. */
+    canRequestApproval: boolean;
 }) {
+    const [activePayment, setActivePayment] =
+        useState<PaymentRowWithUsd | null>(null);
+    const [editingPricePayment, setEditingPricePayment] =
+        useState<PaymentRowWithUsd | null>(null);
+    const [requestingApprovalPayment, setRequestingApprovalPayment] =
+        useState<PaymentRowWithUsd | null>(null);
+
     if (payments.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-12">
@@ -500,42 +535,101 @@ export function PaymentTable({
         );
     }
 
+    const rowProps = (p: PaymentRowWithUsd): PaymentActionsProps => ({
+        payment: p,
+        commissionRates,
+        hasAvailableCurrencies: availableCurrencies.length > 0,
+        onGenerateLink: setActivePayment,
+    });
+
     return (
-        <DataTableShell
-            items={payments}
-            getKey={p => p.id}
-            mobileRender={p => (
-                <PaymentCard payment={p} commissionRates={commissionRates} />
+        <>
+            <DataTableShell
+                items={payments}
+                getKey={p => p.id}
+                mobileRender={p => <PaymentCard {...rowProps(p)} />}
+            >
+                <Table>
+                    <TableHeader className="[&_th]:font-semibold">
+                        <TableRow>
+                            <TableHead>Persona</TableHead>
+                            <TableHead>Psicólogo</TableHead>
+                            <TableHead>Fecha sesión</TableHead>
+                            <TableHead>Subtotal</TableHead>
+                            <TableHead>Descuento</TableHead>
+                            <TableHead>Total</TableHead>
+                            <TableHead>Total (USD)</TableHead>
+                            <TableHead>Debido al psicólogo</TableHead>
+                            <TableHead>Para la empresa</TableHead>
+                            <TableHead>Cupón</TableHead>
+                            <TableHead>Estado</TableHead>
+                            <TableHead>Fecha pago</TableHead>
+                            <TableHead className="w-20" />
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {payments.map(p => (
+                            <PaymentTableRow key={p.id} {...rowProps(p)} />
+                        ))}
+                    </TableBody>
+                </Table>
+            </DataTableShell>
+
+            {activePayment && (
+                <GeneratePaymentLinkDialog
+                    appointmentId={activePayment.appointment.id}
+                    agreedAmount={activePayment.appointment.agreedAmount}
+                    agreedCurrency={activePayment.appointment.agreedCurrency}
+                    agreedPayoutType={
+                        activePayment.appointment.agreedPayoutType
+                    }
+                    commissionRates={commissionRates}
+                    canEditPrice={canEditPrice}
+                    onEditPrice={() => {
+                        setEditingPricePayment(activePayment);
+                        setActivePayment(null);
+                    }}
+                    onRequestApproval={() => {
+                        setRequestingApprovalPayment(activePayment);
+                        setActivePayment(null);
+                    }}
+                    open={!!activePayment}
+                    onOpenChange={v => !v && setActivePayment(null)}
+                />
             )}
-        >
-            <Table>
-                <TableHeader className="[&_th]:font-semibold">
-                    <TableRow>
-                        <TableHead>Persona</TableHead>
-                        <TableHead>Psicólogo</TableHead>
-                        <TableHead>Fecha sesión</TableHead>
-                        <TableHead>Subtotal</TableHead>
-                        <TableHead>Descuento</TableHead>
-                        <TableHead>Total</TableHead>
-                        <TableHead>Total (USD)</TableHead>
-                        <TableHead>Debido al psicólogo</TableHead>
-                        <TableHead>Para la empresa</TableHead>
-                        <TableHead>Cupón</TableHead>
-                        <TableHead>Estado</TableHead>
-                        <TableHead>Fecha pago</TableHead>
-                        <TableHead className="w-20" />
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {payments.map(p => (
-                        <PaymentTableRow
-                            key={p.id}
-                            payment={p}
-                            commissionRates={commissionRates}
-                        />
-                    ))}
-                </TableBody>
-            </Table>
-        </DataTableShell>
+
+            {requestingApprovalPayment && canRequestApproval && (
+                <RequestCustomAmountDialog
+                    appointmentId={requestingApprovalPayment.appointment.id}
+                    agreedAmount={
+                        requestingApprovalPayment.appointment.agreedAmount
+                    }
+                    agreedCurrency={
+                        requestingApprovalPayment.appointment.agreedCurrency
+                    }
+                    availableCurrencies={availableCurrencies}
+                    commissionRates={commissionRates}
+                    open={!!requestingApprovalPayment}
+                    onOpenChange={v => !v && setRequestingApprovalPayment(null)}
+                />
+            )}
+
+            {editingPricePayment && (
+                <EditAppointmentPriceDialog
+                    appointmentId={editingPricePayment.appointment.id}
+                    agreedAmount={editingPricePayment.appointment.agreedAmount}
+                    agreedCurrency={
+                        editingPricePayment.appointment.agreedCurrency
+                    }
+                    agreedPayoutType={
+                        editingPricePayment.appointment.agreedPayoutType
+                    }
+                    availableCurrencies={availableCurrencies}
+                    commissionRates={commissionRates}
+                    open={!!editingPricePayment}
+                    onOpenChange={v => !v && setEditingPricePayment(null)}
+                />
+            )}
+        </>
     );
 }

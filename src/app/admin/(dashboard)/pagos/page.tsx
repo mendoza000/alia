@@ -5,6 +5,7 @@ import {
     type PaymentFilters,
 } from "@/lib/admin/payment-queries";
 import { getAllPsychologists } from "@/lib/admin/psychologist-queries";
+import { getAllRates } from "@/lib/admin/payment-rate-queries";
 import { getPayoutSettings } from "@/lib/admin/payout-settings-queries";
 import { PaymentTable } from "@/components/admin/payment-table";
 import { PaymentsFilters } from "@/components/admin/payments-filters";
@@ -60,14 +61,15 @@ export default async function PagosPage({ searchParams }: Props) {
         range,
     };
 
-    const [payments, psychologists, rates, commissionRates] = await Promise.all(
-        [
+    const [payments, psychologists, rates, commissionRates, paymentRates] =
+        await Promise.all([
             getAllPayments(filters),
             getAllPsychologists(),
             getUsdRateMap(),
             getPayoutSettings(),
-        ],
-    );
+            getAllRates(),
+        ]);
+    const availableCurrencies = [...new Set(paymentRates.map(r => r.currency))];
 
     const paymentsWithUsd = payments.map(p => ({
         ...p,
@@ -80,7 +82,9 @@ export default async function PagosPage({ searchParams }: Props) {
     const approved = paymentsWithUsd.filter(
         p =>
             p.status === "APPROVED" &&
-            ["CONFIRMED", "COMPLETED"].includes(p.appointment.status),
+            ["CONFIRMED", "COMPLETED", "NO_SHOW"].includes(
+                p.appointment.status,
+            ),
     );
 
     const totalsByCurrency = approved.reduce<
@@ -205,6 +209,9 @@ export default async function PagosPage({ searchParams }: Props) {
             <PaymentTable
                 payments={paymentsWithUsd}
                 commissionRates={commissionRates}
+                availableCurrencies={availableCurrencies}
+                canEditPrice={can(actor.role, "payment.commission.write")}
+                canRequestApproval={can(actor.role, "approval.request")}
             />
         </div>
     );

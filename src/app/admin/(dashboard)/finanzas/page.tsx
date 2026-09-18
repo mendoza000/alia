@@ -77,7 +77,7 @@ export default async function FinanzasPage({ searchParams }: Props) {
             />
 
             {/* Summary */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-4">
                 <div className="rounded-lg border border-border bg-card p-4">
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">
                         Total recaudado
@@ -113,6 +113,22 @@ export default async function FinanzasPage({ searchParams }: Props) {
                         Stripe ({formatUSD.format(summary.totalStripeFeeUsd)})
                     </p>
                 </div>
+                {summary.totalNoShowFeeCount > 0 && (
+                    <div className="rounded-lg border border-border bg-card p-4">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                            Multas por inasistencia
+                        </p>
+                        <p className="mt-1 text-2xl font-bold">
+                            {formatUSD.format(summary.totalNoShowFeeRevenueUsd)}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                            {summary.totalNoShowFeeCount}{" "}
+                            {summary.totalNoShowFeeCount === 1
+                                ? "multa cobrada"
+                                : "multas cobradas"}
+                        </p>
+                    </div>
+                )}
             </div>
             <p className="text-xs text-muted-foreground">
                 Conversión aproximada a USD, tasa de referencia actualizada a
@@ -191,6 +207,19 @@ export default async function FinanzasPage({ searchParams }: Props) {
                                             Debido:{" "}
                                             {formatUSD.format(p.totalOwedUsd)}
                                         </p>
+                                        {p.noShowFeeCount > 0 && (
+                                            <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
+                                                {p.noShowFeeCount}{" "}
+                                                {p.noShowFeeCount === 1
+                                                    ? "multa"
+                                                    : "multas"}{" "}
+                                                (
+                                                {formatUSD.format(
+                                                    p.totalNoShowFeeRevenueUsd,
+                                                )}
+                                                )
+                                            </p>
+                                        )}
                                     </div>
                                     {/* Progress bar */}
                                     <div className="hidden sm:block w-24">

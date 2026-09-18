@@ -50,6 +50,7 @@ export async function getAllAppointments(filters: AppointmentFilters = {}) {
                     stripeCheckoutUrl: true,
                     payoutType: true,
                     payoutRatePercent: true,
+                    isNoShowFee: true,
                 },
             },
         },
