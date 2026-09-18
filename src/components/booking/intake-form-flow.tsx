@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, FormProvider } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -23,7 +23,7 @@ import {
     TherapyExpectationsSection,
     ConsentSection,
 } from "@/components/intake-form/intake-form-sections";
-import { submitIntakeForm } from "./actions";
+import { submitIntakeForm } from "@/lib/appointments/submit-intake-form";
 
 function str(v: unknown): string {
     return typeof v === "string" ? v : "";
@@ -31,7 +31,11 @@ function str(v: unknown): string {
 
 type IntakeFormFlowProps = {
     appointmentId: string;
-    psychologistSlug: string;
+    /** Relocated from a psychologistSlug prop (Fase 7.2) — both the
+     * slug-less /agendar/** flow and the direct /agendar/[slug]/** flow
+     * pass their own base path ("/agendar" or "/agendar/{slug}") since
+     * this component's only two uses of it are building relative URLs. */
+    basePath: string;
     userName: string;
     userEmail: string;
     priorData: Record<string, unknown> | null;
@@ -42,7 +46,7 @@ type IntakeFormFlowProps = {
 
 export function IntakeFormFlow({
     appointmentId,
-    psychologistSlug,
+    basePath,
     userName,
     userEmail,
     priorData,
@@ -79,7 +83,27 @@ export function IntakeFormFlow({
     }, [timeLeft !== null && timeLeft > 0]);
 
     const isExpired = timeLeft !== null && timeLeft <= 0;
+
+    // Anti-confusion (Fase 7.3): the countdown is visible from the start,
+    // not just under 5 minutes — showWarning now only switches its style,
+    // never its existence.
     const showWarning = timeLeft !== null && timeLeft > 0 && timeLeft <= 300; // 5 min
+
+    // beforeunload guard (Fase 7.3) — no such listener existed anywhere in
+    // this codebase before. Marked true right before the success redirect
+    // so that navigation doesn't trigger the browser's own "leave site?"
+    // prompt on top of it.
+    const submittedRef = useRef(false);
+    useEffect(() => {
+        function handleBeforeUnload(e: BeforeUnloadEvent) {
+            if (submittedRef.current || isExpired) return;
+            e.preventDefault();
+            e.returnValue = "";
+        }
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        return () =>
+            window.removeEventListener("beforeunload", handleBeforeUnload);
+    }, [isExpired]);
 
     const methods = useForm<IntakeFormData>({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -150,9 +174,10 @@ export function IntakeFormFlow({
                 return;
             }
 
+            submittedRef.current = true;
             toast.success("Formulario enviado correctamente");
             router.push(
-                `/agendar/${psychologistSlug}/confirmacion?appointmentId=${appointmentId}`,
+                `${basePath}/confirmacion?appointmentId=${appointmentId}`,
             );
         });
     }
@@ -177,21 +202,27 @@ export function IntakeFormFlow({
                 <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-center text-sm text-destructive">
                     Tu tiempo para completar el formulario ha expirado. Por
                     favor{" "}
-                    <a
-                        href={`/agendar/${psychologistSlug}`}
-                        className="font-medium underline"
-                    >
+                    <a href={basePath} className="font-medium underline">
                         agenda una nueva sesión
                     </a>
                     .
                 </div>
             )}
-            {showWarning && (
-                <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-800">
+
+            {/* Anti-confusion: always visible once expiresAt exists, style
+                only changes once time is running low. */}
+            {timeLeft !== null && !isExpired && (
+                <div
+                    className={
+                        showWarning
+                            ? "mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-800"
+                            : "mb-4 rounded-md border border-border bg-muted/40 px-4 py-3 text-center text-sm text-muted-foreground"
+                    }
+                >
                     Tiempo restante:{" "}
                     <strong>
-                        {Math.floor(timeLeft! / 60)}:
-                        {String(timeLeft! % 60).padStart(2, "0")}
+                        {Math.floor(timeLeft / 60)}:
+                        {String(timeLeft % 60).padStart(2, "0")}
                     </strong>
                 </div>
             )}
@@ -199,7 +230,8 @@ export function IntakeFormFlow({
             {/* Section progress */}
             <div className="mb-6 flex items-center justify-between text-sm text-muted-foreground">
                 <span>
-                    Paso {currentSection + 1} de {SECTIONS.length}
+                    Paso {currentSection + 1} de {SECTIONS.length} — tu sesión
+                    NO está confirmada hasta terminar
                 </span>
                 <span className="font-medium text-foreground">
                     {SECTIONS[currentSection].title}

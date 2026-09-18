@@ -4,12 +4,11 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getLatestIntakeFormByUser } from "@/lib/queries/intake-forms";
-import { IntakeFormFlow } from "./intake-form-flow";
+import { IntakeFormFlow } from "@/components/booking/intake-form-flow";
 
 export const metadata: Metadata = {
     title: "Formulario — Inventario de Vida",
-    description:
-        "Completa tu formulario de inventario de vida para tu sesión.",
+    description: "Completa tu formulario de inventario de vida para tu sesión.",
 };
 
 type Props = {
@@ -46,7 +45,9 @@ export default async function IntakeFormPage({ params, searchParams }: Props) {
     if (appointment.userId !== session.user.id) notFound();
 
     if (appointment.status === "CONFIRMED") {
-        redirect(`/agendar/${slug}/confirmacion?appointmentId=${appointmentId}`);
+        redirect(
+            `/agendar/${slug}/confirmacion?appointmentId=${appointmentId}`,
+        );
     }
     if (appointment.status !== "PENDING_FORM") {
         redirect(`/agendar/${slug}`);
@@ -59,7 +60,7 @@ export default async function IntakeFormPage({ params, searchParams }: Props) {
     return (
         <IntakeFormFlow
             appointmentId={appointmentId}
-            psychologistSlug={slug}
+            basePath={`/agendar/${slug}`}
             userName={session.user.name}
             userEmail={session.user.email}
             priorData={priorData}

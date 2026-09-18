@@ -13,6 +13,9 @@ import { CURRENT_CLINICAL_CONSENT_VERSION } from "@/lib/legal/clinical-consent";
 
 type SubmitResult = { success: true } | { success: false; error: string };
 
+/** Relocated from agendar/[slug]/formulario/actions.ts (Fase 7.2) — never
+ * depended on the slug, so this is a pure move: the slug-less /agendar/**
+ * flow and the direct /agendar/[slug]/** flow both call this same action. */
 export async function submitIntakeForm(input: {
     appointmentId: string;
     data: IntakeFormData;
@@ -87,7 +90,8 @@ export async function submitIntakeForm(input: {
                     appointmentId: input.appointmentId,
                     userId: session.user.id,
                     data: validatedData as Prisma.InputJsonValue,
-                    clinicalDataConsentVersion: CURRENT_CLINICAL_CONSENT_VERSION,
+                    clinicalDataConsentVersion:
+                        CURRENT_CLINICAL_CONSENT_VERSION,
                     clinicalDataConsentAcceptedAt: new Date(),
                 },
             }),
