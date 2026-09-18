@@ -8,6 +8,7 @@ export async function getPatientAppointments(userId: string) {
             psychologist: {
                 select: { name: true, slug: true, photoUrl: true },
             },
+            payment: { select: { status: true } },
         },
         orderBy: { dateTime: "desc" },
     });

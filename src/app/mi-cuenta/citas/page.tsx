@@ -10,6 +10,8 @@ import { getPatientAppointments } from "@/lib/queries/patient-appointments";
 import { Badge } from "@/components/ui/badge";
 import { CancelAppointmentButton } from "@/components/patient/cancel-appointment-button";
 import { RescheduleAppointmentButton } from "@/components/patient/reschedule-appointment-button";
+import { PayPendingSessionButton } from "@/components/patient/pay-pending-session-button";
+import { PaymentResultToast } from "@/components/patient/payment-result-toast";
 
 export const metadata: Metadata = {
     title: "Mis sesiones",
@@ -29,13 +31,18 @@ const STATUS_CONFIG: Record<
     NO_SHOW: { label: "No asistió", variant: "destructive" },
 };
 
-export default async function MisCitasPage() {
+type Props = {
+    searchParams: Promise<{ pago?: string }>;
+};
+
+export default async function MisCitasPage({ searchParams }: Props) {
     const session = await auth.api.getSession({
         headers: await headers(),
     });
 
     if (!session?.user?.id) return null;
 
+    const { pago } = await searchParams;
     const appointments = await getPatientAppointments(session.user.id);
 
     const now = new Date();
@@ -50,6 +57,13 @@ export default async function MisCitasPage() {
 
     return (
         <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
+            <PaymentResultToast
+                pago={
+                    pago === "exitoso" || pago === "cancelado"
+                        ? pago
+                        : undefined
+                }
+            />
             <div className="flex items-center justify-between">
                 <h1 className="font-heading text-3xl font-bold">
                     Mis sesiones
@@ -170,6 +184,13 @@ function AppointmentCard({
                 {cancellable && (
                     <CancelAppointmentButton appointmentId={appointment.id} />
                 )}
+                {["COMPLETED", "NO_SHOW"].includes(appointment.status) &&
+                    (!appointment.payment ||
+                        appointment.payment.status === "PENDING") && (
+                        <PayPendingSessionButton
+                            appointmentId={appointment.id}
+                        />
+                    )}
             </div>
         </div>
     );
