@@ -68,16 +68,18 @@ function mapToCalendarEvents(data: RangeData): CalendarEvent[] {
         }));
 
     const timeOffEvents: CalendarEvent[] = data.timeOffs.map(t => {
-        const title = t.reason ? `Bloqueado — ${t.reason}` : "Bloqueado";
-        if (isFullDayTimeOff(t)) {
-            return {
-                id: `off-${t.id}`,
-                title: t.reason ? `Día libre — ${t.reason}` : "Día libre",
-                start: Temporal.PlainDate.from(caracasDateKey(t.startsAt)),
-                end: Temporal.PlainDate.from(caracasDateKey(t.endsAt)),
-                calendarId: "blocked",
-            };
-        }
+        // Rendering full-day time off as a Temporal.PlainDate (all-day) event
+        // only paints a thin bar in the "all day" row above the time grid —
+        // it doesn't shade the day column itself. A timed event spanning the
+        // whole day fills the entire column red instead, same as a partial
+        // block, just wider.
+        const title = isFullDayTimeOff(t)
+            ? t.reason
+                ? `Día libre — ${t.reason}`
+                : "Día libre"
+            : t.reason
+              ? `Bloqueado — ${t.reason}`
+              : "Bloqueado";
         return {
             id: `off-${t.id}`,
             title,
@@ -135,6 +137,25 @@ export function PsychologistDayCalendar({
             el.classList.add("sx-alia-selected");
         }
     }, [selectedDateStr, rangeData]);
+
+    // Schedule-X only wires onClickDate to month-grid day cells — the
+    // week/day view's own date header (e.g. "VIE 18") has no click handler
+    // at all, so selecting a day there requires clicking into the time
+    // grid below it instead. Delegate a click listener onto the container
+    // for that header specifically.
+    useEffect(() => {
+        const container = calendarContainerRef.current;
+        if (!container) return;
+        function handleClick(e: MouseEvent) {
+            const target = (e.target as HTMLElement).closest(
+                ".sx__week-grid__date",
+            );
+            const date = target?.getAttribute("data-date");
+            if (date) setSelectedDateStr(date);
+        }
+        container.addEventListener("click", handleClick);
+        return () => container.removeEventListener("click", handleClick);
+    }, []);
 
     async function loadRange(start: Date, end: Date) {
         lastRangeRef.current = { start, end };

@@ -121,6 +121,23 @@ export function AdminGlobalCalendar({
         }
     }, [selectedDateStr, rangeData]);
 
+    // See the same note in psychologist-day-calendar.tsx — the week/day
+    // view's date header has no built-in click handler (onClickDate only
+    // covers month-grid day cells).
+    useEffect(() => {
+        const container = calendarContainerRef.current;
+        if (!container) return;
+        function handleClick(e: MouseEvent) {
+            const target = (e.target as HTMLElement).closest(
+                ".sx__week-grid__date",
+            );
+            const date = target?.getAttribute("data-date");
+            if (date) setSelectedDateStr(date);
+        }
+        container.addEventListener("click", handleClick);
+        return () => container.removeEventListener("click", handleClick);
+    }, []);
+
     const calendarApp = useCalendarApp(
         {
             views: [createViewWeek(), createViewDay(), createViewMonthGrid()],

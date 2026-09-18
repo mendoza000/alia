@@ -186,6 +186,18 @@
     border-radius: 999px;
 }
 
+/* Clickable in JS (see the container click-delegation in both calendar
+ * components) — Schedule-X itself gives this element no interaction at
+ * all in week/day view, only in month-grid. */
+.sx-alia-theme .sx__week-grid__date {
+    cursor: pointer;
+    transition: background-color 150ms ease;
+}
+
+.sx-alia-theme .sx__week-grid__date:hover {
+    background-color: var(--secondary);
+}
+
 /* Event chips — timed (week/day) and all-day/month */
 .sx-alia-theme .sx__time-grid-event,
 .sx-alia-theme .sx__date-grid-event,
