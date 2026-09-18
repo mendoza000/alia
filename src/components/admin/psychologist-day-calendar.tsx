@@ -24,6 +24,7 @@ import {
     caracasDateKey,
     toZonedDateTime,
     formatCaracasTime,
+    buildTimedEventContent,
 } from "@/lib/admin/schedule-x-mapping";
 import { AppointmentStatusBadge } from "@/components/admin/appointment-status-badge";
 import { createTimeOff, deleteTimeOff } from "@/lib/admin/time-off-actions";
@@ -57,6 +58,11 @@ function mapToCalendarEvents(data: RangeData): CalendarEvent[] {
             start: toZonedDateTime(a.dateTime),
             end: toZonedDateTime(a.endTime),
             calendarId: "appointment",
+            _customContent: buildTimedEventContent(
+                a.patientName,
+                a.dateTime,
+                a.endTime,
+            ),
         }));
 
     const timeOffEvents: CalendarEvent[] = data.timeOffs.map(t => {
@@ -76,6 +82,7 @@ function mapToCalendarEvents(data: RangeData): CalendarEvent[] {
             start: toZonedDateTime(t.startsAt),
             end: toZonedDateTime(t.endsAt),
             calendarId: "blocked",
+            _customContent: buildTimedEventContent(title, t.startsAt, t.endsAt),
         };
     });
 
@@ -143,6 +150,11 @@ export function PsychologistDayCalendar({
         firstDayOfWeek: 1,
         timezone: CARACAS_TZ,
         dayBoundaries: { start: "06:00", end: "22:00" },
+        // Explicit hour12 is required even in Spanish — Intl's es-ES default
+        // is 24h, and the library only auto-picks 12h for locale 'en-US'.
+        weekOptions: {
+            timeAxisFormatOptions: { hour: "numeric", hour12: true },
+        },
         /* Colors come purely from CSS (psychologist-day-calendar.css defines
          * --sx-color-appointment and --sx-color-blocked directly) rather
          * than lightColors/darkColors here — the library resolves those in
@@ -247,12 +259,12 @@ export function PsychologistDayCalendar({
     }
 
     return (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1fr_320px]">
             <div ref={calendarContainerRef} className="sx-alia-theme h-[700px]">
                 <ScheduleXCalendar calendarApp={calendarApp} />
             </div>
 
-            <div className="space-y-3 rounded-lg border border-border bg-card p-4">
+            <div className="max-h-[700px] space-y-3 overflow-y-auto rounded-lg border border-border bg-card p-4">
                 <h3 className="font-heading text-sm font-semibold capitalize">
                     {selectedDateLabel}
                 </h3>

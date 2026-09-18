@@ -19,6 +19,7 @@ import {
     caracasDateKey,
     toZonedDateTime,
     formatCaracasTime,
+    buildTimedEventContent,
 } from "@/lib/admin/schedule-x-mapping";
 import { AppointmentStatusBadge } from "@/components/admin/appointment-status-badge";
 import { getGlobalCalendarRangeAction } from "@/lib/admin/global-calendar-actions";
@@ -34,13 +35,21 @@ type RangeData = { appointments: GlobalCalendarAppointment[] };
 function mapToCalendarEvents(data: RangeData): CalendarEvent[] {
     return data.appointments
         .filter(a => a.status !== "CANCELLED")
-        .map(a => ({
-            id: a.id,
-            title: `${a.patientName} · ${a.psychologistName}`,
-            start: toZonedDateTime(a.dateTime),
-            end: toZonedDateTime(a.endTime),
-            calendarId: a.psychologistId,
-        }));
+        .map(a => {
+            const title = `${a.patientName} · ${a.psychologistName}`;
+            return {
+                id: a.id,
+                title,
+                start: toZonedDateTime(a.dateTime),
+                end: toZonedDateTime(a.endTime),
+                calendarId: a.psychologistId,
+                _customContent: buildTimedEventContent(
+                    title,
+                    a.dateTime,
+                    a.endTime,
+                ),
+            };
+        });
 }
 
 export function AdminGlobalCalendar({
@@ -84,6 +93,9 @@ export function AdminGlobalCalendar({
         firstDayOfWeek: 1,
         timezone: CARACAS_TZ,
         dayBoundaries: { start: "06:00", end: "22:00" },
+        weekOptions: {
+            timeAxisFormatOptions: { hour: "numeric", hour12: true },
+        },
         calendars: buildPsychologistCalendars(roster),
         callbacks: {
             fetchEvents: async ({ start, end }) => {
@@ -130,37 +142,39 @@ export function AdminGlobalCalendar({
                 ))}
             </div>
 
-            <div ref={calendarContainerRef} className="h-[700px]">
-                <ScheduleXCalendar calendarApp={calendarApp} />
-            </div>
+            <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1fr_320px]">
+                <div ref={calendarContainerRef} className="h-[700px]">
+                    <ScheduleXCalendar calendarApp={calendarApp} />
+                </div>
 
-            <div className="space-y-3 rounded-lg border border-border bg-card p-4">
-                <h3 className="font-heading text-sm font-semibold capitalize">
-                    {selectedDateLabel}
-                </h3>
-                {dayAppointments.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                        Sin citas este día.
-                    </p>
-                ) : (
-                    <div className="space-y-2">
-                        {dayAppointments.map(a => (
-                            <div
-                                key={a.id}
-                                className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"
-                            >
-                                <p className="font-medium">
-                                    {formatCaracasTime(a.dateTime)} —{" "}
-                                    {a.patientName}
-                                    <span className="ml-1.5 text-muted-foreground">
-                                        con {a.psychologistName}
-                                    </span>
-                                </p>
-                                <AppointmentStatusBadge status={a.status} />
-                            </div>
-                        ))}
-                    </div>
-                )}
+                <div className="max-h-[700px] space-y-3 overflow-y-auto rounded-lg border border-border bg-card p-4">
+                    <h3 className="font-heading text-sm font-semibold capitalize">
+                        {selectedDateLabel}
+                    </h3>
+                    {dayAppointments.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">
+                            Sin citas este día.
+                        </p>
+                    ) : (
+                        <div className="space-y-2">
+                            {dayAppointments.map(a => (
+                                <div
+                                    key={a.id}
+                                    className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"
+                                >
+                                    <p className="font-medium">
+                                        {formatCaracasTime(a.dateTime)} —{" "}
+                                        {a.patientName}
+                                        <span className="ml-1.5 text-muted-foreground">
+                                            con {a.psychologistName}
+                                        </span>
+                                    </p>
+                                    <AppointmentStatusBadge status={a.status} />
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
