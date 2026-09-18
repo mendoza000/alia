@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { useSession } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import {
     Sheet,
@@ -23,6 +24,7 @@ const navLinks = [
 
 export function Header() {
     const [scrolled, setScrolled] = useState(false);
+    const { data: session } = useSession();
 
     useEffect(() => {
         function onScroll() {
@@ -65,7 +67,15 @@ export function Header() {
                     ))}
                 </nav>
 
-                <div className="hidden md:block">
+                <div className="hidden items-center gap-4 md:flex">
+                    {session?.user && (
+                        <Link
+                            href="/mi-cuenta"
+                            className="text-sm tracking-wide text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                            Mi cuenta
+                        </Link>
+                    )}
                     <Button
                         nativeButton={false}
                         className="rounded-full bg-accent px-5 text-accent-foreground transition-all hover:scale-[1.02] hover:bg-accent/80"
@@ -110,6 +120,16 @@ export function Header() {
                                     </a>
                                 </SheetClose>
                             ))}
+                            {session?.user && (
+                                <SheetClose>
+                                    <Link
+                                        href="/mi-cuenta"
+                                        className="relative text-base text-muted-foreground transition-all hover:text-foreground"
+                                    >
+                                        Mi cuenta
+                                    </Link>
+                                </SheetClose>
+                            )}
                             <Button
                                 nativeButton={false}
                                 className="mt-4 rounded-full bg-accent text-accent-foreground transition-all hover:scale-[1.02] hover:bg-accent/80"

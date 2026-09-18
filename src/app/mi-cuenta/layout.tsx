@@ -1,15 +1,26 @@
+import { redirect } from "next/navigation";
 import { Header } from "@/components/landing/header";
 import { Footer } from "@/components/landing/footer";
 import { WhatsAppButton } from "@/components/landing/whatsapp-button";
 import { Toaster } from "@/components/ui/sonner";
 import { getSiteSettings } from "@/lib/admin/site-settings-queries";
 import { getConsentFromCookies } from "@/lib/consent/server";
+import { requireActor } from "@/lib/auth/require";
 
 export default async function PatientLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
+    // src/proxy.ts already gates every /mi-cuenta/** request to "has a
+    // session" — this is defense in depth, same reasoning as the admin
+    // layout's own requireActor() call.
+    try {
+        await requireActor();
+    } catch {
+        redirect("/");
+    }
+
     const [settings, initialConsent] = await Promise.all([
         getSiteSettings(),
         getConsentFromCookies(),
