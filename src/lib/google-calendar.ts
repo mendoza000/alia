@@ -123,6 +123,24 @@ export async function updateCalendarEvent(
     }
 }
 
+/** Batches N single-calendar getCachedFreeBusyPeriods calls behind
+ * Promise.all rather than a single multi-`items` Google API call with its
+ * own cache: the per-calendar cache (5min TTL) is already well-tested, and
+ * month-navigation is the realistic call pattern, so cache hits dominate
+ * after the first load of a given month — not worth a second cache
+ * strategy for a call-count saving that only matters on cache misses. */
+export async function getFreeBusyPeriodsForCalendars(
+    calendarIds: string[],
+    timeMin: Date,
+    timeMax: Date,
+): Promise<Map<string, { start: Date; end: Date }[]>> {
+    const uniqueIds = [...new Set(calendarIds)];
+    const results = await Promise.all(
+        uniqueIds.map(id => getCachedFreeBusyPeriods(id, timeMin, timeMax)),
+    );
+    return new Map(uniqueIds.map((id, i) => [id, results[i]]));
+}
+
 export async function getCachedFreeBusyPeriods(
     calendarId: string,
     timeMin: Date,

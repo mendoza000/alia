@@ -14,7 +14,9 @@ export async function getConfirmedCountsByDate(
             psychologistId,
             status: "CONFIRMED",
             dateTime: { gte: timeMin, lte: timeMax },
-            ...(excludeAppointmentId ? { id: { not: excludeAppointmentId } } : {}),
+            ...(excludeAppointmentId
+                ? { id: { not: excludeAppointmentId } }
+                : {}),
         },
         select: { dateTime: true },
     });
@@ -43,7 +45,9 @@ export async function getBlockingAppointments(
             psychologistId,
             dateTime: { lt: timeMax },
             endTime: { gt: timeMin },
-            ...(excludeAppointmentId ? { id: { not: excludeAppointmentId } } : {}),
+            ...(excludeAppointmentId
+                ? { id: { not: excludeAppointmentId } }
+                : {}),
             OR: [
                 { status: "CONFIRMED" },
                 {
@@ -54,4 +58,71 @@ export async function getBlockingAppointments(
         },
         select: { dateTime: true, endTime: true },
     });
+}
+
+/** Batched sibling of getConfirmedCountsByDate — one query for N candidates
+ * instead of N queries, for the Fase 7.1 match engine's aggregated
+ * calendar/load-balancing (same "collect IDs, one findMany({in}), group in
+ * memory" pattern as approval-queries.ts's getApprovals). */
+export async function getConfirmedCountsByDateForPsychologists(
+    psychologistIds: string[],
+    timeMin: Date,
+    timeMax: Date,
+): Promise<Map<string, Record<string, number>>> {
+    if (psychologistIds.length === 0) return new Map();
+
+    const appointments = await prisma.appointment.findMany({
+        where: {
+            psychologistId: { in: psychologistIds },
+            status: "CONFIRMED",
+            dateTime: { gte: timeMin, lte: timeMax },
+        },
+        select: { psychologistId: true, dateTime: true },
+    });
+
+    const map = new Map<string, Record<string, number>>();
+    for (const a of appointments) {
+        const dateStr = format(
+            new TZDate(a.dateTime, CARACAS_TZ),
+            "yyyy-MM-dd",
+        );
+        const counts = map.get(a.psychologistId) ?? {};
+        counts[dateStr] = (counts[dateStr] ?? 0) + 1;
+        map.set(a.psychologistId, counts);
+    }
+    return map;
+}
+
+/** Batched sibling of getBlockingAppointments — same rationale as above. */
+export async function getBlockingAppointmentsForPsychologists(
+    psychologistIds: string[],
+    timeMin: Date,
+    timeMax: Date,
+): Promise<Map<string, { dateTime: Date; endTime: Date }[]>> {
+    if (psychologistIds.length === 0) return new Map();
+
+    const now = new Date();
+    const appointments = await prisma.appointment.findMany({
+        where: {
+            psychologistId: { in: psychologistIds },
+            dateTime: { lt: timeMax },
+            endTime: { gt: timeMin },
+            OR: [
+                { status: "CONFIRMED" },
+                {
+                    status: "PENDING_FORM",
+                    OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+                },
+            ],
+        },
+        select: { psychologistId: true, dateTime: true, endTime: true },
+    });
+
+    const map = new Map<string, { dateTime: Date; endTime: Date }[]>();
+    for (const a of appointments) {
+        const list = map.get(a.psychologistId) ?? [];
+        list.push({ dateTime: a.dateTime, endTime: a.endTime });
+        map.set(a.psychologistId, list);
+    }
+    return map;
 }
