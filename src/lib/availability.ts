@@ -149,6 +149,12 @@ export const PENDING_FORM_EXPIRY_MINUTES = 60;
 // Admin manual bookings are exempt (the admin creates them in real time).
 export const MIN_BOOKING_LEAD_MINUTES = 120;
 
+// How far ahead a patient must reschedule their own session (Fase 6.2,
+// plan-v2.md's own still-unconfirmed proposal — shipped with 24h, flagged
+// for client sign-off). Admin reschedules have no such floor (staff-driven,
+// same reasoning as MIN_BOOKING_LEAD_MINUTES being exempt for admin).
+export const MIN_RESCHEDULE_NOTICE_MINUTES = 24 * 60;
+
 export function computeMonthAvailability(
     schedules: Schedule[],
     busyPeriods: { start: Date; end: Date }[],

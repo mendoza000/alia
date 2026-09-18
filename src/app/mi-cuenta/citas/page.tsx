@@ -9,6 +9,7 @@ import { CARACAS_TZ } from "@/lib/availability";
 import { getPatientAppointments } from "@/lib/queries/patient-appointments";
 import { Badge } from "@/components/ui/badge";
 import { CancelAppointmentButton } from "@/components/patient/cancel-appointment-button";
+import { RescheduleAppointmentButton } from "@/components/patient/reschedule-appointment-button";
 
 export const metadata: Metadata = {
     title: "Mis sesiones",
@@ -158,6 +159,14 @@ function AppointmentCard({
                     </Link>
                 )}
                 <Badge variant={config.variant}>{config.label}</Badge>
+                {appointment.status === "CONFIRMED" && (
+                    <RescheduleAppointmentButton
+                        appointmentId={appointment.id}
+                        psychologistName={appointment.psychologist.name}
+                        currentDateTime={appointment.dateTime}
+                        patientTimezone={appointment.timezone}
+                    />
+                )}
                 {cancellable && (
                     <CancelAppointmentButton appointmentId={appointment.id} />
                 )}
