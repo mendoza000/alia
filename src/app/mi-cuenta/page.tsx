@@ -2,9 +2,19 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Image from "next/image";
 import Link from "next/link";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { TZDate } from "@date-fns/tz";
 import { auth } from "@/lib/auth";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { getLatestIntakeFormByUser } from "@/lib/queries/intake-forms";
+import {
+    getPatientAppointments,
+    getBlockingUnpaidAppointment,
+} from "@/lib/queries/patient-appointments";
+import { getPatientTracks } from "@/lib/queries/patient-assignment";
+import { CARACAS_TZ } from "@/lib/availability";
+import { PayPendingSessionButton } from "@/components/patient/pay-pending-session-button";
 
 export const metadata: Metadata = {
     title: "Mi cuenta",
@@ -17,6 +27,8 @@ function getInitials(name: string) {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+const TRACK_LABELS = { INDIVIDUAL: "Individual", COUPLE: "Pareja" } as const;
+
 export default async function MiCuentaPage() {
     const session = await auth.api.getSession({
         headers: await headers(),
@@ -25,9 +37,33 @@ export default async function MiCuentaPage() {
     const user = session?.user;
     if (!user) return null;
 
-    const latestForm = await getLatestIntakeFormByUser(user.id);
+    const [latestForm, appointments, tracks, blockingAppointment] =
+        await Promise.all([
+            getLatestIntakeFormByUser(user.id),
+            getPatientAppointments(user.id),
+            getPatientTracks(user.id),
+            getBlockingUnpaidAppointment(user.id),
+        ]);
+
     const formData = latestForm?.data as Record<string, unknown> | null;
     const phone = typeof formData?.phone === "string" ? formData.phone : null;
+
+    const now = new Date();
+    const upcoming = appointments
+        .filter(
+            a =>
+                a.dateTime > now &&
+                (a.status === "CONFIRMED" ||
+                    (a.status === "PENDING_FORM" &&
+                        (a.expiresAt === null || a.expiresAt > now))),
+        )
+        .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
+    const nextSession = upcoming[0] ?? null;
+
+    const trackEntries = Object.entries(tracks) as [
+        keyof typeof TRACK_LABELS,
+        NonNullable<(typeof tracks)[keyof typeof tracks]>,
+    ][];
 
     return (
         <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
@@ -64,16 +100,99 @@ export default async function MiCuentaPage() {
                     </div>
                 </div>
 
-                <div className="mt-6 flex items-center gap-3 border-t border-border pt-6">
+                <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-border pt-6">
                     <Link
                         href="/mi-cuenta/citas"
                         className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                     >
                         Mis sesiones
                     </Link>
+                    <Link
+                        href="/mi-cuenta/perfil"
+                        className="inline-flex items-center justify-center rounded-md border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
+                    >
+                        Editar perfil
+                    </Link>
+                    <Link
+                        href="/mi-cuenta/formulario"
+                        className="inline-flex items-center justify-center rounded-md border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
+                    >
+                        Editar mi formulario
+                    </Link>
                     <SignOutButton />
                 </div>
             </div>
+
+            {blockingAppointment && (
+                <div className="mt-6 flex flex-col gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-6 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <p className="font-medium text-destructive">
+                            Tienes una sesión pendiente de pago
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                            No podrás agendar una nueva sesión hasta pagarla.
+                        </p>
+                    </div>
+                    <PayPendingSessionButton
+                        appointmentId={blockingAppointment.id}
+                    />
+                </div>
+            )}
+
+            {trackEntries.length > 0 && (
+                <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                    {trackEntries.map(([sessionType, psychologist]) => (
+                        <Link
+                            key={sessionType}
+                            href={`/psicologos/${psychologist.slug}`}
+                            className="flex items-center gap-3 rounded-lg bg-card p-4 ring-1 ring-border/50 transition-shadow hover:shadow-sm"
+                        >
+                            <div className="relative size-12 shrink-0 overflow-hidden rounded-full bg-secondary">
+                                {psychologist.photoUrl && (
+                                    <Image
+                                        src={psychologist.photoUrl}
+                                        alt=""
+                                        fill
+                                        className="object-cover"
+                                    />
+                                )}
+                            </div>
+                            <div>
+                                <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                                    {TRACK_LABELS[sessionType]}
+                                </p>
+                                <p className="font-medium">
+                                    {psychologist.name}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    {psychologist.specialty}
+                                </p>
+                            </div>
+                        </Link>
+                    ))}
+                </div>
+            )}
+
+            {nextSession && (
+                <div className="mt-6 rounded-lg bg-card p-6 ring-1 ring-border/50">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                        Próxima sesión
+                    </p>
+                    <p className="mt-1 font-medium">
+                        {nextSession.psychologist.name}
+                    </p>
+                    <p className="text-sm capitalize text-muted-foreground">
+                        {format(
+                            new TZDate(
+                                nextSession.dateTime,
+                                nextSession.timezone ?? CARACAS_TZ,
+                            ),
+                            "EEEE d 'de' MMMM, yyyy — HH:mm",
+                            { locale: es },
+                        )}
+                    </p>
+                </div>
+            )}
         </div>
     );
 }
