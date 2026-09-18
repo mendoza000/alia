@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
 import {
     groupAppointmentsByDate,
-    countAppointmentsByDate,
     getTimeOffBlocksForDate,
     isWholeDayBlocked,
+    isFullDayTimeOff,
 } from "../admin/psychologist-calendar";
 
 describe("groupAppointmentsByDate", () => {
@@ -23,36 +23,6 @@ describe("groupAppointmentsByDate", () => {
 
     it("returns an empty object for an empty list", () => {
         expect(groupAppointmentsByDate([])).toEqual({});
-    });
-});
-
-describe("countAppointmentsByDate", () => {
-    it("counts appointments per Caracas-local day, excluding CANCELLED", () => {
-        const result = countAppointmentsByDate([
-            {
-                dateTime: new Date("2026-01-14T18:00:00Z"),
-                status: "CONFIRMED",
-            },
-            {
-                dateTime: new Date("2026-01-14T19:00:00Z"),
-                status: "CANCELLED",
-            },
-            {
-                dateTime: new Date("2026-01-14T20:00:00Z"),
-                status: "COMPLETED",
-            },
-        ]);
-        expect(result["2026-01-14"]).toBe(2);
-    });
-
-    it("omits a day entirely when all its appointments are cancelled", () => {
-        const result = countAppointmentsByDate([
-            {
-                dateTime: new Date("2026-01-14T18:00:00Z"),
-                status: "CANCELLED",
-            },
-        ]);
-        expect(result["2026-01-14"]).toBeUndefined();
     });
 });
 
@@ -105,5 +75,34 @@ describe("isWholeDayBlocked", () => {
 
     it("is false when there are no TimeOff rows for that day", () => {
         expect(isWholeDayBlocked([], "2026-01-14")).toBe(false);
+    });
+});
+
+describe("isFullDayTimeOff", () => {
+    it("is true for a Caracas 00:00-23:59 block (whole day)", () => {
+        expect(
+            isFullDayTimeOff({
+                startsAt: new Date("2026-01-14T04:00:00Z"), // 00:00 Caracas
+                endsAt: new Date("2026-01-15T03:59:00Z"), // 23:59 Caracas
+            }),
+        ).toBe(true);
+    });
+
+    it("is true for a multi-day vacation range (also 00:00-23:59 boundaries)", () => {
+        expect(
+            isFullDayTimeOff({
+                startsAt: new Date("2026-01-14T04:00:00Z"), // 00:00 Caracas
+                endsAt: new Date("2026-01-20T03:59:59Z"), // 2026-01-19 23:59:59 Caracas
+            }),
+        ).toBe(true);
+    });
+
+    it("is false for an hour-level block", () => {
+        expect(
+            isFullDayTimeOff({
+                startsAt: new Date("2026-01-14T18:00:00Z"), // 14:00 Caracas
+                endsAt: new Date("2026-01-14T20:00:00Z"), // 16:00 Caracas
+            }),
+        ).toBe(false);
     });
 });

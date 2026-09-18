@@ -1,27 +1,39 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import "temporal-polyfill/global";
+import type {} from "temporal-spec/global";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { TZDate } from "@date-fns/tz";
-import type { DayButton } from "react-day-picker";
+import { useCalendarApp, ScheduleXCalendar } from "@schedule-x/react";
+import {
+    createViewDay,
+    createViewWeek,
+    createViewMonthGrid,
+    type CalendarEvent,
+} from "@schedule-x/calendar";
+import "@schedule-x/theme-default/dist/index.css";
+import "./psychologist-day-calendar.css";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
-import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
 import { CARACAS_TZ, toCaracasDate } from "@/lib/availability";
+import {
+    caracasDateKey,
+    toZonedDateTime,
+    formatCaracasTime,
+} from "@/lib/admin/schedule-x-mapping";
 import { AppointmentStatusBadge } from "@/components/admin/appointment-status-badge";
 import { createTimeOff, deleteTimeOff } from "@/lib/admin/time-off-actions";
-import { getPsychologistCalendarMonthAction } from "@/lib/admin/psychologist-calendar-actions";
+import { getPsychologistCalendarRangeAction } from "@/lib/admin/psychologist-calendar-actions";
 import type { PsychologistCalendarAppointment } from "@/lib/admin/psychologist-calendar-queries";
 import {
     groupAppointmentsByDate,
-    countAppointmentsByDate,
     getTimeOffBlocksForDate,
     isWholeDayBlocked,
+    isFullDayTimeOff,
 } from "@/lib/admin/psychologist-calendar";
 
 type TimeOffRow = {
@@ -31,364 +43,322 @@ type TimeOffRow = {
     reason: string | null;
 };
 
-type MonthData = {
+type RangeData = {
     appointments: PsychologistCalendarAppointment[];
     timeOffs: TimeOffRow[];
 };
 
-function formatCaracasTime(date: Date): string {
-    return format(new TZDate(date, CARACAS_TZ), "HH:mm");
+function mapToCalendarEvents(data: RangeData): CalendarEvent[] {
+    const appointmentEvents: CalendarEvent[] = data.appointments
+        .filter(a => a.status !== "CANCELLED")
+        .map(a => ({
+            id: `appt-${a.id}`,
+            title: a.patientName,
+            start: toZonedDateTime(a.dateTime),
+            end: toZonedDateTime(a.endTime),
+            calendarId: "appointment",
+        }));
+
+    const timeOffEvents: CalendarEvent[] = data.timeOffs.map(t => {
+        const title = t.reason ? `Bloqueado — ${t.reason}` : "Bloqueado";
+        if (isFullDayTimeOff(t)) {
+            return {
+                id: `off-${t.id}`,
+                title: t.reason ? `Día libre — ${t.reason}` : "Día libre",
+                start: Temporal.PlainDate.from(caracasDateKey(t.startsAt)),
+                end: Temporal.PlainDate.from(caracasDateKey(t.endsAt)),
+                calendarId: "blocked",
+            };
+        }
+        return {
+            id: `off-${t.id}`,
+            title,
+            start: toZonedDateTime(t.startsAt),
+            end: toZonedDateTime(t.endsAt),
+            calendarId: "blocked",
+        };
+    });
+
+    return [...appointmentEvents, ...timeOffEvents];
 }
 
 export function PsychologistDayCalendar({
     psychologistId,
-    initialYear,
-    initialMonth,
+    initialRangeStart,
+    initialRangeEnd,
     initialData,
 }: {
     psychologistId: string;
-    initialYear: number;
-    initialMonth: number;
-    initialData: MonthData;
+    initialRangeStart: Date;
+    initialRangeEnd: Date;
+    initialData: RangeData;
 }) {
-    const [selectedDate, setSelectedDate] = useState<Date | undefined>(
-        () => new Date(),
+    const [rangeData, setRangeData] = useState<RangeData>(initialData);
+    const [selectedDateStr, setSelectedDateStr] = useState(() =>
+        caracasDateKey(new Date()),
     );
-    const [displayedMonth, setDisplayedMonth] = useState({
-        year: initialYear,
-        month: initialMonth,
-    });
-    const [isPending, startTransition] = useTransition();
+    const [isPending, setIsPending] = useState(false);
     const [pendingTimeOffId, setPendingTimeOffId] = useState<string | null>(
         null,
     );
-    const cacheRef = useRef<Map<string, MonthData>>(
-        new Map([[`${initialYear}-${initialMonth}`, initialData]]),
-    );
-    const [monthData, setMonthData] = useState<MonthData>(initialData);
     const [blockStart, setBlockStart] = useState("14:00");
     const [blockEnd, setBlockEnd] = useState("16:00");
+    const lastRangeRef = useRef<{ start: Date; end: Date } | null>(null);
+    const calendarContainerRef = useRef<HTMLDivElement>(null);
 
-    function loadMonth(year: number, month: number) {
-        const key = `${year}-${month}`;
-        const cached = cacheRef.current.get(key);
-        if (cached) {
-            setMonthData(cached);
-            return;
+    // Schedule-X has no built-in "selected date" visual state for an
+    // onClickDate/onClickDateTime click (unlike its own date-picker input) —
+    // it renders its grid outside React's tree, so this reapplies our own
+    // highlight class by matching the library's own `data-date` attribute
+    // whenever the selection or the visible range changes.
+    useEffect(() => {
+        const container = calendarContainerRef.current;
+        if (!container) return;
+        for (const el of container.querySelectorAll(".sx-alia-selected")) {
+            el.classList.remove("sx-alia-selected");
         }
-        startTransition(async () => {
-            const data = await getPsychologistCalendarMonthAction(
-                psychologistId,
-                year,
-                month,
-            );
-            cacheRef.current.set(key, data);
-            setMonthData(data);
-        });
-    }
+        for (const el of container.querySelectorAll(
+            `[data-date="${selectedDateStr}"]`,
+        )) {
+            el.classList.add("sx-alia-selected");
+        }
+    }, [selectedDateStr, rangeData]);
 
-    function refreshDisplayedMonth() {
-        cacheRef.current.delete(
-            `${displayedMonth.year}-${displayedMonth.month}`,
+    async function loadRange(start: Date, end: Date) {
+        lastRangeRef.current = { start, end };
+        const data = await getPsychologistCalendarRangeAction(
+            psychologistId,
+            start,
+            end,
         );
-        loadMonth(displayedMonth.year, displayedMonth.month);
+        setRangeData(data);
+        return data;
     }
 
-    function handleMonthChange(month: Date) {
-        const year = month.getFullYear();
-        const m = month.getMonth() + 1;
-        setDisplayedMonth({ year, month: m });
-        loadMonth(year, m);
-    }
+    const calendarApp = useCalendarApp({
+        views: [createViewWeek(), createViewDay(), createViewMonthGrid()],
+        defaultView: "week",
+        selectedDate: Temporal.PlainDate.from(caracasDateKey(new Date())),
+        locale: "es-ES",
+        firstDayOfWeek: 1,
+        timezone: CARACAS_TZ,
+        dayBoundaries: { start: "06:00", end: "22:00" },
+        /* Colors come purely from CSS (psychologist-day-calendar.css defines
+         * --sx-color-appointment and --sx-color-blocked directly) rather
+         * than lightColors/darkColors here — the library resolves those in
+         * JS to generate contrast-safe variants, which silently fails on a
+         * var(--accent)-style reference instead of a literal color. */
+        calendars: {
+            appointment: { colorName: "appointment" },
+            blocked: { colorName: "blocked" },
+        },
+        callbacks: {
+            fetchEvents: async ({ start, end }) => {
+                const data = await loadRange(
+                    new Date(start.epochMilliseconds),
+                    new Date(end.epochMilliseconds),
+                );
+                return mapToCalendarEvents(data);
+            },
+            onClickDate: date => {
+                setSelectedDateStr(date.toString());
+            },
+            onClickDateTime: dateTime => {
+                setSelectedDateStr(dateTime.toPlainDate().toString());
+            },
+        },
+    });
 
     const appointmentsByDate = useMemo(
-        () => groupAppointmentsByDate(monthData.appointments),
-        [monthData],
+        () => groupAppointmentsByDate(rangeData.appointments),
+        [rangeData],
     );
-    const countsByDate = useMemo(
-        () => countAppointmentsByDate(monthData.appointments),
-        [monthData],
+    const dayAppointments = appointmentsByDate[selectedDateStr] ?? [];
+    const dayTimeOffs = getTimeOffBlocksForDate(
+        rangeData.timeOffs,
+        selectedDateStr,
+    );
+    const wholeDayBlocked = isWholeDayBlocked(
+        rangeData.timeOffs,
+        selectedDateStr,
+    );
+    const selectedDateLabel = format(
+        toCaracasDate(selectedDateStr, "00:00"),
+        "EEEE d 'de' MMMM",
+        { locale: es },
     );
 
-    const selectedDateStr = selectedDate
-        ? format(selectedDate, "yyyy-MM-dd")
-        : null;
-    const dayAppointments = selectedDateStr
-        ? (appointmentsByDate[selectedDateStr] ?? [])
-        : [];
-    const dayTimeOffs = selectedDateStr
-        ? getTimeOffBlocksForDate(monthData.timeOffs, selectedDateStr)
-        : [];
-    const wholeDayBlocked = selectedDateStr
-        ? isWholeDayBlocked(monthData.timeOffs, selectedDateStr)
-        : false;
+    async function refreshCurrentRange() {
+        const range = lastRangeRef.current;
+        if (!range) return;
+        const data = await loadRange(range.start, range.end);
+        calendarApp?.events.set(mapToCalendarEvents(data));
+    }
 
     function handleMarkDayOff() {
-        if (!selectedDateStr) return;
-        startTransition(async () => {
-            try {
-                await createTimeOff(psychologistId, {
-                    startsAt: toCaracasDate(selectedDateStr, "00:00"),
-                    endsAt: toCaracasDate(selectedDateStr, "23:59"),
-                });
+        setIsPending(true);
+        createTimeOff(psychologistId, {
+            startsAt: toCaracasDate(selectedDateStr, "00:00"),
+            endsAt: toCaracasDate(selectedDateStr, "23:59"),
+        })
+            .then(async () => {
                 toast.success("Día marcado como libre");
-                refreshDisplayedMonth();
-            } catch (e) {
+                await refreshCurrentRange();
+            })
+            .catch(e => {
                 toast.error(
                     e instanceof Error ? e.message : "Error al guardar",
                 );
-            }
-        });
+            })
+            .finally(() => setIsPending(false));
     }
 
     function handleBlockHours() {
-        if (!selectedDateStr) return;
         if (blockEnd <= blockStart) {
             toast.error("La hora de fin debe ser posterior a la de inicio");
             return;
         }
-        startTransition(async () => {
-            try {
-                await createTimeOff(psychologistId, {
-                    startsAt: toCaracasDate(selectedDateStr, blockStart),
-                    endsAt: toCaracasDate(selectedDateStr, blockEnd),
-                });
+        setIsPending(true);
+        createTimeOff(psychologistId, {
+            startsAt: toCaracasDate(selectedDateStr, blockStart),
+            endsAt: toCaracasDate(selectedDateStr, blockEnd),
+        })
+            .then(async () => {
                 toast.success("Horario bloqueado");
-                refreshDisplayedMonth();
-            } catch (e) {
+                await refreshCurrentRange();
+            })
+            .catch(e => {
                 toast.error(
                     e instanceof Error ? e.message : "Error al guardar",
                 );
-            }
-        });
+            })
+            .finally(() => setIsPending(false));
     }
 
     function handleDeleteTimeOff(id: string) {
         setPendingTimeOffId(id);
-        startTransition(async () => {
-            try {
-                await deleteTimeOff(id);
+        deleteTimeOff(id)
+            .then(async () => {
                 toast.success("Bloqueo eliminado");
-                refreshDisplayedMonth();
-            } catch {
-                toast.error("Error al eliminar");
-            } finally {
-                setPendingTimeOffId(null);
-            }
-        });
+                await refreshCurrentRange();
+            })
+            .catch(() => toast.error("Error al eliminar"))
+            .finally(() => setPendingTimeOffId(null));
     }
 
     return (
-        <div className="rounded-lg border border-border bg-card p-4">
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_auto]">
-                <div className="space-y-4">
-                    {!selectedDate ? (
+        <div className="space-y-4">
+            <div ref={calendarContainerRef} className="sx-alia-theme h-[700px]">
+                <ScheduleXCalendar calendarApp={calendarApp} />
+            </div>
+
+            <div className="space-y-3 rounded-lg border border-border bg-card p-4">
+                <h3 className="font-heading text-sm font-semibold capitalize">
+                    {selectedDateLabel}
+                </h3>
+
+                {dayAppointments.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                        Sin citas este día.
+                    </p>
+                ) : (
+                    <div className="space-y-2">
+                        {dayAppointments.map(a => (
+                            <div
+                                key={a.id}
+                                className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"
+                            >
+                                <p className="font-medium">
+                                    {formatCaracasTime(a.dateTime)} —{" "}
+                                    {a.patientName}
+                                </p>
+                                <AppointmentStatusBadge status={a.status} />
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                <div className="space-y-3 border-t border-border pt-3">
+                    {wholeDayBlocked ? (
                         <p className="text-sm text-muted-foreground">
-                            Selecciona un día para ver el detalle.
+                            Día libre.
                         </p>
                     ) : (
                         <>
-                            <h3 className="font-heading text-sm font-semibold">
-                                {format(selectedDate, "EEEE d 'de' MMMM", {
-                                    locale: es,
-                                })}
-                            </h3>
-
-                            {dayAppointments.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">
-                                    Sin citas este día.
-                                </p>
-                            ) : (
-                                <div className="space-y-2">
-                                    {dayAppointments.map(a => (
-                                        <div
-                                            key={a.id}
-                                            className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"
-                                        >
-                                            <div>
-                                                <p className="font-medium">
-                                                    {formatCaracasTime(
-                                                        a.dateTime,
-                                                    )}{" "}
-                                                    — {a.patientName}
-                                                </p>
-                                            </div>
-                                            <AppointmentStatusBadge
-                                                status={a.status}
-                                            />
-                                        </div>
-                                    ))}
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                isLoading={isPending}
+                                onClick={handleMarkDayOff}
+                            >
+                                Marcar todo el día libre
+                            </Button>
+                            <div className="flex flex-wrap items-end gap-2">
+                                <div className="grid gap-1.5">
+                                    <Label htmlFor="block-start">Desde</Label>
+                                    <Input
+                                        id="block-start"
+                                        type="time"
+                                        value={blockStart}
+                                        onChange={e =>
+                                            setBlockStart(e.target.value)
+                                        }
+                                        className="w-28"
+                                    />
                                 </div>
-                            )}
-
-                            <div className="space-y-3 border-t border-border pt-4">
-                                {wholeDayBlocked ? (
-                                    <p className="text-sm text-muted-foreground">
-                                        Día libre.
-                                    </p>
-                                ) : (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        isLoading={isPending}
-                                        onClick={handleMarkDayOff}
-                                    >
-                                        Marcar todo el día libre
-                                    </Button>
-                                )}
-
-                                {!wholeDayBlocked && (
-                                    <div className="flex flex-wrap items-end gap-2">
-                                        <div className="grid gap-1.5">
-                                            <Label htmlFor="block-start">
-                                                Desde
-                                            </Label>
-                                            <Input
-                                                id="block-start"
-                                                type="time"
-                                                value={blockStart}
-                                                onChange={e =>
-                                                    setBlockStart(
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                className="w-28"
-                                            />
-                                        </div>
-                                        <div className="grid gap-1.5">
-                                            <Label htmlFor="block-end">
-                                                Hasta
-                                            </Label>
-                                            <Input
-                                                id="block-end"
-                                                type="time"
-                                                value={blockEnd}
-                                                onChange={e =>
-                                                    setBlockEnd(e.target.value)
-                                                }
-                                                className="w-28"
-                                            />
-                                        </div>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            isLoading={isPending}
-                                            onClick={handleBlockHours}
-                                        >
-                                            Bloquear un horario
-                                        </Button>
-                                    </div>
-                                )}
-
-                                {dayTimeOffs.length > 0 && (
-                                    <div className="space-y-1.5">
-                                        {dayTimeOffs.map(t => (
-                                            <div
-                                                key={t.id}
-                                                className="flex items-center justify-between rounded-lg border border-border bg-secondary/40 px-3 py-1.5 text-xs"
-                                            >
-                                                <span>
-                                                    {wholeDayBlocked
-                                                        ? "Todo el día"
-                                                        : `${formatCaracasTime(t.startsAt)} - ${formatCaracasTime(t.endsAt)}`}
-                                                    {t.reason
-                                                        ? ` · ${t.reason}`
-                                                        : ""}
-                                                </span>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon-sm"
-                                                    disabled={
-                                                        pendingTimeOffId ===
-                                                        t.id
-                                                    }
-                                                    onClick={() =>
-                                                        handleDeleteTimeOff(
-                                                            t.id,
-                                                        )
-                                                    }
-                                                >
-                                                    <Trash2 className="size-3.5 text-destructive" />
-                                                </Button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
+                                <div className="grid gap-1.5">
+                                    <Label htmlFor="block-end">Hasta</Label>
+                                    <Input
+                                        id="block-end"
+                                        type="time"
+                                        value={blockEnd}
+                                        onChange={e =>
+                                            setBlockEnd(e.target.value)
+                                        }
+                                        className="w-28"
+                                    />
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    isLoading={isPending}
+                                    onClick={handleBlockHours}
+                                >
+                                    Bloquear un horario
+                                </Button>
                             </div>
                         </>
                     )}
-                </div>
 
-                <div
-                    className={cn(
-                        "transition-opacity duration-300",
-                        isPending && "opacity-50",
+                    {dayTimeOffs.length > 0 && (
+                        <div className="space-y-1.5">
+                            {dayTimeOffs.map(t => (
+                                <div
+                                    key={t.id}
+                                    className="flex items-center justify-between rounded-lg border border-border bg-secondary/40 px-3 py-1.5 text-xs"
+                                >
+                                    <span>
+                                        {wholeDayBlocked
+                                            ? "Todo el día"
+                                            : `${formatCaracasTime(t.startsAt)} - ${formatCaracasTime(t.endsAt)}`}
+                                        {t.reason ? ` · ${t.reason}` : ""}
+                                    </span>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        disabled={pendingTimeOffId === t.id}
+                                        onClick={() =>
+                                            handleDeleteTimeOff(t.id)
+                                        }
+                                    >
+                                        <Trash2 className="size-3.5 text-destructive" />
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
                     )}
-                >
-                    <Calendar
-                        mode="single"
-                        required
-                        selected={selectedDate}
-                        onSelect={setSelectedDate}
-                        onMonthChange={handleMonthChange}
-                        locale={es}
-                        defaultMonth={new Date(initialYear, initialMonth - 1)}
-                        components={{
-                            DayButton: props => (
-                                <PsychologistCalendarDayButton
-                                    countsByDate={countsByDate}
-                                    timeOffs={monthData.timeOffs}
-                                    {...props}
-                                />
-                            ),
-                        }}
-                        className="mx-auto w-fit [--cell-size:--spacing(10)]"
-                    />
                 </div>
             </div>
         </div>
-    );
-}
-
-function PsychologistCalendarDayButton({
-    countsByDate,
-    timeOffs,
-    day,
-    modifiers,
-    className,
-    ...props
-}: React.ComponentProps<typeof DayButton> & {
-    countsByDate: Record<string, number>;
-    timeOffs: TimeOffRow[];
-}) {
-    const dateStr = format(day.date, "yyyy-MM-dd");
-    const count = countsByDate[dateStr] ?? 0;
-    const blocked = isWholeDayBlocked(timeOffs, dateStr);
-
-    return (
-        <Button
-            variant="ghost"
-            size="icon"
-            data-selected-single={
-                modifiers.selected &&
-                !modifiers.range_start &&
-                !modifiers.range_end &&
-                !modifiers.range_middle
-            }
-            className={cn(
-                "relative isolate z-10 flex aspect-square size-auto w-full min-w-(--cell-size) flex-col items-center gap-0.5 border-0 leading-none font-normal data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground",
-                blocked && "opacity-60",
-                className,
-            )}
-            {...props}
-        >
-            {props.children}
-            {blocked && (
-                <span className="block h-1 w-1 rounded-full bg-destructive" />
-            )}
-            {!blocked && count > 0 && (
-                <span className="block h-1 w-1 rounded-full bg-accent" />
-            )}
-        </Button>
     );
 }

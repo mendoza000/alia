@@ -59,6 +59,12 @@ const navSections: { label: string; items: NavItem[] }[] = [
                 permission: "schedule.write.own",
                 roles: ["psychologist"],
             },
+            {
+                href: "/admin/calendario",
+                label: "Calendario",
+                icon: CalendarClock,
+                permission: "appointment.read.all",
+            },
             // /admin/citas and /admin/pagos are read-scoped by actor since
             // Fase 4.0 (resolvePsychologistScope) — a psychologist only ever
             // sees their own sessions/payments there, so these are safe to

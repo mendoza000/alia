@@ -17,20 +17,6 @@ export function groupAppointmentsByDate<T extends { dateTime: Date }>(
     return result;
 }
 
-/** Excludes CANCELLED so the month-view badge isn't noisy with sessions that
- * no longer need the psychologist's attention. */
-export function countAppointmentsByDate(
-    appointments: { dateTime: Date; status: string }[],
-): Record<string, number> {
-    const counts: Record<string, number> = {};
-    for (const appointment of appointments) {
-        if (appointment.status === "CANCELLED") continue;
-        const key = caracasDateKey(appointment.dateTime);
-        counts[key] = (counts[key] ?? 0) + 1;
-    }
-    return counts;
-}
-
 export function getTimeOffBlocksForDate<
     T extends { startsAt: Date; endsAt: Date },
 >(timeOffs: T[], dateStr: string): T[] {
@@ -46,4 +32,20 @@ export function isWholeDayBlocked(
     const dayStart = toCaracasDate(dateStr, "00:00");
     const dayEnd = toCaracasDate(dateStr, "23:59");
     return timeOffs.some(t => t.startsAt <= dayStart && t.endsAt >= dayEnd);
+}
+
+/** Distinguishes a whole-day(s) TimeOff (created via "Marcar todo el día
+ * libre" or the multi-day TimeOffEditor, both of which start at Caracas
+ * 00:00 and end at Caracas 23:59[:59]) from an hour-level block — the
+ * calendar renders the former as an all-day banner and the latter as a
+ * timed block, same distinction Google Calendar makes. */
+export function isFullDayTimeOff(timeOff: {
+    startsAt: Date;
+    endsAt: Date;
+}): boolean {
+    const start = new TZDate(timeOff.startsAt, CARACAS_TZ);
+    const end = new TZDate(timeOff.endsAt, CARACAS_TZ);
+    const startsAtMidnight = start.getHours() === 0 && start.getMinutes() === 0;
+    const endsAtEndOfDay = end.getHours() === 23 && end.getMinutes() === 59;
+    return startsAtMidnight && endsAtEndOfDay;
 }

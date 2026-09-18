@@ -1,7 +1,5 @@
-import { TZDate } from "@date-fns/tz";
 import { prisma } from "@/lib/db";
 import type { AppointmentStatus } from "@/generated/prisma/enums";
-import { CARACAS_TZ } from "@/lib/availability";
 import { getTimeOffOverlapping } from "@/lib/admin/time-off-actions";
 
 export type PsychologistCalendarAppointment = {
@@ -12,19 +10,18 @@ export type PsychologistCalendarAppointment = {
     patientName: string;
 };
 
-/** Lighter than getAllAppointments's `include` — this only feeds the day
- * panel of the psychologist's own calendar, not the full citas table. */
-export async function getPsychologistCalendarMonth(
+/** Lighter than getAllAppointments's `include` — this only feeds the
+ * psychologist's own Schedule-X calendar, not the full citas table.
+ * `rangeStart`/`rangeEnd` are whatever visible range the calendar is
+ * currently showing (a month, a week, or a day). */
+export async function getPsychologistCalendarRange(
     psychologistId: string,
-    year: number,
-    month: number,
+    rangeStart: Date,
+    rangeEnd: Date,
 ): Promise<{
     appointments: PsychologistCalendarAppointment[];
     timeOffs: Awaited<ReturnType<typeof getTimeOffOverlapping>>;
 }> {
-    const rangeStart = new TZDate(year, month - 1, 1, CARACAS_TZ);
-    const rangeEnd = new TZDate(year, month, 1, CARACAS_TZ);
-
     const [appointments, timeOffs] = await Promise.all([
         prisma.appointment.findMany({
             where: {

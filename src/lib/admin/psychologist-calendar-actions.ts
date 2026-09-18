@@ -1,15 +1,15 @@
 "use server";
 
 import { requireActor, requireScheduleAccess } from "@/lib/auth/require";
-import { getPsychologistCalendarMonth } from "@/lib/admin/psychologist-calendar-queries";
+import { getPsychologistCalendarRange } from "@/lib/admin/psychologist-calendar-queries";
 
-export async function getPsychologistCalendarMonthAction(
+export async function getPsychologistCalendarRangeAction(
     psychologistId: string,
-    year: number,
-    month: number,
+    rangeStart: Date,
+    rangeEnd: Date,
 ) {
     const actor = await requireActor();
     await requireScheduleAccess(actor, psychologistId);
 
-    return getPsychologistCalendarMonth(psychologistId, year, month);
+    return getPsychologistCalendarRange(psychologistId, rangeStart, rangeEnd);
 }

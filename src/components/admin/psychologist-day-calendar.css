@@ -1,0 +1,221 @@
+/* Maps Schedule-X's own CSS variables (see @schedule-x/theme-default) onto
+ * ALIA's semantic tokens (src/app/globals.css) so the calendar follows light/
+ * dark mode and brand colors automatically, then layers on real visual
+ * polish (radius, shadows, hover states) since the library's default skin
+ * is intentionally minimal. Scoped to this wrapper class, never global. */
+.sx-alia-theme {
+    height: 100%;
+
+    --sx-color-background: var(--card);
+    --sx-color-on-background: var(--card-foreground);
+    --sx-color-surface: var(--card);
+    --sx-color-surface-dim: var(--muted);
+    --sx-color-surface-bright: var(--card);
+    --sx-color-on-surface: var(--card-foreground);
+    --sx-color-surface-container: var(--secondary);
+    --sx-color-surface-container-low: var(--background);
+    --sx-color-surface-container-high: var(--muted);
+    --sx-color-outline: var(--border);
+    --sx-color-outline-variant: var(--border);
+    --sx-color-primary: var(--accent);
+    --sx-color-on-primary: var(--accent-foreground);
+    --sx-color-primary-container: var(--secondary);
+    --sx-color-on-primary-container: var(--foreground);
+    --sx-color-secondary: var(--secondary);
+    --sx-color-on-secondary: var(--secondary-foreground);
+    --sx-color-secondary-container: var(--muted);
+    --sx-color-on-secondary-container: var(--foreground);
+    --sx-color-surface-tint: var(--accent);
+
+    /* Per-calendar (event type) colors. Schedule-X names these
+     * `--sx-color-{colorName}` / `-container` / `on-{colorName}-container`
+     * itself based on the `colorName` passed to calendars.appointment/
+     * calendars.blocked — it does NOT read lightColors/darkColors from CSS
+     * variable references (those are resolved in JS, which can't parse a
+     * var() string), so these have to be defined directly here. */
+    --sx-color-appointment: var(--accent);
+    --sx-color-appointment-container: color-mix(
+        in oklch,
+        var(--accent) 32%,
+        var(--card)
+    );
+    --sx-color-on-appointment-container: var(--foreground);
+    --sx-color-blocked: var(--destructive);
+    --sx-color-blocked-container: color-mix(
+        in oklch,
+        var(--destructive) 16%,
+        var(--card)
+    );
+    --sx-color-on-blocked-container: var(--destructive);
+
+    /* Fixed 8-hue categorical palette (dataviz skill's validated default),
+     * for color-coding psychologists on the admin's global calendar
+     * (buildPsychologistCalendars). Fixed order: blue, orange, aqua,
+     * yellow, magenta, green, violet, red — CVD-checked against ALIA's
+     * card surface in both modes; every event chip also carries a visible
+     * text label, satisfying the contrast-relief requirement for the
+     * lower-contrast slots (aqua/yellow/magenta on light). */
+    --sx-color-psy-0: #2a78d6;
+    --sx-color-psy-0-container: color-mix(in oklch, #2a78d6 24%, var(--card));
+    --sx-color-on-psy-0-container: #0b0b0b;
+    --sx-color-psy-1: #eb6834;
+    --sx-color-psy-1-container: color-mix(in oklch, #eb6834 24%, var(--card));
+    --sx-color-on-psy-1-container: #0b0b0b;
+    --sx-color-psy-2: #1baf7a;
+    --sx-color-psy-2-container: color-mix(in oklch, #1baf7a 24%, var(--card));
+    --sx-color-on-psy-2-container: #0b0b0b;
+    --sx-color-psy-3: #eda100;
+    --sx-color-psy-3-container: color-mix(in oklch, #eda100 24%, var(--card));
+    --sx-color-on-psy-3-container: #0b0b0b;
+    --sx-color-psy-4: #e87ba4;
+    --sx-color-psy-4-container: color-mix(in oklch, #e87ba4 24%, var(--card));
+    --sx-color-on-psy-4-container: #0b0b0b;
+    --sx-color-psy-5: #008300;
+    --sx-color-psy-5-container: color-mix(in oklch, #008300 24%, var(--card));
+    --sx-color-on-psy-5-container: #0b0b0b;
+    --sx-color-psy-6: #4a3aa7;
+    --sx-color-psy-6-container: color-mix(in oklch, #4a3aa7 24%, var(--card));
+    --sx-color-on-psy-6-container: #0b0b0b;
+    --sx-color-psy-7: #e34948;
+    --sx-color-psy-7-container: color-mix(in oklch, #e34948 24%, var(--card));
+    --sx-color-on-psy-7-container: #0b0b0b;
+}
+
+.dark .sx-alia-theme {
+    --sx-color-psy-0: #3987e5;
+    --sx-color-psy-0-container: color-mix(in oklch, #3987e5 30%, var(--card));
+    --sx-color-on-psy-0-container: #ffffff;
+    --sx-color-psy-1: #d95926;
+    --sx-color-psy-1-container: color-mix(in oklch, #d95926 30%, var(--card));
+    --sx-color-on-psy-1-container: #ffffff;
+    --sx-color-psy-2: #199e70;
+    --sx-color-psy-2-container: color-mix(in oklch, #199e70 30%, var(--card));
+    --sx-color-on-psy-2-container: #ffffff;
+    --sx-color-psy-3: #c98500;
+    --sx-color-psy-3-container: color-mix(in oklch, #c98500 30%, var(--card));
+    --sx-color-on-psy-3-container: #ffffff;
+    --sx-color-psy-4: #d55181;
+    --sx-color-psy-4-container: color-mix(in oklch, #d55181 30%, var(--card));
+    --sx-color-on-psy-4-container: #ffffff;
+    --sx-color-psy-5: #008300;
+    --sx-color-psy-5-container: color-mix(in oklch, #008300 30%, var(--card));
+    --sx-color-on-psy-5-container: #ffffff;
+    --sx-color-psy-6: #9085e9;
+    --sx-color-psy-6-container: color-mix(in oklch, #9085e9 30%, var(--card));
+    --sx-color-on-psy-6-container: #ffffff;
+    --sx-color-psy-7: #e66767;
+    --sx-color-psy-7-container: color-mix(in oklch, #e66767 30%, var(--card));
+    --sx-color-on-psy-7-container: #ffffff;
+}
+
+.sx-alia-theme .sx-react-calendar-wrapper {
+    height: 100%;
+}
+
+.sx-alia-theme .sx__calendar {
+    height: 100%;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border);
+    box-shadow:
+        0 1px 2px oklch(0 0 0 / 4%),
+        0 8px 24px -12px oklch(0 0 0 / 10%);
+    overflow: hidden;
+}
+
+/* Header / toolbar */
+.sx-alia-theme .sx__calendar-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
+}
+
+.sx-alia-theme .sx__range-heading {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+.sx-alia-theme .sx__button,
+.sx-alia-theme .sx__view-selection,
+.sx-alia-theme .sx__date-input-wrapper {
+    border-radius: var(--radius-md);
+    transition:
+        background-color 150ms ease,
+        box-shadow 150ms ease,
+        transform 100ms ease;
+}
+
+.sx-alia-theme .sx__today-button {
+    border: 1px solid var(--border);
+    font-weight: 500;
+}
+
+.sx-alia-theme .sx__button:hover,
+.sx-alia-theme .sx__chevron-wrapper:hover {
+    background-color: var(--secondary);
+}
+
+.sx-alia-theme .sx__button:active {
+    transform: scale(0.96);
+}
+
+.sx-alia-theme .sx__view-selection,
+.sx-alia-theme .sx__date-input {
+    border: 1px solid var(--border);
+    background: var(--card);
+}
+
+/* Week / day time grid */
+.sx-alia-theme .sx__week-grid__hour-text {
+    color: var(--muted-foreground);
+    font-size: 0.7rem;
+}
+
+.sx-alia-theme .sx__week-grid__date--is-today .sx__week-grid__date-number {
+    background: var(--accent);
+    color: var(--accent-foreground);
+    border-radius: 999px;
+}
+
+/* Event chips — timed (week/day) and all-day/month */
+.sx-alia-theme .sx__time-grid-event,
+.sx-alia-theme .sx__date-grid-event,
+.sx-alia-theme .sx__month-grid-event {
+    border-radius: var(--radius-md);
+    border: none;
+    box-shadow: 0 1px 2px oklch(0 0 0 / 8%);
+    transition:
+        transform 120ms ease,
+        box-shadow 120ms ease;
+}
+
+.sx-alia-theme .sx__time-grid-event:hover,
+.sx-alia-theme .sx__date-grid-event:hover,
+.sx-alia-theme .sx__month-grid-event:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px -2px oklch(0 0 0 / 16%);
+}
+
+.sx-alia-theme .sx__time-grid-event-title {
+    font-weight: 600;
+}
+
+/* Month grid */
+.sx-alia-theme .sx__month-grid-day {
+    transition: background-color 150ms ease;
+}
+
+.sx-alia-theme .sx__month-grid-day:hover {
+    background-color: var(--secondary);
+}
+
+/* Selected day (set imperatively in the component — see calendarContainerRef
+ * — since Schedule-X has no built-in visual state for onClickDate). */
+.sx-alia-theme .sx-alia-selected {
+    background-color: color-mix(in oklch, var(--accent) 16%, transparent);
+}
+
+.sx-alia-theme .sx__week-grid__date.sx-alia-selected,
+.sx-alia-theme .sx__month-grid-day.sx-alia-selected {
+    box-shadow: inset 0 -3px 0 0 var(--accent);
+}
