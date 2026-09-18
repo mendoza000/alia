@@ -27,6 +27,7 @@ import {
     buildTimedEventContent,
 } from "@/lib/admin/schedule-x-mapping";
 import { AppointmentStatusBadge } from "@/components/admin/appointment-status-badge";
+import { AppointmentDetailSheet } from "@/components/admin/appointment-detail-sheet";
 import { createTimeOff, deleteTimeOff } from "@/lib/admin/time-off-actions";
 import { getPsychologistCalendarRangeAction } from "@/lib/admin/psychologist-calendar-actions";
 import type { PsychologistCalendarAppointment } from "@/lib/admin/psychologist-calendar-queries";
@@ -112,6 +113,9 @@ export function PsychologistDayCalendar({
     const [blockEnd, setBlockEnd] = useState("16:00");
     const lastRangeRef = useRef<{ start: Date; end: Date } | null>(null);
     const calendarContainerRef = useRef<HTMLDivElement>(null);
+    const [selectedAppointmentId, setSelectedAppointmentId] = useState<
+        string | null
+    >(null);
 
     // Schedule-X has no built-in "selected date" visual state for an
     // onClickDate/onClickDateTime click (unlike its own date-picker input) —
@@ -152,8 +156,12 @@ export function PsychologistDayCalendar({
         dayBoundaries: { start: "06:00", end: "22:00" },
         // Explicit hour12 is required even in Spanish — Intl's es-ES default
         // is 24h, and the library only auto-picks 12h for locale 'en-US'.
+        // gridHeight (default 1600px for the full 06:00-22:00 span) is
+        // lowered so the day fits with less scrolling inside the fixed-
+        // height wrapper below.
         weekOptions: {
             timeAxisFormatOptions: { hour: "numeric", hour12: true },
+            gridHeight: 900,
         },
         /* Colors come purely from CSS (psychologist-day-calendar.css defines
          * --sx-color-appointment and --sx-color-blocked directly) rather
@@ -177,6 +185,22 @@ export function PsychologistDayCalendar({
             },
             onClickDateTime: dateTime => {
                 setSelectedDateStr(dateTime.toPlainDate().toString());
+            },
+            onEventClick: event => {
+                const id = String(event.id);
+                if (id.startsWith("appt-")) {
+                    setSelectedAppointmentId(id.slice("appt-".length));
+                }
+            },
+            // In day view the visible range IS a single day — select it
+            // automatically on navigation instead of requiring a click.
+            // Week/month ranges span more than a day and are left alone.
+            onRangeUpdate: range => {
+                const spanMs =
+                    range.end.epochMilliseconds - range.start.epochMilliseconds;
+                if (spanMs <= 24 * 60 * 60 * 1000) {
+                    setSelectedDateStr(range.start.toPlainDate().toString());
+                }
             },
         },
     });
@@ -260,11 +284,11 @@ export function PsychologistDayCalendar({
 
     return (
         <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1fr_320px]">
-            <div ref={calendarContainerRef} className="sx-alia-theme h-[700px]">
+            <div ref={calendarContainerRef} className="sx-alia-theme h-[620px]">
                 <ScheduleXCalendar calendarApp={calendarApp} />
             </div>
 
-            <div className="max-h-[700px] space-y-3 overflow-y-auto rounded-lg border border-border bg-card p-4">
+            <div className="max-h-[620px] space-y-3 overflow-y-auto rounded-lg border border-border bg-card p-4">
                 <h3 className="font-heading text-sm font-semibold capitalize">
                     {selectedDateLabel}
                 </h3>
@@ -276,16 +300,18 @@ export function PsychologistDayCalendar({
                 ) : (
                     <div className="space-y-2">
                         {dayAppointments.map(a => (
-                            <div
+                            <button
                                 key={a.id}
-                                className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"
+                                type="button"
+                                onClick={() => setSelectedAppointmentId(a.id)}
+                                className="flex w-full items-center justify-between rounded-lg border border-border px-3 py-2 text-left text-sm transition-colors hover:bg-secondary"
                             >
                                 <p className="font-medium">
                                     {formatCaracasTime(a.dateTime)} —{" "}
                                     {a.patientName}
                                 </p>
                                 <AppointmentStatusBadge status={a.status} />
-                            </div>
+                            </button>
                         ))}
                     </div>
                 )}
@@ -302,10 +328,11 @@ export function PsychologistDayCalendar({
                                 size="sm"
                                 isLoading={isPending}
                                 onClick={handleMarkDayOff}
+                                className="w-full"
                             >
                                 Marcar todo el día libre
                             </Button>
-                            <div className="flex flex-wrap items-end gap-2">
+                            <div className="grid grid-cols-2 gap-2">
                                 <div className="grid gap-1.5">
                                     <Label htmlFor="block-start">Desde</Label>
                                     <Input
@@ -315,7 +342,7 @@ export function PsychologistDayCalendar({
                                         onChange={e =>
                                             setBlockStart(e.target.value)
                                         }
-                                        className="w-28"
+                                        className="w-full"
                                     />
                                 </div>
                                 <div className="grid gap-1.5">
@@ -327,18 +354,19 @@ export function PsychologistDayCalendar({
                                         onChange={e =>
                                             setBlockEnd(e.target.value)
                                         }
-                                        className="w-28"
+                                        className="w-full"
                                     />
                                 </div>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    isLoading={isPending}
-                                    onClick={handleBlockHours}
-                                >
-                                    Bloquear un horario
-                                </Button>
                             </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                isLoading={isPending}
+                                onClick={handleBlockHours}
+                                className="w-full"
+                            >
+                                Bloquear un horario
+                            </Button>
                         </>
                     )}
 
@@ -371,6 +399,11 @@ export function PsychologistDayCalendar({
                     )}
                 </div>
             </div>
+
+            <AppointmentDetailSheet
+                appointmentId={selectedAppointmentId}
+                onOpenChange={open => !open && setSelectedAppointmentId(null)}
+            />
         </div>
     );
 }

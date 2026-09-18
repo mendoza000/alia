@@ -94,3 +94,5 @@ export async function getAppointmentById(id: string) {
         },
     });
 }
+
+export type AppointmentDetail = Awaited<ReturnType<typeof getAppointmentById>>;

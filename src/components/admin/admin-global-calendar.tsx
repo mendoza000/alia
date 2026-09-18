@@ -22,6 +22,7 @@ import {
     buildTimedEventContent,
 } from "@/lib/admin/schedule-x-mapping";
 import { AppointmentStatusBadge } from "@/components/admin/appointment-status-badge";
+import { AppointmentDetailSheet } from "@/components/admin/appointment-detail-sheet";
 import { getGlobalCalendarRangeAction } from "@/lib/admin/global-calendar-actions";
 import type {
     GlobalCalendarAppointment,
@@ -68,6 +69,9 @@ export function AdminGlobalCalendar({
         caracasDateKey(new Date()),
     );
     const calendarContainerRef = useRef<HTMLDivElement>(null);
+    const [selectedAppointmentId, setSelectedAppointmentId] = useState<
+        string | null
+    >(null);
 
     // See the same note in psychologist-day-calendar.tsx — Schedule-X
     // doesn't visually mark a clicked date itself, so we reapply our own
@@ -95,6 +99,7 @@ export function AdminGlobalCalendar({
         dayBoundaries: { start: "06:00", end: "22:00" },
         weekOptions: {
             timeAxisFormatOptions: { hour: "numeric", hour12: true },
+            gridHeight: 900,
         },
         calendars: buildPsychologistCalendars(roster),
         callbacks: {
@@ -109,6 +114,16 @@ export function AdminGlobalCalendar({
             onClickDate: date => setSelectedDateStr(date.toString()),
             onClickDateTime: dateTime =>
                 setSelectedDateStr(dateTime.toPlainDate().toString()),
+            onEventClick: event => setSelectedAppointmentId(String(event.id)),
+            // In day view the visible range IS a single day — select it
+            // automatically on navigation instead of requiring a click.
+            onRangeUpdate: range => {
+                const spanMs =
+                    range.end.epochMilliseconds - range.start.epochMilliseconds;
+                if (spanMs <= 24 * 60 * 60 * 1000) {
+                    setSelectedDateStr(range.start.toPlainDate().toString());
+                }
+            },
         },
     });
 
@@ -143,11 +158,11 @@ export function AdminGlobalCalendar({
             </div>
 
             <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1fr_320px]">
-                <div ref={calendarContainerRef} className="h-[700px]">
+                <div ref={calendarContainerRef} className="h-[620px]">
                     <ScheduleXCalendar calendarApp={calendarApp} />
                 </div>
 
-                <div className="max-h-[700px] space-y-3 overflow-y-auto rounded-lg border border-border bg-card p-4">
+                <div className="max-h-[620px] space-y-3 overflow-y-auto rounded-lg border border-border bg-card p-4">
                     <h3 className="font-heading text-sm font-semibold capitalize">
                         {selectedDateLabel}
                     </h3>
@@ -158,9 +173,13 @@ export function AdminGlobalCalendar({
                     ) : (
                         <div className="space-y-2">
                             {dayAppointments.map(a => (
-                                <div
+                                <button
                                     key={a.id}
-                                    className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"
+                                    type="button"
+                                    onClick={() =>
+                                        setSelectedAppointmentId(a.id)
+                                    }
+                                    className="flex w-full items-center justify-between rounded-lg border border-border px-3 py-2 text-left text-sm transition-colors hover:bg-secondary"
                                 >
                                     <p className="font-medium">
                                         {formatCaracasTime(a.dateTime)} —{" "}
@@ -170,12 +189,17 @@ export function AdminGlobalCalendar({
                                         </span>
                                     </p>
                                     <AppointmentStatusBadge status={a.status} />
-                                </div>
+                                </button>
                             ))}
                         </div>
                     )}
                 </div>
             </div>
+
+            <AppointmentDetailSheet
+                appointmentId={selectedAppointmentId}
+                onOpenChange={open => !open && setSelectedAppointmentId(null)}
+            />
         </div>
     );
 }
