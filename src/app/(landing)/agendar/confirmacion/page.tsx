@@ -18,15 +18,16 @@ export const metadata: Metadata = {
 };
 
 type Props = {
-    params: Promise<{ slug: string }>;
     searchParams: Promise<{ appointmentId?: string }>;
 };
 
-export default async function ConfirmationPage({
-    params,
-    searchParams,
-}: Props) {
-    const { slug } = await params;
+/**
+ * Slug-less counterpart to agendar/[slug]/confirmacion/page.tsx — this is
+ * the reveal moment for the auto-assign flow: the psychologist is resolved
+ * purely from Appointment.psychologistId, exactly like the direct-slug
+ * version already does (it never depended on the URL slug for that part).
+ */
+export default async function ConfirmationPage({ searchParams }: Props) {
     const { appointmentId } = await searchParams;
 
     if (!appointmentId) notFound();
@@ -35,7 +36,7 @@ export default async function ConfirmationPage({
     const session = await auth.api.getSession({ headers: headersList });
 
     if (!session?.user?.id) {
-        redirect(`/agendar/${slug}`);
+        redirect("/agendar");
     }
 
     const appointment = await prisma.appointment.findUnique({
@@ -55,10 +56,10 @@ export default async function ConfirmationPage({
     if (appointment.userId !== session.user.id) notFound();
 
     if (appointment.status === "PENDING_FORM") {
-        redirect(`/agendar/${slug}/formulario?appointmentId=${appointmentId}`);
+        redirect(`/agendar/formulario?appointmentId=${appointmentId}`);
     }
     if (appointment.status !== "CONFIRMED") {
-        redirect(`/agendar/${slug}`);
+        redirect("/agendar");
     }
 
     const country = headersList.get("x-vercel-ip-country");
@@ -76,9 +77,7 @@ export default async function ConfirmationPage({
     const formattedDate = format(
         dateTimeInPatientTz,
         "EEEE d 'de' MMMM, yyyy",
-        {
-            locale: es,
-        },
+        { locale: es },
     );
     const formattedTime = format(dateTimeInPatientTz, "h:mm a");
 
