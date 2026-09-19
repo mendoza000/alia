@@ -8,6 +8,7 @@ import { updateMyProfile } from "@/lib/patient/profile-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DatePickerInput } from "@/components/form/date-picker-input";
 
 /**
  * Same view/edit-toggle shape as the admin's PatientProfileEditor, calling
@@ -106,11 +107,10 @@ export function MyProfileForm({
                 </div>
                 <div className="grid gap-1.5">
                     <Label htmlFor="my-profile-dob">Fecha de nacimiento</Label>
-                    <Input
+                    <DatePickerInput
                         id="my-profile-dob"
                         value={formDob}
-                        onChange={e => setFormDob(e.target.value)}
-                        placeholder="AAAA-MM-DD"
+                        onChange={setFormDob}
                     />
                 </div>
             </div>
