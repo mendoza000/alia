@@ -11,6 +11,7 @@ import {
     createViewDay,
     createViewWeek,
     createViewMonthGrid,
+    createViewMonthAgenda,
     type CalendarEvent,
 } from "@schedule-x/calendar";
 import { createCurrentTimePlugin } from "@schedule-x/current-time";
@@ -140,7 +141,16 @@ export function AdminGlobalCalendar({
 
     const calendarApp = useCalendarApp(
         {
-            views: [createViewWeek(), createViewDay(), createViewMonthGrid()],
+            // Week/month grids need horizontal room Schedule-X won't give
+            // them on a phone (it auto-restricts the view picker to
+            // hasSmallScreenCompat views there) — month-agenda is its
+            // mobile-friendly stand-in so "Vista" isn't stuck on Día alone.
+            views: [
+                createViewWeek(),
+                createViewDay(),
+                createViewMonthGrid(),
+                createViewMonthAgenda(),
+            ],
             defaultView: "week",
             selectedDate: Temporal.PlainDate.from(caracasDateKey(new Date())),
             locale: "es-ES",
@@ -234,7 +244,7 @@ export function AdminGlobalCalendar({
                                     }}
                                 />
                                 <Link
-                                    href={`/admin/psicologos/${p.id}/calendario`}
+                                    href={`/admin/psicologos/${p.id}/calendario?from=calendario`}
                                     className={cn(
                                         "hover:text-foreground hover:underline",
                                         isHidden

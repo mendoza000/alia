@@ -10,6 +10,7 @@ import {
     createViewDay,
     createViewWeek,
     createViewMonthGrid,
+    createViewMonthAgenda,
     type CalendarEvent,
 } from "@schedule-x/calendar";
 import { createCurrentTimePlugin } from "@schedule-x/current-time";
@@ -170,7 +171,14 @@ export function PsychologistDayCalendar({
 
     const calendarApp = useCalendarApp(
         {
-            views: [createViewWeek(), createViewDay(), createViewMonthGrid()],
+            // See the same note in admin-global-calendar.tsx — month-agenda
+            // is Schedule-X's mobile-friendly stand-in for week/month grid.
+            views: [
+                createViewWeek(),
+                createViewDay(),
+                createViewMonthGrid(),
+                createViewMonthAgenda(),
+            ],
             defaultView: "week",
             selectedDate: Temporal.PlainDate.from(caracasDateKey(new Date())),
             locale: "es-ES",

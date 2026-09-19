@@ -10,15 +10,23 @@ import { PageHeader } from "@/components/admin/page-header";
 
 export default async function PsychologistCalendarPage({
     params,
+    searchParams,
 }: {
     params: Promise<{ id: string }>;
+    searchParams: Promise<{ from?: string }>;
 }) {
     const { id } = await params;
+    const { from } = await searchParams;
     const psychologist = await getPsychologistById(id);
 
     if (!psychologist) {
         notFound();
     }
+
+    const backHref =
+        from === "calendario" ? "/admin/calendario" : `/admin/psicologos/${id}`;
+    const backLabel =
+        from === "calendario" ? "Calendario global" : psychologist.name;
 
     const now = new TZDate(new Date(), CARACAS_TZ);
     const initialRangeStart = new TZDate(
@@ -42,11 +50,11 @@ export default async function PsychologistCalendarPage({
     return (
         <div className="space-y-6">
             <Link
-                href={`/admin/psicologos/${id}`}
+                href={backHref}
                 className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
             >
                 <ArrowLeft className="size-4" />
-                {psychologist.name}
+                {backLabel}
             </Link>
 
             <PageHeader
