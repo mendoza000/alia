@@ -120,7 +120,10 @@ export async function getAssignedPsychologistForModality(
         where: {
             userId,
             sessionType,
-            status: { in: ["CONFIRMED", "COMPLETED"] },
+            // Cancelling a session doesn't end the patient's relationship
+            // with their assigned specialist — only PENDING_FORM bookings
+            // that never got assigned in the first place are excluded.
+            status: { in: ["CONFIRMED", "COMPLETED", "CANCELLED", "NO_SHOW"] },
         },
         orderBy: { dateTime: "desc" },
         select: { psychologistId: true },
