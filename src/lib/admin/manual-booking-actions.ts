@@ -279,5 +279,6 @@ export async function createManualAppointment(
     await confirmAndNotifyAppointment(appointmentId);
 
     revalidatePath("/admin/citas", "layout");
+    revalidatePath("/admin/clientes", "layout");
     return { success: true, appointmentId, warning };
 }

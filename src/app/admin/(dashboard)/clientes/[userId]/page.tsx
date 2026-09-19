@@ -4,6 +4,9 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { ArrowLeft, FileText } from "lucide-react";
 import { getPatientDetail } from "@/lib/admin/patient-queries";
+import { getAllPsychologists } from "@/lib/admin/psychologist-queries";
+import { getAllRates } from "@/lib/admin/payment-rate-queries";
+import { getPayoutSettings } from "@/lib/admin/payout-settings-queries";
 import { can } from "@/lib/auth/permissions";
 import { requireActor } from "@/lib/auth/require";
 import { getPatientPhoneFromIntakeFormData } from "@/lib/patient-phone";
@@ -13,6 +16,7 @@ import { PatientNotes } from "@/components/admin/patient-notes";
 import { AppointmentStatusBadge } from "@/components/admin/appointment-status-badge";
 import { PaymentStatusBadge } from "@/components/admin/payment-status-badge";
 import { WhatsappReminderButton } from "@/components/admin/whatsapp-reminder-action";
+import { NewManualAppointmentDialog } from "@/components/admin/new-manual-appointment-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrencyAmount } from "@/lib/currency";
@@ -31,6 +35,13 @@ export default async function ClienteDetailPage({ params }: Props) {
     const actor = await requireActor();
     const patient = await getPatientDetail(userId);
     if (!patient) notFound();
+
+    const canCreateAppointment = can(actor.role, "appointment.write");
+    const [psychologists, rates, commissionRates] = await Promise.all([
+        getAllPsychologists(),
+        getAllRates(),
+        getPayoutSettings(),
+    ]);
 
     // A psychologist can only view a patient they've actually treated —
     // same ownership rule as requirePatientAccess in patient-actions.ts,
@@ -72,16 +83,32 @@ export default async function ClienteDetailPage({ params }: Props) {
                         })}
                     </p>
                 </div>
-                {patient.intakeForm?.appointmentId && (
-                    <Link
-                        href={`/admin/formularios/${patient.intakeForm.appointmentId}`}
-                    >
-                        <Button variant="outline" size="sm">
-                            <FileText />
-                            Ver formulario
-                        </Button>
-                    </Link>
-                )}
+                <div className="flex flex-wrap items-center gap-2">
+                    {patient.intakeForm?.appointmentId && (
+                        <Link
+                            href={`/admin/formularios/${patient.intakeForm.appointmentId}`}
+                        >
+                            <Button variant="outline" size="sm">
+                                <FileText />
+                                Ver formulario
+                            </Button>
+                        </Link>
+                    )}
+                    {canCreateAppointment && (
+                        <NewManualAppointmentDialog
+                            psychologists={psychologists.map(p => ({
+                                id: p.id,
+                                name: p.name,
+                                offeredSessionTypes: p.offeredSessionTypes,
+                            }))}
+                            rates={rates}
+                            commissionRates={commissionRates}
+                            initialPatientName={patient.name}
+                            initialPatientEmail={patient.email}
+                            triggerLabel="Agendar cita"
+                        />
+                    )}
+                </div>
             </div>
 
             <div className="rounded-lg border border-border bg-card p-4">

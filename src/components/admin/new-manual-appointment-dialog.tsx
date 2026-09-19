@@ -72,11 +72,20 @@ export function NewManualAppointmentDialog({
     psychologists,
     rates,
     commissionRates,
+    initialPatientName,
+    initialPatientEmail,
+    triggerLabel = "Nueva cita manual",
 }: {
     psychologists: PsychologistOption[];
     rates: { currency: string; kind: RateKind; amount: number }[];
     commissionRates: PayoutSettings;
+    /** Locks the patient fields to an existing patient (e.g. from their
+     * detail page in /admin/clientes) instead of leaving them free-text. */
+    initialPatientName?: string;
+    initialPatientEmail?: string;
+    triggerLabel?: string;
 }) {
+    const lockedToPatient = Boolean(initialPatientName && initialPatientEmail);
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -99,8 +108,8 @@ export function NewManualAppointmentDialog({
     } = useForm<FormValues>({
         defaultValues: {
             psychologistId: "",
-            patientName: "",
-            patientEmail: "",
+            patientName: initialPatientName ?? "",
+            patientEmail: initialPatientEmail ?? "",
             date: "",
             time: "",
             timezone: "America/Bogota",
@@ -206,7 +215,7 @@ export function NewManualAppointmentDialog({
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger render={<Button className="gap-2" />}>
                 <PlusIcon className="size-4" />
-                Nueva cita manual
+                {triggerLabel}
             </DialogTrigger>
             <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
@@ -458,6 +467,7 @@ export function NewManualAppointmentDialog({
                             </Label>
                             <Input
                                 id="patientName"
+                                readOnly={lockedToPatient}
                                 {...register("patientName", { required: true })}
                             />
                             {errors.patientName && (
@@ -473,6 +483,7 @@ export function NewManualAppointmentDialog({
                             <Input
                                 id="patientEmail"
                                 type="email"
+                                readOnly={lockedToPatient}
                                 {...register("patientEmail", {
                                     required: true,
                                 })}
