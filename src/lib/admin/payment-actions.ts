@@ -284,6 +284,21 @@ export async function voidPayment(paymentId: string): Promise<ActionResult> {
             };
         }
 
+        if (payment.stripeCheckoutSessionId) {
+            try {
+                const session = await stripe.checkout.sessions.retrieve(
+                    payment.stripeCheckoutSessionId,
+                );
+                if (session.status === "open") {
+                    await stripe.checkout.sessions.expire(
+                        payment.stripeCheckoutSessionId,
+                    );
+                }
+            } catch (stripeErr) {
+                console.error("Failed to expire Stripe checkout session", stripeErr);
+            }
+        }
+
         await prisma.payment.update({
             where: { id: paymentId },
             data: { status: "VOIDED" },
