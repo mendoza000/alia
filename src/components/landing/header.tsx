@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu, User } from "lucide-react";
+import { LogIn, Menu, User } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -96,71 +96,86 @@ export function Header() {
                     </Button>
                 </div>
 
-                {/* Mobile nav */}
-                <Sheet>
-                    <SheetTrigger
+                {/* Mobile nav — the login/account affordance sits right next
+                 * to the menu trigger instead of only inside the sheet, so
+                 * it's reachable without opening the menu first. */}
+                <div className="flex items-center gap-1 md:hidden">
+                    <Button
+                        nativeButton={false}
+                        variant="ghost"
+                        size="icon"
                         render={
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="md:hidden"
-                            />
+                            <Link href={session?.user ? "/mi-cuenta" : "/iniciar-sesion"} />
                         }
                     >
-                        <Menu className="size-5" />
-                        <span className="sr-only">Menú</span>
-                    </SheetTrigger>
-                    <SheetContent side="right" className="w-72 p-6">
-                        <SheetTitle>
-                            <Image
-                                src="/logo-alia.png"
-                                alt="ALIA"
-                                width={120}
-                                height={120}
-                                className="h-14 w-auto"
-                            />
-                        </SheetTitle>
-                        <nav className="mt-8 flex flex-col gap-4 border-t border-accent/20 pt-6">
-                            {navLinks.map(link => (
-                                <SheetClose key={link.href}>
-                                    <a
-                                        href={link.href}
-                                        className="relative text-base text-muted-foreground transition-all hover:text-foreground after:absolute after:-bottom-1 after:left-0 after:h-[1.5px] after:w-0 after:bg-accent after:transition-all after:duration-300 hover:after:w-full"
-                                    >
-                                        {link.label}
-                                    </a>
-                                </SheetClose>
-                            ))}
-                            {session?.user ? (
-                                <SheetClose>
-                                    <Link
-                                        href="/mi-cuenta"
-                                        className="flex items-center gap-2 text-base text-muted-foreground transition-all hover:text-foreground"
-                                    >
-                                        <User className="size-4" />
-                                        Mi cuenta
-                                    </Link>
-                                </SheetClose>
-                            ) : (
-                                <SheetClose>
-                                    <Link
-                                        href="/iniciar-sesion"
-                                        className="relative text-base text-muted-foreground transition-all hover:text-foreground"
-                                    >
-                                        Iniciar sesión
-                                    </Link>
-                                </SheetClose>
-                            )}
-                            <Button
-                                nativeButton={false}
-                                className="mt-4 rounded-full bg-accent text-accent-foreground transition-all hover:scale-[1.02] hover:bg-accent/80"
-                                render={<Link href="/agendar" />}
-                            >
-                                Agenda tu sesión
-                            </Button>
-                        </nav>
-                    </SheetContent>
-                </Sheet>
+                        {session?.user ? (
+                            <User className="size-5" />
+                        ) : (
+                            <LogIn className="size-5" />
+                        )}
+                        <span className="sr-only">
+                            {session?.user ? "Mi cuenta" : "Iniciar sesión"}
+                        </span>
+                    </Button>
+                    <Sheet>
+                        <SheetTrigger
+                            render={<Button variant="ghost" size="icon" />}
+                        >
+                            <Menu className="size-5" />
+                            <span className="sr-only">Menú</span>
+                        </SheetTrigger>
+                        <SheetContent side="right" className="w-72 p-6">
+                            <SheetTitle>
+                                <Image
+                                    src="/logo-alia.png"
+                                    alt="ALIA"
+                                    width={120}
+                                    height={120}
+                                    className="h-14 w-auto"
+                                />
+                            </SheetTitle>
+                            <nav className="mt-8 flex flex-col gap-4 border-t border-accent/20 pt-6">
+                                {navLinks.map(link => (
+                                    <SheetClose key={link.href}>
+                                        <a
+                                            href={link.href}
+                                            className="relative text-base text-muted-foreground transition-all hover:text-foreground after:absolute after:-bottom-1 after:left-0 after:h-[1.5px] after:w-0 after:bg-accent after:transition-all after:duration-300 hover:after:w-full"
+                                        >
+                                            {link.label}
+                                        </a>
+                                    </SheetClose>
+                                ))}
+                                {session?.user ? (
+                                    <SheetClose>
+                                        <Link
+                                            href="/mi-cuenta"
+                                            className="flex items-center gap-2 text-base text-muted-foreground transition-all hover:text-foreground"
+                                        >
+                                            <User className="size-4" />
+                                            Mi cuenta
+                                        </Link>
+                                    </SheetClose>
+                                ) : (
+                                    <SheetClose>
+                                        <Link
+                                            href="/iniciar-sesion"
+                                            className="relative text-base text-muted-foreground transition-all hover:text-foreground"
+                                        >
+                                            Iniciar sesión
+                                        </Link>
+                                    </SheetClose>
+                                )}
+                                <Button
+                                    nativeButton={false}
+                                    className="mt-4 rounded-full bg-accent text-accent-foreground transition-all hover:scale-[1.02] hover:bg-accent/80"
+                                    render={<Link href="/agendar" />}
+                                >
+                                    Agenda tu sesión
+                                </Button>
+                            </nav>
+                        </SheetContent>
+                    </Sheet>
+                </div>
             </div>
         </header>
     );
