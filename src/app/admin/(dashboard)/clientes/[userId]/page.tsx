@@ -61,6 +61,16 @@ export default async function ClienteDetailPage({ params }: Props) {
     const dateOfBirth =
         typeof formData?.dateOfBirth === "string" ? formData.dateOfBirth : "";
 
+    // /admin/formularios/[appointmentId] reads the form by the appointment's
+    // userId, not by this exact appointment — any of the patient's
+    // appointments works. intakeForm.appointmentId (the one that originally
+    // created it) goes null (onDelete: SetNull) once that appointment is
+    // hard-deleted (deleteAppointment, cancelled sessions only), even though
+    // the form itself and its data are untouched — fall back to any other
+    // appointment instead of hiding the button.
+    const formAppointmentId =
+        patient.intakeForm?.appointmentId ?? patient.appointments[0]?.id;
+
     return (
         <div className="space-y-6">
             <Link
@@ -84,9 +94,9 @@ export default async function ClienteDetailPage({ params }: Props) {
                     </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                    {patient.intakeForm?.appointmentId && (
+                    {patient.intakeForm && formAppointmentId && (
                         <Link
-                            href={`/admin/formularios/${patient.intakeForm.appointmentId}`}
+                            href={`/admin/formularios/${formAppointmentId}`}
                         >
                             <Button variant="outline" size="sm">
                                 <FileText />
