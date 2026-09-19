@@ -4,13 +4,26 @@ import { headers } from "next/headers";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { TZDate } from "@date-fns/tz";
-import { CalendarPlusIcon, CheckCircle2Icon } from "lucide-react";
+import { CalendarPlusIcon, CheckIcon } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { CARACAS_TZ, getSessionDuration } from "@/lib/availability";
 import { prisma } from "@/lib/db";
 import { getPublicDisplayRate } from "@/lib/admin/payment-rate-queries";
 import { BookingStepper } from "@/components/booking/booking-stepper";
 import { BookingConfirmedTracker } from "@/components/analytics/booking-confirmed-tracker";
+import {
+    Avatar,
+    AvatarImage,
+    AvatarFallback,
+    AvatarBadge,
+} from "@/components/ui/avatar";
+
+function getInitials(name: string) {
+    const parts = name.split(" ").filter(Boolean);
+    if (parts.length === 0) return "";
+    if (parts.length === 1) return parts[0][0].toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
 
 export const metadata: Metadata = {
     title: "Sesión confirmada",
@@ -44,6 +57,7 @@ export default async function ConfirmationPage({
             psychologist: {
                 select: {
                     name: true,
+                    photoUrl: true,
                     sessionDuration: true,
                     coupleSessionDuration: true,
                 },
@@ -92,9 +106,20 @@ export default async function ConfirmationPage({
             <BookingStepper currentStep={4} />
 
             <div className="rounded-lg bg-card p-8 text-center ring-1 ring-border/50">
-                <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-accent/20">
-                    <CheckCircle2Icon className="size-8 text-accent" />
-                </div>
+                <Avatar size="lg" className="mx-auto mb-4 size-16">
+                    {appointment.psychologist.photoUrl && (
+                        <AvatarImage
+                            src={appointment.psychologist.photoUrl}
+                            alt={appointment.psychologist.name}
+                        />
+                    )}
+                    <AvatarFallback className="text-lg">
+                        {getInitials(appointment.psychologist.name)}
+                    </AvatarFallback>
+                    <AvatarBadge className="size-6 bg-accent text-accent-foreground">
+                        <CheckIcon className="size-3.5" />
+                    </AvatarBadge>
+                </Avatar>
                 <h2 className="font-heading text-2xl font-bold">
                     ¡Sesión confirmada!
                 </h2>
