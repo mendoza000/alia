@@ -1,17 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { TZDate } from "@date-fns/tz";
 import { toast } from "sonner";
 import { rescheduleMyAppointment } from "@/lib/patient/appointment-actions";
-import { CARACAS_TZ, toCaracasDate } from "@/lib/availability";
+import { getMonthAvailability } from "@/app/(landing)/psicologos/[slug]/actions";
+import {
+    CARACAS_TZ,
+    MIN_RESCHEDULE_NOTICE_MINUTES,
+    toCaracasDate,
+    type MonthAvailability,
+} from "@/lib/availability";
 import { formatInTimezone, matchTimezoneOption } from "@/lib/timezones";
+import { AvailabilityCalendar } from "@/components/availability/availability-calendar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
     Dialog,
     DialogContent,
@@ -22,6 +27,34 @@ import {
     DialogClose,
 } from "@/components/ui/dialog";
 
+/** A slot the booking flow would offer (>= 2h lead) can still be too soon
+ * for a reschedule (>= 24h notice) — downgrades days whose slots don't
+ * clear that bar instead of showing them as pickable then rejecting them
+ * server-side. */
+function withMinNotice(
+    availability: MonthAvailability,
+    minNoticeMinutes: number,
+): MonthAvailability {
+    const cutoff = new Date(Date.now() + minNoticeMinutes * 60 * 1000);
+    const result: MonthAvailability = {};
+    for (const [dateStr, day] of Object.entries(availability)) {
+        const slots = day.slots.filter(
+            slot => toCaracasDate(dateStr, slot.start) >= cutoff,
+        );
+        result[dateStr] = {
+            ...day,
+            slots,
+            status:
+                slots.length > 0
+                    ? day.status
+                    : day.status === "available"
+                      ? "fully_booked"
+                      : day.status,
+        };
+    }
+    return result;
+}
+
 /**
  * Patient-facing counterpart to the admin's RescheduleAppointmentDialog —
  * same date/time picker and preview, but no "¿Es una excepción?" toggle
@@ -30,6 +63,7 @@ import {
  */
 export function RescheduleAppointmentDialog({
     appointmentId,
+    psychologistId,
     psychologistName,
     currentDateTime,
     patientTimezone,
@@ -37,6 +71,7 @@ export function RescheduleAppointmentDialog({
     onOpenChange,
 }: {
     appointmentId: string;
+    psychologistId: string;
     psychologistName: string;
     currentDateTime: Date;
     patientTimezone: string | null;
@@ -45,13 +80,35 @@ export function RescheduleAppointmentDialog({
 }) {
     const router = useRouter();
     const tz = patientTimezone ?? CARACAS_TZ;
-    const [date, setDate] = useState(() =>
-        format(new TZDate(currentDateTime, CARACAS_TZ), "yyyy-MM-dd"),
-    );
-    const [time, setTime] = useState(() =>
-        format(new TZDate(currentDateTime, CARACAS_TZ), "HH:mm"),
-    );
+    const [date, setDate] = useState("");
+    const [time, setTime] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [availability, setAvailability] = useState<{
+        year: number;
+        month: number;
+        data: MonthAvailability;
+    } | null>(null);
+
+    useEffect(() => {
+        if (!open) return;
+        setDate("");
+        setTime("");
+        let cancelled = false;
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth() + 1;
+        getMonthAvailability(psychologistId, year, month).then(data => {
+            if (cancelled) return;
+            setAvailability({
+                year,
+                month,
+                data: withMinNotice(data, MIN_RESCHEDULE_NOTICE_MINUTES),
+            });
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, [open, psychologistId]);
 
     const psychologistPreview =
         date && time
@@ -85,7 +142,7 @@ export function RescheduleAppointmentDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
+            <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>Reagendar sesión</DialogTitle>
                     <DialogDescription>
@@ -96,26 +153,42 @@ export function RescheduleAppointmentDialog({
                 </DialogHeader>
 
                 <div className="grid gap-4">
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <div className="grid gap-1.5">
-                            <Label htmlFor="my-reschedule-date">Fecha</Label>
-                            <Input
-                                id="my-reschedule-date"
-                                type="date"
-                                value={date}
-                                onChange={e => setDate(e.target.value)}
-                            />
-                        </div>
-                        <div className="grid gap-1.5">
-                            <Label htmlFor="my-reschedule-time">Hora</Label>
-                            <Input
-                                id="my-reschedule-time"
-                                type="time"
-                                value={time}
-                                onChange={e => setTime(e.target.value)}
-                            />
-                        </div>
-                    </div>
+                    <p className="text-sm text-muted-foreground">
+                        Sesión actual:{" "}
+                        <span className="font-medium text-foreground">
+                            {format(
+                                new TZDate(currentDateTime, CARACAS_TZ),
+                                "EEEE d 'de' MMMM, HH:mm",
+                                { locale: es },
+                            )}
+                        </span>
+                    </p>
+
+                    {availability ? (
+                        <AvailabilityCalendar
+                            fetchMonth={(y, m) =>
+                                getMonthAvailability(psychologistId, y, m).then(
+                                    data =>
+                                        withMinNotice(
+                                            data,
+                                            MIN_RESCHEDULE_NOTICE_MINUTES,
+                                        ),
+                                )
+                            }
+                            initialAvailability={availability.data}
+                            initialYear={availability.year}
+                            initialMonth={availability.month}
+                            patientTimezone={tz}
+                            onSlotSelect={(d, t) => {
+                                setDate(d);
+                                setTime(t);
+                            }}
+                        />
+                    ) : (
+                        <p className="text-sm text-muted-foreground">
+                            Cargando disponibilidad...
+                        </p>
+                    )}
 
                     {(psychologistPreview || patientPreview) && (
                         <div className="grid gap-1.5 rounded-md border border-border bg-secondary/40 px-3 py-2 text-sm">

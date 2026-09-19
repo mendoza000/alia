@@ -73,6 +73,7 @@ export function AppointmentCard({
                 {appointment.status === "CONFIRMED" && (
                     <RescheduleAppointmentButton
                         appointmentId={appointment.id}
+                        psychologistId={appointment.psychologistId}
                         psychologistName={appointment.psychologist.name}
                         currentDateTime={appointment.dateTime}
                         patientTimezone={appointment.timezone}

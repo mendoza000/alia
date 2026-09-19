@@ -6,11 +6,13 @@ import { RescheduleAppointmentDialog } from "@/components/patient/reschedule-app
 
 export function RescheduleAppointmentButton({
     appointmentId,
+    psychologistId,
     psychologistName,
     currentDateTime,
     patientTimezone,
 }: {
     appointmentId: string;
+    psychologistId: string;
     psychologistName: string;
     currentDateTime: Date;
     patientTimezone: string | null;
@@ -24,6 +26,7 @@ export function RescheduleAppointmentButton({
             </Button>
             <RescheduleAppointmentDialog
                 appointmentId={appointmentId}
+                psychologistId={psychologistId}
                 psychologistName={psychologistName}
                 currentDateTime={currentDateTime}
                 patientTimezone={patientTimezone}
